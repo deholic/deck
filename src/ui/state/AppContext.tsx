@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { Account } from "../../domain/types";
 import type { AccountStore } from "../../services/AccountStore";
 import type { MastodonApi } from "../../services/MastodonApi";
@@ -48,6 +48,12 @@ export const AppProvider = ({ services, children }: { services: AppServices; chi
   const [activeAccountId, setActiveAccountId] = useState<string | null>(
     accounts[0]?.id ?? null
   );
+
+  useEffect(() => {
+    if (accounts.length > 0) {
+      services.accountStore.save(accounts);
+    }
+  }, [accounts, services.accountStore]);
 
   const persist = useCallback(
     (next: Account[]) => {
