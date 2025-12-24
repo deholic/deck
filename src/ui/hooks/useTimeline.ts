@@ -1,0 +1,129 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { Account, Status } from "../../domain/types";
+import type { MastodonApi } from "../../services/MastodonApi";
+import type { StreamingClient } from "../../services/StreamingClient";
+
+const mergeStatus = (items: Status[], next: Status): Status[] => {
+  const index = items.findIndex((item) => item.id === next.id);
+  if (index >= 0) {
+    const copy = [...items];
+    copy[index] = next;
+    return copy;
+  }
+  return [next, ...items];
+};
+
+const replaceStatus = (items: Status[], next: Status): Status[] => {
+  let updated = false;
+  const copy = items.map((item) => {
+    if (item.id === next.id) {
+      updated = true;
+      return next;
+    }
+    if (item.reblog && item.reblog.id === next.id) {
+      updated = true;
+      return { ...item, reblog: next };
+    }
+    return item;
+  });
+  return updated ? copy : items;
+};
+
+const appendStatuses = (items: Status[], next: Status[]): Status[] => {
+  const existing = new Set(items.map((item) => item.id));
+  const filtered = next.filter((item) => !existing.has(item.id));
+  return [...items, ...filtered];
+};
+
+export const useTimeline = (params: {
+  account: Account | null;
+  api: MastodonApi;
+  streaming: StreamingClient;
+}) => {
+  const { account, api, streaming } = params;
+  const [items, setItems] = useState<Status[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const disconnectRef = useRef<null | (() => void)>(null);
+
+  const refresh = useCallback(async () => {
+    if (!account) {
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setItems([]);
+    try {
+      const timeline = await api.fetchHomeTimeline(account, 30);
+      setItems(timeline);
+      setHasMore(timeline.length > 0);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "타임라인을 불러오지 못했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  }, [account, api]);
+
+  const loadMore = useCallback(async () => {
+    if (!account || loadingMore || loading) {
+      return;
+    }
+    const lastId = items[items.length - 1]?.id;
+    if (!lastId || !hasMore) {
+      return;
+    }
+    setLoadingMore(true);
+    try {
+      const next = await api.fetchHomeTimeline(account, 20, lastId);
+      setItems((current) => appendStatuses(current, next));
+      if (next.length === 0) {
+        setHasMore(false);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "추가 글을 불러오지 못했습니다.");
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [account, api, hasMore, items, loading, loadingMore]);
+
+  useEffect(() => {
+    if (!account) {
+      setItems([]);
+      setHasMore(false);
+      return;
+    }
+
+    refresh();
+
+    disconnectRef.current?.();
+    disconnectRef.current = streaming.connect(account, (event) => {
+      if (event.type === "update") {
+        setItems((current) => mergeStatus(current, event.status));
+      } else if (event.type === "delete") {
+        setItems((current) => current.filter((item) => item.id !== event.id));
+      }
+    });
+
+    return () => {
+      disconnectRef.current?.();
+      disconnectRef.current = null;
+    };
+  }, [account, refresh, streaming]);
+
+  const updateItem = useCallback((status: Status) => {
+    setItems((current) => replaceStatus(current, status));
+  }, []);
+
+  const removeItem = useCallback((statusId: string) => {
+    setItems((current) => current.filter((item) => item.id !== statusId));
+  }, []);
+
+  const timeline = useMemo(
+    () => ({ items, loading, loadingMore, error, hasMore, refresh, loadMore, updateItem, removeItem }),
+    [items, loading, loadingMore, error, hasMore, refresh, loadMore, updateItem, removeItem]
+  );
+
+  return timeline;
+};
