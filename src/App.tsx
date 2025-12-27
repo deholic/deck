@@ -136,6 +136,7 @@ const TimelineSection = ({
   });
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isAtTop, setIsAtTop] = useState(true);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -147,7 +148,9 @@ const TimelineSection = ({
       if (el.scrollTop >= threshold) {
         timeline.loadMore();
       }
+      setIsAtTop(el.scrollTop <= 0);
     };
+    onScroll();
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       el.removeEventListener("scroll", onScroll);
@@ -217,6 +220,12 @@ const TimelineSection = ({
     }
   };
 
+  const scrollToTop = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
   return (
       <div className="timeline-column">
         <div className="timeline-column-header">
@@ -277,6 +286,19 @@ const TimelineSection = ({
               </div>
             ) : null}
           </div>
+          <button
+            type="button"
+            className="icon-button"
+            onClick={scrollToTop}
+            disabled={isAtTop}
+            aria-label="Scroll to top"
+            title="Scroll to top"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 19V5" />
+              <path d="M5 12l7-7 7 7" />
+            </svg>
+          </button>
           <button
             type="button"
             className="icon-button"

@@ -242,6 +242,11 @@
   gap: 8px;
 }
 
+.account-list li > button:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .account-list li.active button:first-child {
   font-weight: 700;
 }
@@ -300,6 +305,8 @@
 .account-list .ghost {
   font-size: 12px;
   color: #8a6b58;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .account-selector-panel {
