@@ -445,7 +445,8 @@ export const App = () => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
     const state = params.get("state");
-    if (!code) {
+    const session = params.get("session");
+    if (!code && !session) {
       return;
     }
 
@@ -460,23 +461,37 @@ export const App = () => {
       setActionError("OAuth 상태가 유효하지 않습니다. 다시 시도해주세요.");
       return;
     }
+    if (pending.platform === "mastodon" && !code) {
+      clearPendingOAuth();
+      setActionError("OAuth 코드를 받지 못했습니다. 다시 시도해주세요.");
+      return;
+    }
+    if (pending.platform === "misskey") {
+      if (!session) {
+        clearPendingOAuth();
+        setActionError("미스키 세션 정보를 받지 못했습니다. 다시 시도해주세요.");
+        return;
+      }
+      if (session !== pending.sessionId) {
+        clearPendingOAuth();
+        setActionError("미스키 세션 정보가 일치하지 않습니다. 다시 시도해주세요.");
+        return;
+      }
+    }
 
     const addAccountWithToken = async () => {
       setOauthLoading(true);
       setActionError(null);
       try {
-        const accessToken = await services.oauth.exchangeCode({
-          instanceUrl: pending.instanceUrl,
-          clientId: pending.clientId,
-          clientSecret: pending.clientSecret,
-          redirectUri: pending.redirectUri,
-          code,
-          scope: pending.scope
+        const accessToken = await services.oauth.exchangeToken({
+          app: pending,
+          callback: { code, state, session }
         });
         const draft: Account = {
           id: createAccountId(),
           instanceUrl: pending.instanceUrl,
           accessToken,
+          platform: pending.platform,
           name: "",
           displayName: "",
           handle: "",

@@ -1,0 +1,123 @@
+import type { MediaAttachment, Mention, Status, Visibility } from "../domain/types";
+
+const mapVisibility = (visibility: string): Visibility => {
+  switch (visibility) {
+    case "home":
+      return "unlisted";
+    case "followers":
+      return "private";
+    case "specified":
+      return "direct";
+    default:
+      return "public";
+  }
+};
+
+const mapMediaAttachments = (files: unknown): MediaAttachment[] => {
+  if (!Array.isArray(files)) {
+    return [];
+  }
+  return files
+    .map((file) => {
+      if (!file || typeof file !== "object") {
+        return null;
+      }
+      const typed = file as Record<string, unknown>;
+      const id = String(typed.id ?? "");
+      const url = typeof typed.url === "string" ? typed.url : "";
+      const description = typeof typed.comment === "string" ? typed.comment : null;
+      if (!id || !url) {
+        return null;
+      }
+      return { id, url, description };
+    })
+    .filter((file): file is MediaAttachment => file !== null);
+};
+
+const mapMentions = (mentions: unknown): Mention[] => {
+  if (!Array.isArray(mentions)) {
+    return [];
+  }
+  return mentions
+    .map((mention) => {
+      if (!mention || typeof mention !== "object") {
+        return null;
+      }
+      const typed = mention as Record<string, unknown>;
+      const id = String(typed.id ?? "");
+      const username = String(typed.username ?? "");
+      const host = typeof typed.host === "string" ? typed.host : "";
+      const handle = host ? `${username}@${host}` : username;
+      const displayName = String(typed.name ?? username ?? "");
+      const url = typeof typed.url === "string" ? typed.url : null;
+      if (!id || !handle) {
+        return null;
+      }
+      return { id, displayName, handle, url };
+    })
+    .filter((item): item is Mention => item !== null);
+};
+
+const sumReactions = (reactions: unknown): number => {
+  if (!reactions || typeof reactions !== "object") {
+    return 0;
+  }
+  return Object.values(reactions).reduce((acc, value) => {
+    if (typeof value === "number") {
+      return acc + value;
+    }
+    return acc;
+  }, 0);
+};
+
+export const mapMisskeyStatus = (raw: unknown): Status => {
+  const value = raw as Record<string, unknown>;
+  const user = (value.user ?? {}) as Record<string, unknown>;
+  const renoteValue = value.renote as Record<string, unknown> | null | undefined;
+  const renote = renoteValue ? mapMisskeyStatus(renoteValue) : null;
+  const accountName = String(user.name ?? user.username ?? "");
+  const accountHandle = String(user.username ?? "");
+  const accountUrl = typeof user.url === "string" ? user.url : null;
+  const text = String(value.text ?? "");
+  const spoilerText = typeof value.cw === "string" ? value.cw : "";
+  const files = value.files;
+  const mediaAttachments = mapMediaAttachments(files);
+  const isSensitive =
+    typeof value.isSensitive === "boolean"
+      ? value.isSensitive
+      : mediaAttachments.length > 0 &&
+        Array.isArray(files) &&
+        files.some(
+          (file) =>
+            file &&
+            typeof file === "object" &&
+            (file as Record<string, unknown>).isSensitive === true
+        );
+  const reactionsCount =
+    typeof value.reactionCount === "number" ? value.reactionCount : sumReactions(value.reactions);
+  const reblogged = Boolean(value.myRenoteId);
+  const favourited = Boolean(value.isFavorited ?? value.myReaction);
+  return {
+    id: String(value.id ?? ""),
+    createdAt: String(value.createdAt ?? ""),
+    accountName,
+    accountHandle,
+    accountUrl,
+    content: text,
+    url: typeof value.url === "string" ? value.url : typeof value.uri === "string" ? value.uri : null,
+    visibility: mapVisibility(String(value.visibility ?? "public")),
+    spoilerText,
+    sensitive: Boolean(spoilerText) || isSensitive,
+    card: null,
+    repliesCount: Number(value.repliesCount ?? 0),
+    reblogsCount: Number(value.renoteCount ?? 0),
+    favouritesCount: Number(reactionsCount ?? 0),
+    reblogged,
+    favourited,
+    inReplyToId: value.replyId ? String(value.replyId) : null,
+    mentions: mapMentions(value.mentions),
+    mediaAttachments,
+    reblog: renote,
+    boostedBy: renote ? { name: accountName, handle: accountHandle, url: accountUrl } : null
+  };
+};

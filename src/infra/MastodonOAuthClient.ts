@@ -1,11 +1,16 @@
-import type { OAuthClient, RegisteredApp } from "../services/OAuthClient";
+import type {
+  MastodonRegisteredApp,
+  OAuthCallbackParams,
+  OAuthClient,
+  RegisteredApp
+} from "../services/OAuthClient";
 
 const OAUTH_SCOPE = "read write follow";
 
 const normalizeInstanceUrl = (instanceUrl: string): string => instanceUrl.replace(/\/$/, "");
 
 export class MastodonOAuthClient implements OAuthClient {
-  async registerApp(instanceUrl: string, redirectUri: string): Promise<RegisteredApp> {
+  async registerApp(instanceUrl: string, redirectUri: string): Promise<MastodonRegisteredApp> {
     const normalized = normalizeInstanceUrl(instanceUrl);
     const body = new URLSearchParams({
       client_name: "textodon",
@@ -31,6 +36,7 @@ export class MastodonOAuthClient implements OAuthClient {
       throw new Error("앱 등록 정보가 올바르지 않습니다.");
     }
     return {
+      platform: "mastodon",
       instanceUrl: normalized,
       clientId,
       clientSecret,
@@ -39,23 +45,35 @@ export class MastodonOAuthClient implements OAuthClient {
     };
   }
 
-  async exchangeCode(params: {
-    instanceUrl: string;
-    clientId: string;
-    clientSecret: string;
-    redirectUri: string;
-    code: string;
-    scope: string;
-  }): Promise<string> {
+  buildAuthorizeUrl(app: RegisteredApp, state: string): string {
+    if (app.platform !== "mastodon") {
+      throw new Error("마스토돈 OAuth 정보가 필요합니다.");
+    }
+    const authorizeUrl = new URL(`${app.instanceUrl}/oauth/authorize`);
+    authorizeUrl.searchParams.set("client_id", app.clientId);
+    authorizeUrl.searchParams.set("redirect_uri", app.redirectUri);
+    authorizeUrl.searchParams.set("response_type", "code");
+    authorizeUrl.searchParams.set("scope", app.scope);
+    authorizeUrl.searchParams.set("state", state);
+    return authorizeUrl.toString();
+  }
+
+  async exchangeToken(params: { app: RegisteredApp; callback: OAuthCallbackParams }): Promise<string> {
+    if (params.app.platform !== "mastodon") {
+      throw new Error("마스토돈 OAuth 정보가 필요합니다.");
+    }
+    if (!params.callback.code) {
+      throw new Error("OAuth 코드를 찾지 못했습니다.");
+    }
     const body = new URLSearchParams({
-      client_id: params.clientId,
-      client_secret: params.clientSecret,
-      redirect_uri: params.redirectUri,
+      client_id: params.app.clientId,
+      client_secret: params.app.clientSecret,
+      redirect_uri: params.app.redirectUri,
       grant_type: "authorization_code",
-      code: params.code,
-      scope: params.scope
+      code: params.callback.code,
+      scope: params.app.scope
     });
-    const response = await fetch(`${normalizeInstanceUrl(params.instanceUrl)}/oauth/token`, {
+    const response = await fetch(`${normalizeInstanceUrl(params.app.instanceUrl)}/oauth/token`, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded"

@@ -1,9 +1,12 @@
 export type Visibility = "public" | "unlisted" | "private" | "direct";
 
+export type AccountPlatform = "mastodon" | "misskey";
+
 export type Account = {
   id: string;
   instanceUrl: string;
   accessToken: string;
+  platform: AccountPlatform;
   name: string;
   displayName: string;
   handle: string;

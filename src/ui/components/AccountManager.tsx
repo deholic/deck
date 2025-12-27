@@ -46,23 +46,18 @@ export const AccountManager = ({
       url.hash = "";
       const redirectUri = url.toString();
       const cached = loadRegisteredApp(normalizedUrl);
-      const needsRegister = !cached || cached.redirectUri !== redirectUri;
+      const needsRegister = !cached || cached.redirectUri !== redirectUri || cached.platform === "misskey";
       const registered = needsRegister ? await oauth.registerApp(normalizedUrl, redirectUri) : cached;
       if (!registered) {
         throw new Error("앱 등록 정보를 불러오지 못했습니다.");
       }
-      if (needsRegister && registered) {
+      if (needsRegister && registered.platform === "mastodon") {
         saveRegisteredApp(registered);
       }
       const state = createOauthState();
       storePendingOAuth({ ...registered, state });
-      const authorizeUrl = new URL(`${registered.instanceUrl}/oauth/authorize`);
-      authorizeUrl.searchParams.set("client_id", registered.clientId);
-      authorizeUrl.searchParams.set("redirect_uri", registered.redirectUri);
-      authorizeUrl.searchParams.set("response_type", "code");
-      authorizeUrl.searchParams.set("scope", registered.scope);
-      authorizeUrl.searchParams.set("state", state);
-      window.location.assign(authorizeUrl.toString());
+      const authorizeUrl = oauth.buildAuthorizeUrl(registered, state);
+      window.location.assign(authorizeUrl);
     } catch (err) {
       setError(err instanceof Error ? err.message : "OAuth 연결에 실패했습니다.");
     } finally {
