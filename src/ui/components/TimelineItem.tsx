@@ -175,8 +175,29 @@ export const TimelineItem = ({
     () => normalizeHandle(displayStatus.accountHandle, displayStatus.accountUrl),
     [displayStatus.accountHandle, displayStatus.accountUrl, normalizeHandle]
   );
-  const canDelete = Boolean(activeHandle) && displayHandle === activeHandle;
-  const isOwnStatus = Boolean(normalizedActiveHandle) && normalizedActiveHandle === normalizedStatusHandle;
+  const isSameAccount = useMemo(() => {
+    if (!normalizedActiveHandle || !normalizedStatusHandle) {
+      return false;
+    }
+    if (normalizedActiveHandle === normalizedStatusHandle) {
+      return true;
+    }
+    if (
+      !normalizedStatusHandle.includes("@") &&
+      normalizedActiveHandle.startsWith(`${normalizedStatusHandle}@`)
+    ) {
+      return true;
+    }
+    if (
+      !normalizedActiveHandle.includes("@") &&
+      normalizedStatusHandle.startsWith(`${normalizedActiveHandle}@`)
+    ) {
+      return true;
+    }
+    return false;
+  }, [normalizedActiveHandle, normalizedStatusHandle]);
+  const canDelete = isSameAccount;
+  const isOwnStatus = isSameAccount;
   const boostDisabled =
     !displayStatus.reblogged && (isOwnStatus || displayStatus.visibility === "private" || displayStatus.visibility === "direct");
 
