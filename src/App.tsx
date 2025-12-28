@@ -592,7 +592,7 @@ export const App = () => {
     }
     return Boolean(
       element.closest(
-        "button, a, input, textarea, select, label, [role='button'], [contenteditable='true'], [data-interactive='true']"
+        "button, a, input, textarea, select, label, summary, details, [role='button'], [contenteditable='true'], [data-interactive='true']"
       )
     );
   }, []);
