@@ -40,6 +40,7 @@ export type Status = {
   accountName: string;
   accountHandle: string;
   accountUrl: string | null;
+  accountAvatarUrl: string | null;
   content: string;
   url: string | null;
   visibility: Visibility;

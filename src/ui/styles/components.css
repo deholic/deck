@@ -649,6 +649,32 @@ button.ghost {
   gap: 4px;
 }
 
+.status-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f5efe7;
+  border: 1px solid #e2ddd5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.status-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.status-avatar-fallback {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #c9b9a6;
+}
+
 .status-header {
   display: flex;
   justify-content: space-between;
