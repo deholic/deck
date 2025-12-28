@@ -554,15 +554,26 @@ export const TimelineItem = ({
             <h3>게시글 삭제</h3>
             <div className="status confirm-status">
               <header className="status-header">
+                {displayStatus.accountAvatarUrl ? (
+                  <span className="status-avatar" aria-hidden="true">
+                    <img src={displayStatus.accountAvatarUrl} alt="" loading="lazy" />
+                  </span>
+                ) : (
+                  <span className="status-avatar" aria-hidden="true">
+                    <span className="status-avatar-fallback" />
+                  </span>
+                )}
                 <div>
                   <strong>{displayStatus.accountName || displayStatus.accountHandle}</strong>
                   <span>@{displayHandle}</span>
                 </div>
-                <time dateTime={displayStatus.createdAt}>{timestamp}</time>
               </header>
               <p className="status-text confirm-text">
                 {displayStatus.content || "(내용 없음)"}
               </p>
+              <time dateTime={displayStatus.createdAt} className="status-time">
+                {timestamp}
+              </time>
             </div>
             <div className="confirm-actions">
               <button
