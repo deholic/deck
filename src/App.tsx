@@ -113,6 +113,7 @@ const TimelineSection = ({
   onRemoveSection,
   onReply,
   onError,
+  showProfileImage,
   registerTimelineListener,
   unregisterTimelineListener
 }: {
@@ -126,6 +127,7 @@ const TimelineSection = ({
   onRemoveSection: (sectionId: string) => void;
   onReply: (status: Status, account: Account | null) => void;
   onError: (message: string | null) => void;
+  showProfileImage: boolean;
   registerTimelineListener: (accountId: string, listener: (status: Status) => void) => void;
   unregisterTimelineListener: (accountId: string, listener: (status: Status) => void) => void;
 }) => {
@@ -335,6 +337,7 @@ const TimelineSection = ({
                         }
                         activeAccountHandle={account.handle ?? ""}
                         activeAccountUrl={account.url ?? null}
+                        showProfileImage={showProfileImage}
                       />
             ))}
           </div>
@@ -355,6 +358,9 @@ export const App = () => {
       return stored;
     }
     return "small";
+  });
+  const [showProfileImages, setShowProfileImages] = useState(() => {
+    return localStorage.getItem("textodon.profileImages") !== "off";
   });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { services, accountsState } = useAppContext();
@@ -530,6 +536,10 @@ export const App = () => {
     document.documentElement.dataset.sectionSize = sectionSize;
     localStorage.setItem("textodon.sectionSize", sectionSize);
   }, [sectionSize]);
+
+  useEffect(() => {
+    localStorage.setItem("textodon.profileImages", showProfileImages ? "on" : "off");
+  }, [showProfileImages]);
 
   useEffect(() => {
     setSections((current) =>
@@ -744,6 +754,7 @@ export const App = () => {
                       onRemoveSection={removeSection}
                       onReply={handleReply}
                       onError={(message) => setActionError(message || null)}
+                      showProfileImage={showProfileImages}
                       registerTimelineListener={registerTimelineListener}
                       unregisterTimelineListener={unregisterTimelineListener}
                     />
@@ -788,6 +799,20 @@ export const App = () => {
                   type="checkbox"
                   checked={christmasMode}
                   onChange={(event) => setChristmasMode(event.target.checked)}
+                />
+                <span className="slider" aria-hidden="true" />
+              </label>
+            </div>
+            <div className="settings-item">
+              <div>
+                <strong>프로필 이미지 표시</strong>
+                <p>피드에서 사용자 프로필 이미지를 보여줍니다.</p>
+              </div>
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={showProfileImages}
+                  onChange={(event) => setShowProfileImages(event.target.checked)}
                 />
                 <span className="slider" aria-hidden="true" />
               </label>

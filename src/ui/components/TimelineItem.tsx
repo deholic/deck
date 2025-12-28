@@ -12,7 +12,8 @@ export const TimelineItem = ({
   onDelete,
   activeHandle,
   activeAccountHandle,
-  activeAccountUrl
+  activeAccountUrl,
+  showProfileImage
 }: {
   status: Status;
   onReply: (status: Status) => void;
@@ -22,6 +23,7 @@ export const TimelineItem = ({
   activeHandle: string;
   activeAccountHandle: string;
   activeAccountUrl: string | null;
+  showProfileImage: boolean;
 }) => {
   const displayStatus = status.reblog ?? status;
   const boostedBy = status.reblog ? status.boostedBy : null;
@@ -255,8 +257,21 @@ export const TimelineItem = ({
           <span>{mentionNames} 님께 보낸 댓글</span>
         </div>
       ) : null}
-      <header>
-        <div>
+      <header className="status-header-main">
+        {showProfileImage ? (
+          <span className="status-avatar">
+            {displayStatus.accountAvatarUrl ? (
+              <img
+                src={displayStatus.accountAvatarUrl}
+                alt={`${displayStatus.accountName || displayStatus.accountHandle} 프로필 이미지`}
+                loading="lazy"
+              />
+            ) : (
+              <span className="status-avatar-fallback" aria-hidden="true" />
+            )}
+          </span>
+        ) : null}
+        <div className="status-account">
           <strong>
             {displayStatus.accountUrl ? (
               <a href={displayStatus.accountUrl} target="_blank" rel="noreferrer">

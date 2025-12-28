@@ -78,6 +78,7 @@ export const mapMisskeyStatus = (raw: unknown): Status => {
   const accountName = String(user.name ?? user.username ?? "");
   const accountHandle = String(user.username ?? "");
   const accountUrl = typeof user.url === "string" ? user.url : null;
+  const accountAvatarUrl = typeof user.avatarUrl === "string" ? user.avatarUrl : null;
   const text = String(value.text ?? "");
   const spoilerText = typeof value.cw === "string" ? value.cw : "";
   const files = value.files;
@@ -103,6 +104,7 @@ export const mapMisskeyStatus = (raw: unknown): Status => {
     accountName,
     accountHandle,
     accountUrl,
+    accountAvatarUrl,
     content: text,
     url: typeof value.url === "string" ? value.url : typeof value.uri === "string" ? value.uri : null,
     visibility: mapVisibility(String(value.visibility ?? "public")),

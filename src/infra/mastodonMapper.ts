@@ -68,6 +68,7 @@ export const mapStatus = (raw: unknown): Status => {
   const accountName = String(account.display_name ?? account.username ?? "");
   const accountHandle = String(account.acct ?? "");
   const accountUrl = typeof account.url === "string" ? account.url : null;
+  const accountAvatarUrl = typeof account.avatar === "string" ? account.avatar : null;
   const spoilerText = String(value.spoiler_text ?? "").trim();
   const sensitive = Boolean(value.sensitive ?? false);
   const cardValue = value.card as Record<string, unknown> | null | undefined;
@@ -83,6 +84,7 @@ export const mapStatus = (raw: unknown): Status => {
     accountName,
     accountHandle,
     accountUrl,
+    accountAvatarUrl,
     content: htmlToText(String(value.content ?? "")),
     url:
       typeof value.url === "string"
