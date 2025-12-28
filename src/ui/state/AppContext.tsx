@@ -56,15 +56,17 @@ export const AppProvider = ({ services, children }: { services: AppServices; chi
   const [accounts, setAccounts] = useState<Account[]>(() => {
     const loaded = services.accountStore.load();
     const normalized = loaded.map((account) => {
+      const platform = account.platform ?? "mastodon";
       if (account.displayName && account.handle) {
         const fullHandle = formatHandle(account.handle, account.instanceUrl);
-        return { ...account, handle: fullHandle };
+        return { ...account, platform, handle: fullHandle };
       }
       const parsed = account.name ? parseAccountLabel(account.name) : null;
       const displayName = parsed?.displayName || account.name || account.instanceUrl;
       const handle = formatHandle(parsed?.handle || "", account.instanceUrl);
       return {
         ...account,
+        platform,
         displayName,
         handle,
         url: account.url ?? null,
