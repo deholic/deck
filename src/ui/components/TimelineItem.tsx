@@ -14,7 +14,8 @@ export const TimelineItem = ({
   activeAccountHandle,
   activeAccountUrl,
   showProfileImage,
-  showCustomEmojis
+  showCustomEmojis,
+  showReactions
 }: {
   status: Status;
   onReply: (status: Status) => void;
@@ -26,6 +27,7 @@ export const TimelineItem = ({
   activeAccountUrl: string | null;
   showProfileImage: boolean;
   showCustomEmojis: boolean;
+  showReactions: boolean;
 }) => {
   const displayStatus = status.reblog ?? status;
   const boostedBy = status.reblog ? status.boostedBy : null;
@@ -157,6 +159,21 @@ export const TimelineItem = ({
         return null;
     }
   }, [displayStatus.visibility]);
+
+  const formatReactionLabel = useCallback((reaction: Status["reactions"][number]) => {
+    const baseName =
+      reaction.name.startsWith(":") && reaction.name.endsWith(":")
+        ? reaction.name.slice(1, -1)
+        : reaction.name;
+    const trimmed = baseName.replace(/@\.?$/, "");
+    if (!reaction.isCustom) {
+      return trimmed || reaction.name;
+    }
+    if (trimmed.includes("@") || !reaction.host) {
+      return trimmed || reaction.name;
+    }
+    return `${trimmed}@${reaction.host}`;
+  }, []);
   const buildEmojiMap = useCallback((emojis: CustomEmoji[]) => {
     return new Map(emojis.map((emoji) => [emoji.shortcode, emoji.url]));
   }, []);
@@ -322,6 +339,7 @@ export const TimelineItem = ({
   const isOwnStatus = isSameAccount;
   const boostDisabled =
     !displayStatus.reblogged && (isOwnStatus || displayStatus.visibility === "private" || displayStatus.visibility === "direct");
+  const shouldShowReactions = showReactions && displayStatus.reactions.length > 0;
 
   useEffect(() => {
     setShowContent(displayStatus.spoilerText.length === 0);
@@ -500,6 +518,35 @@ export const TimelineItem = ({
           <time dateTime={displayStatus.createdAt}>{timestamp}</time>
         )}
       </div>
+      {shouldShowReactions ? (
+        <div className="status-reactions" aria-label="받은 리액션">
+          {displayStatus.reactions.map((reaction) => {
+            const label = formatReactionLabel(reaction);
+            const isMine = displayStatus.myReaction === reaction.name;
+            return (
+              <span
+                key={reaction.name}
+                className={`status-reaction${isMine ? " is-active" : ""}`}
+                title={`${label} ${reaction.count}회`}
+              >
+                {reaction.url ? (
+                  <img
+                    src={reaction.url}
+                    alt={`${label} 이모지`}
+                    className="status-reaction-emoji"
+                    loading="lazy"
+                  />
+                ) : (
+                  <span className="status-reaction-emoji" aria-hidden="true">
+                    {label}
+                  </span>
+                )}
+                <span className="status-reaction-count">{reaction.count}</span>
+              </span>
+            );
+          })}
+        </div>
+      ) : null}
       <footer>
         <div className="status-actions">
           <button type="button" onClick={() => onReply(displayStatus)}>
@@ -654,10 +701,3 @@ export const TimelineItem = ({
     </article>
   );
 };
-
-
-
-
-
-
-

@@ -1,4 +1,4 @@
-import type { MediaAttachment, Status } from "../domain/types";
+import type { MediaAttachment, Reaction, Status } from "../domain/types";
 
 const htmlToText = (html: string): string => {
   const withBreaks = html
@@ -80,6 +80,66 @@ const mapCustomEmojis = (emojis: unknown): { shortcode: string; url: string }[] 
     .filter((item): item is { shortcode: string; url: string } => item !== null);
 };
 
+const getHostFromUrl = (url: string | null): string | null => {
+  if (!url) {
+    return null;
+  }
+  try {
+    return new URL(url).hostname || null;
+  } catch {
+    return null;
+  }
+};
+
+const mapReactions = (
+  reactions: unknown
+): { reactions: Reaction[]; myReaction: string | null } => {
+  if (!reactions || typeof reactions !== "object") {
+    return { reactions: [], myReaction: null };
+  }
+  const values = Object.values(reactions as Record<string, unknown>);
+  let myReaction: string | null = null;
+
+  const mapped = values
+    .map((item) => {
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+      const typed = item as Record<string, unknown>;
+      const name = typeof typed.name === "string" ? typed.name : "";
+      const count = typeof typed.count === "number" ? typed.count : Number(typed.count ?? 0);
+      const url =
+        (typeof typed.url === "string" ? typed.url : null) ??
+        (typeof typed.static_url === "string" ? typed.static_url : null);
+      const domain = typeof typed.domain === "string" ? typed.domain : null;
+      const isCustom = Boolean(url);
+      const host = domain || getHostFromUrl(url);
+      const me = typed.me === true;
+      if (!name || !Number.isFinite(count) || count <= 0) {
+        return null;
+      }
+      if (me) {
+        myReaction = name;
+      }
+      return {
+        name,
+        count: Math.floor(count),
+        url: isCustom ? url : null,
+        isCustom,
+        host
+      };
+    })
+    .filter((item): item is Reaction => item !== null)
+    .sort((a, b) => {
+      if (a.count === b.count) {
+        return a.name.localeCompare(b.name);
+      }
+      return b.count - a.count;
+    });
+
+  return { reactions: mapped, myReaction };
+};
+
 export const mapStatus = (raw: unknown): Status => {
   const value = raw as Record<string, unknown>;
   const account = (value.account ?? {}) as Record<string, unknown>;
@@ -100,6 +160,7 @@ export const mapStatus = (raw: unknown): Status => {
   const hasCardData = Boolean(cardTitle && cardTitle !== cardUrl) || Boolean(cardDescription || cardImage);
   const customEmojis = mapCustomEmojis(value.emojis);
   const accountEmojis = mapCustomEmojis(account.emojis);
+  const { reactions, myReaction } = mapReactions(value.reactions);
   return {
     id: String(value.id ?? ""),
     createdAt: String(value.created_at ?? ""),
@@ -128,6 +189,7 @@ export const mapStatus = (raw: unknown): Status => {
     repliesCount: Number(value.replies_count ?? 0),
     reblogsCount: Number(value.reblogs_count ?? 0),
     favouritesCount: Number(value.favourites_count ?? 0),
+    reactions,
     reblogged: Boolean(value.reblogged ?? false),
     favourited: Boolean(value.favourited ?? false),
     inReplyToId: value.in_reply_to_id ? String(value.in_reply_to_id) : null,
@@ -135,7 +197,7 @@ export const mapStatus = (raw: unknown): Status => {
     mediaAttachments: mapMediaAttachments(value.media_attachments),
     reblog,
     boostedBy: reblog ? { name: accountName, handle: accountHandle, url: accountUrl } : null,
-    myReaction: null,
+    myReaction,
     customEmojis,
     accountEmojis
   };

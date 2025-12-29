@@ -467,6 +467,17 @@ body[data-theme="christmas"] .status-warning-text {
     color: #cf8c8c;
   }
 
+  .status-reaction {
+    color: #e9dfd2;
+    border-color: #5a4f45;
+  }
+
+  .status-reaction.is-active {
+    background: #2c2722;
+    border-color: #6f5c47;
+    color: #fff7ec;
+  }
+
   .status-header {
     color: #c4b6a6;
   }

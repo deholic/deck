@@ -757,6 +757,52 @@ button.ghost {
   text-decoration: none;
 }
 
+.status-reactions {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.status-reaction {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 12px;
+  background: transparent;
+  color: #231b16;
+  border: 1px solid #8a7b6a;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.status-reaction.is-active {
+  background: #3f3731;
+  border-color: #2c2621;
+  color: #f5efe7;
+}
+
+.status-reaction-emoji {
+  font-size: 18px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-reaction img {
+  max-height: 20px;
+  height: auto;
+  width: auto;
+  object-fit: contain;
+}
+
+.status-reaction-count {
+  font-weight: 600;
+}
+
 .visibility-icon {
   width: 14px;
   height: 14px;
