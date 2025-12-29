@@ -145,6 +145,13 @@ body[data-theme="christmas"] .status-warning-text {
   color: #7b3f3f;
 }
 
+:root[data-theme="christmas"] .compose-icon-button,
+body[data-theme="christmas"] .compose-icon-button {
+  background: #f3e4dc;
+  color: #7b3f3f;
+  border-color: #ead7cc;
+}
+
 :root[data-theme="christmas"] .boosted-by {
   color: #2e6b4f;
 }
@@ -514,10 +521,73 @@ body[data-theme="christmas"] .status-warning-text {
     color: #e1e7f4;
   }
 
+  .compose-icon-button {
+    background: #2c3b59;
+    color: #e1e7f4;
+    border-color: #3b342d;
+  }
+
   :root[data-theme="christmas"] .file-button,
   body[data-theme="christmas"] .file-button {
     background: #2a1b19;
     color: #f7e7df;
+  }
+
+  :root[data-theme="christmas"] .compose-icon-button,
+  body[data-theme="christmas"] .compose-icon-button {
+    background: #2a1b19;
+    color: #f7e7df;
+    border-color: #3b2624;
+  }
+
+  .compose-emoji-panel {
+    background: #1b1916;
+    border-color: #3b342d;
+  }
+
+  :root[data-theme="christmas"] .compose-emoji-panel,
+  body[data-theme="christmas"] .compose-emoji-panel {
+    background: #201412;
+    border-color: #3b2624;
+  }
+
+  .compose-emoji-category-toggle {
+    background: #2a2622;
+    color: #f0e7dc;
+    border-color: #3b342d;
+  }
+
+  :root[data-theme="christmas"] .compose-emoji-category-toggle,
+  body[data-theme="christmas"] .compose-emoji-category-toggle {
+    background: #2a1b19;
+    color: #f7e7df;
+    border-color: #3b2624;
+  }
+
+  .compose-emoji-count {
+    background: #2c3b59;
+    color: #e1e7f4;
+  }
+
+  :root[data-theme="christmas"] .compose-emoji-count,
+  body[data-theme="christmas"] .compose-emoji-count {
+    background: #3b2624;
+    color: #f7e7df;
+  }
+
+  .compose-emoji-button {
+    background: #221f1b;
+    border-color: #3b342d;
+  }
+
+  :root[data-theme="christmas"] .compose-emoji-button,
+  body[data-theme="christmas"] .compose-emoji-button {
+    background: #1a100f;
+    border-color: #3b2624;
+  }
+
+  .compose-emoji-empty {
+    color: #c4b6a6;
   }
 
   .link-preview {

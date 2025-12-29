@@ -470,6 +470,85 @@
   font-family: inherit;
 }
 
+.compose-icon-button {
+  background: #e1e7f4;
+  color: #1e2b45;
+  border: 1px solid #d8d1c7;
+}
+
+.compose-icon-button:disabled {
+  opacity: 0.5;
+}
+
+.compose-emoji-panel {
+  margin-top: 12px;
+  border: 1px solid #e2ddd5;
+  border-radius: 12px;
+  background: #fffdfa;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 240px;
+  overflow: auto;
+}
+
+.compose-emoji-empty {
+  font-size: 12px;
+  color: #6c5c4b;
+  margin: 0;
+}
+
+.compose-emoji-category {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.compose-emoji-category-toggle {
+  background: #f3efe7;
+  color: #1e2b45;
+  border: 1px solid #e2ddd5;
+  border-radius: 10px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.compose-emoji-count {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #d7e0f2;
+  color: #1e2b45;
+}
+
+.compose-emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+  gap: 6px;
+}
+
+.compose-emoji-button {
+  width: 36px;
+  height: 36px;
+  padding: 4px;
+  border-radius: 8px;
+  background: #f3f0e9;
+  border: 1px solid #e2ddd5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.compose-emoji-button img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 button {
   font-family: inherit;
   background: #3b5fa8;
@@ -679,10 +758,16 @@ button.ghost {
 }
 
 .custom-emoji {
-  width: 18px;
-  height: 18px;
-  vertical-align: -0.2em;
+  width: auto;
+  height: 1.5em;
+  vertical-align: -0.25em;
   display: inline-block;
+  transition: transform 0.15s ease;
+  transform-origin: center;
+}
+
+.custom-emoji:hover {
+  transform: scale(2);
 }
 
 .status-avatar {
@@ -954,11 +1039,12 @@ button.ghost {
   background: #e1e7f4;
   color: #1e2b45;
   border-radius: 10px;
-  padding: 8px 12px;
+  padding: 0;
   cursor: pointer;
   font-size: 13px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
 }
 
 .file-button input {

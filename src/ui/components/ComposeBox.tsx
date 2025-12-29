@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Visibility } from "../../domain/types";
+import type { Account, CustomEmoji, Visibility } from "../../domain/types";
+import type { MastodonApi } from "../../services/MastodonApi";
 
 const VISIBILITY_KEY = "textodon.compose.visibility";
 
@@ -10,12 +11,45 @@ const visibilityOptions: { value: Visibility; label: string }[] = [
   { value: "direct", label: "DM" }
 ];
 
+const RECENT_EMOJI_KEY_PREFIX = "textodon.compose.recentEmojis.";
+const RECENT_EMOJI_LIMIT = 24;
+const ZERO_WIDTH_SPACE = "\u200b";
+
+const buildRecentEmojiKey = (instanceUrl: string) =>
+  `${RECENT_EMOJI_KEY_PREFIX}${encodeURIComponent(instanceUrl)}`;
+
+const loadRecentEmojis = (instanceUrl: string): string[] => {
+  try {
+    const stored = localStorage.getItem(buildRecentEmojiKey(instanceUrl));
+    if (!stored) {
+      return [];
+    }
+    const parsed = JSON.parse(stored) as unknown;
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed.filter((item) => typeof item === "string");
+  } catch {
+    return [];
+  }
+};
+
+const persistRecentEmojis = (instanceUrl: string, list: string[]) => {
+  try {
+    localStorage.setItem(buildRecentEmojiKey(instanceUrl), JSON.stringify(list));
+  } catch {
+    return;
+  }
+};
+
 export const ComposeBox = ({
   onSubmit,
   replyingTo,
   onCancelReply,
   mentionText,
-  accountSelector
+  accountSelector,
+  account,
+  api
 }: {
   onSubmit: (params: {
     text: string;
@@ -27,6 +61,8 @@ export const ComposeBox = ({
   onCancelReply: () => void;
   mentionText: string | null;
   accountSelector?: React.ReactNode;
+  account: Account | null;
+  api: MastodonApi;
 }) => {
   const [text, setText] = useState("");
   const [visibility, setVisibility] = useState<Visibility>(() => {
@@ -46,13 +82,55 @@ export const ComposeBox = ({
   const [isDragging, setIsDragging] = useState(false);
   const imageContainerRef = useRef<HTMLDivElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const dragStateRef = useRef<{ startX: number; startY: number; originX: number; originY: number } | null>(
     null
   );
+  const [emojiPanelOpen, setEmojiPanelOpen] = useState(false);
+  const [emojiCatalogs, setEmojiCatalogs] = useState<Record<string, CustomEmoji[]>>({});
+  const [emojiLoadState, setEmojiLoadState] = useState<
+    Record<string, "idle" | "loading" | "loaded" | "error">
+  >({});
+  const [emojiErrors, setEmojiErrors] = useState<Record<string, string | null>>({});
+  const [recentByInstance, setRecentByInstance] = useState<Record<string, string[]>>({});
+  const [expandedByInstance, setExpandedByInstance] = useState<Record<string, Set<string>>>({});
+  const [recentOpen, setRecentOpen] = useState(true);
   const activeImage = useMemo(
     () => attachments.find((item) => item.id === activeImageId) ?? null,
     [attachments, activeImageId]
   );
+  const activeInstanceUrl = account?.instanceUrl ?? null;
+  const activeEmojis = useMemo(
+    () => (activeInstanceUrl ? emojiCatalogs[activeInstanceUrl] ?? [] : []),
+    [activeInstanceUrl, emojiCatalogs]
+  );
+  const emojiStatus = activeInstanceUrl ? emojiLoadState[activeInstanceUrl] ?? "idle" : "idle";
+  const recentShortcodes = activeInstanceUrl ? recentByInstance[activeInstanceUrl] ?? [] : [];
+  const emojiMap = useMemo(() => new Map(activeEmojis.map((emoji) => [emoji.shortcode, emoji])), [activeEmojis]);
+  const recentEmojis = useMemo(
+    () => recentShortcodes.map((shortcode) => emojiMap.get(shortcode)).filter(Boolean) as CustomEmoji[],
+    [emojiMap, recentShortcodes]
+  );
+  const categorizedEmojis = useMemo(() => {
+    const grouped = new Map<string, CustomEmoji[]>();
+    activeEmojis.forEach((emoji) => {
+      const category = emoji.category?.trim() || "기타";
+      const list = grouped.get(category) ?? [];
+      list.push(emoji);
+      grouped.set(category, list);
+    });
+    return Array.from(grouped.entries())
+      .sort(([a], [b]) => a.localeCompare(b, "ko-KR"))
+      .map(([label, emojis]) => ({ id: `category:${label}`, label, emojis }));
+  }, [activeEmojis]);
+  const emojiCategories = useMemo(() => {
+    const categories = [...categorizedEmojis];
+    if (recentEmojis.length > 0) {
+      categories.unshift({ id: "recent", label: "최근 사용", emojis: recentEmojis });
+    }
+    return categories;
+  }, [categorizedEmojis, recentEmojis]);
+  const expandedCategories = activeInstanceUrl ? expandedByInstance[activeInstanceUrl] ?? new Set() : new Set();
 
   useEffect(() => {
     if (!activeImage) {
@@ -148,6 +226,56 @@ export const ComposeBox = ({
     }
   }, [mentionText]);
 
+  useEffect(() => {
+    if (!activeInstanceUrl) {
+      return;
+    }
+    setRecentByInstance((current) => {
+      if (current[activeInstanceUrl]) {
+        return current;
+      }
+      return { ...current, [activeInstanceUrl]: loadRecentEmojis(activeInstanceUrl) };
+    });
+    setExpandedByInstance((current) => {
+      if (current[activeInstanceUrl]) {
+        return current;
+      }
+      return { ...current, [activeInstanceUrl]: new Set() };
+    });
+  }, [activeInstanceUrl]);
+
+  useEffect(() => {
+    if (!emojiPanelOpen || !activeInstanceUrl || !account) {
+      return;
+    }
+    if (emojiStatus === "loaded") {
+      return;
+    }
+    setEmojiLoadState((current) => ({ ...current, [activeInstanceUrl]: "loading" }));
+    setEmojiErrors((current) => ({ ...current, [activeInstanceUrl]: null }));
+    const load = async () => {
+      try {
+        const emojis = await api.fetchCustomEmojis(account);
+        setEmojiCatalogs((current) => ({ ...current, [activeInstanceUrl]: emojis }));
+        setEmojiLoadState((current) => ({ ...current, [activeInstanceUrl]: "loaded" }));
+      } catch (err) {
+        setEmojiLoadState((current) => ({ ...current, [activeInstanceUrl]: "error" }));
+        setEmojiErrors((current) => ({
+          ...current,
+          [activeInstanceUrl]: err instanceof Error ? err.message : "이모지를 불러오지 못했습니다."
+        }));
+      }
+    };
+    void load();
+  }, [account, activeInstanceUrl, api, emojiPanelOpen, emojiStatus]);
+
+  useEffect(() => {
+    if (!emojiPanelOpen) {
+      return;
+    }
+    setRecentOpen(true);
+  }, [emojiPanelOpen]);
+
   const handleFilesSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? []);
     if (files.length === 0) {
@@ -162,6 +290,57 @@ export const ComposeBox = ({
       }))
     ]);
     event.target.value = "";
+  };
+
+  const insertEmoji = (shortcode: string) => {
+    const value = `${ZERO_WIDTH_SPACE}:${shortcode}:${ZERO_WIDTH_SPACE}`;
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      setText((current) => `${current}${value}`);
+      return;
+    }
+    const start = textarea.selectionStart ?? text.length;
+    const end = textarea.selectionEnd ?? text.length;
+    const next = `${text.slice(0, start)}${value}${text.slice(end)}`;
+    setText(next);
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const nextCursor = start + value.length;
+      textarea.setSelectionRange(nextCursor, nextCursor);
+    });
+  };
+
+  const handleEmojiSelect = (emoji: CustomEmoji) => {
+    if (!activeInstanceUrl) {
+      return;
+    }
+    insertEmoji(emoji.shortcode);
+    setRecentByInstance((current) => {
+      const currentList = current[activeInstanceUrl] ?? [];
+      const filtered = currentList.filter((item) => item !== emoji.shortcode);
+      const nextList = [emoji.shortcode, ...filtered].slice(0, RECENT_EMOJI_LIMIT);
+      persistRecentEmojis(activeInstanceUrl, nextList);
+      return { ...current, [activeInstanceUrl]: nextList };
+    });
+  };
+
+  const toggleCategory = (categoryId: string) => {
+    if (!activeInstanceUrl) {
+      return;
+    }
+    if (categoryId === "recent") {
+      setRecentOpen((current) => !current);
+      return;
+    }
+    setExpandedByInstance((current) => {
+      const next = new Set(current[activeInstanceUrl] ?? []);
+      if (next.has(categoryId)) {
+        next.delete(categoryId);
+      } else {
+        next.add(categoryId);
+      }
+      return { ...current, [activeInstanceUrl]: next };
+    });
   };
 
   const handleDeleteActive = () => {
@@ -195,6 +374,7 @@ export const ComposeBox = ({
       ) : null}
       <form onSubmit={handleSubmit} className="compose-form">
         <textarea
+          ref={textareaRef}
           value={text}
           onChange={(event) => setText(event.target.value)}
           placeholder="지금 무슨 생각을 하고 있나요?"
@@ -237,13 +417,94 @@ export const ComposeBox = ({
             ))}
           </select>
           <div className="compose-actions-right">
-            <label className="file-button">
-              이미지 추가
+            <button
+              type="button"
+              className={`icon-button compose-icon-button${emojiPanelOpen ? " is-active" : ""}`}
+              aria-label="커스텀 이모지 팔렛트 열기"
+              onClick={() => setEmojiPanelOpen((open) => !open)}
+              disabled={!account}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M8.5 10.5h0.01" />
+                <path d="M15.5 10.5h0.01" />
+                <path d="M8.5 15.5c1.2 1 2.4 1.5 3.5 1.5s2.3-.5 3.5-1.5" />
+              </svg>
+            </button>
+            <label className="file-button icon-button compose-icon-button" aria-label="이미지 추가">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="14" rx="2" ry="2" />
+                <circle cx="9" cy="10" r="2" />
+                <path d="M21 16l-5-5-4 4-2-2-5 5" />
+              </svg>
               <input type="file" accept="image/*" multiple onChange={handleFilesSelected} />
             </label>
             <button type="submit">게시</button>
           </div>
         </div>
+        {emojiPanelOpen ? (
+          <div className="compose-emoji-panel" role="region" aria-label="커스텀 이모지 팔렛트">
+            {!account ? <p className="compose-emoji-empty">계정을 선택해주세요.</p> : null}
+            {account && emojiStatus === "loading" ? (
+              <p className="compose-emoji-empty">이모지를 불러오는 중...</p>
+            ) : null}
+            {account && emojiStatus === "error" ? (
+              <div className="compose-emoji-empty">
+                <p>{emojiErrors[activeInstanceUrl ?? ""] ?? "이모지를 불러오지 못했습니다."}</p>
+                <button
+                  type="button"
+                  className="ghost"
+                  onClick={() => {
+                    if (!activeInstanceUrl) {
+                      return;
+                    }
+                    setEmojiLoadState((current) => ({ ...current, [activeInstanceUrl]: "idle" }));
+                  }}
+                >
+                  다시 불러오기
+                </button>
+              </div>
+            ) : null}
+            {account && emojiStatus === "loaded" && emojiCategories.length === 0 ? (
+              <p className="compose-emoji-empty">사용할 수 있는 커스텀 이모지가 없습니다.</p>
+            ) : null}
+            {account && emojiStatus === "loaded"
+              ? emojiCategories.map((category) => {
+                  const categoryKey = `${activeInstanceUrl ?? "unknown"}::${category.id}`;
+                  const isCollapsed =
+                    category.id === "recent" ? !recentOpen : !expandedCategories.has(category.id);
+                  return (
+                    <section key={categoryKey} className="compose-emoji-category">
+                      <button
+                        type="button"
+                        className="compose-emoji-category-toggle"
+                        onClick={() => toggleCategory(category.id)}
+                        aria-expanded={!isCollapsed}
+                      >
+                        <span>{category.label}</span>
+                        <span className="compose-emoji-count">{category.emojis.length}</span>
+                      </button>
+                      {isCollapsed ? null : (
+                        <div className="compose-emoji-grid">
+                          {category.emojis.map((emoji) => (
+                            <button
+                              key={`${category.id}:${emoji.shortcode}`}
+                              type="button"
+                              className="compose-emoji-button"
+                              onClick={() => handleEmojiSelect(emoji)}
+                              aria-label={`이모지 ${emoji.shortcode}`}
+                            >
+                              <img src={emoji.url} alt="" loading="lazy" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </section>
+                  );
+                })
+              : null}
+          </div>
+        ) : null}
       </form>
       {activeImage ? (
         <div

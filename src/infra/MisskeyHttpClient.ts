@@ -1,4 +1,4 @@
-﻿import type { Account, Status } from "../domain/types";
+﻿import type { Account, CustomEmoji, Status } from "../domain/types";
 import type { CreateStatusInput, MastodonApi } from "../services/MastodonApi";
 import { mapMisskeyStatusWithInstance } from "./misskeyMapper";
 
@@ -23,6 +23,49 @@ const buildBody = (account: Account, payload: Record<string, unknown>) => ({
 });
 
 const DEFAULT_REACTION = "👍";
+
+const normalizeEmojiShortcode = (value: string) => value.replace(/^:|:$/g, "");
+
+const mapMisskeyEmojis = (data: unknown): CustomEmoji[] => {
+  let list: unknown[] = [];
+  if (Array.isArray(data)) {
+    list = data;
+  } else if (data && typeof data === "object") {
+    const typed = data as Record<string, unknown>;
+    if (Array.isArray(typed.emojis)) {
+      list = typed.emojis;
+    }
+  }
+  const result: CustomEmoji[] = [];
+  list.forEach((item) => {
+    if (!item || typeof item !== "object") {
+      return;
+    }
+    const typed = item as Record<string, unknown>;
+    const rawShortcode =
+      typeof typed.shortcode === "string"
+        ? typed.shortcode
+        : typeof typed.name === "string"
+          ? typed.name
+          : "";
+    const shortcode = rawShortcode ? normalizeEmojiShortcode(rawShortcode) : "";
+    const url =
+      typeof typed.url === "string"
+        ? typed.url
+        : typeof typed.publicUrl === "string"
+          ? typed.publicUrl
+          : "";
+    if (!shortcode || !url) {
+      return;
+    }
+    result.push({
+      shortcode,
+      url,
+      category: typeof typed.category === "string" ? typed.category : null
+    });
+  });
+  return result;
+};
 
 export class MisskeyHttpClient implements MastodonApi {
   async verifyAccount(
@@ -64,6 +107,27 @@ export class MisskeyHttpClient implements MastodonApi {
     }
     const data = (await response.json()) as unknown[];
     return data.map((item) => mapMisskeyStatusWithInstance(item, account.instanceUrl));
+  }
+
+  async fetchCustomEmojis(account: Account): Promise<CustomEmoji[]> {
+    const url = `${normalizeInstanceUrl(account.instanceUrl)}/api/emojis`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(buildBody(account, {}))
+    });
+    if (!response.ok) {
+      const fallback = await fetch(url);
+      if (!fallback.ok) {
+        throw new Error("이모지를 불러오지 못했습니다.");
+      }
+      const data = (await fallback.json()) as unknown;
+      return mapMisskeyEmojis(data);
+    }
+    const data = (await response.json()) as unknown;
+    return mapMisskeyEmojis(data);
   }
 
   async uploadMedia(account: Account, file: File): Promise<string> {
