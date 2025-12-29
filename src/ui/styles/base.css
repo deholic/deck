@@ -14,6 +14,12 @@
   color: #2d1a16;
 }
 
+:root[data-theme="monochrome"] {
+  background: radial-gradient(circle at top left, #ffffff, #f7f7f7 55%, #f2f2f2);
+  color: #111111;
+  --scrollbar-thumb: #4a4a4a;
+}
+
 :root[data-section-size="small"] {
   --timeline-column-width: 440px;
   --timeline-column-max-width: 520px;
