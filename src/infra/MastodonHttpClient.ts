@@ -1,4 +1,4 @@
-import type { Account, Status } from "../domain/types";
+import type { Account, CustomEmoji, Status } from "../domain/types";
 import type { CreateStatusInput, MastodonApi } from "../services/MastodonApi";
 import { mapStatus } from "./mastodonMapper";
 
@@ -6,6 +6,35 @@ const buildHeaders = (account: Account): HeadersInit => ({
   Authorization: `Bearer ${account.accessToken}`,
   "Content-Type": "application/json"
 });
+
+const mapCustomEmojis = (data: unknown): CustomEmoji[] => {
+  if (!Array.isArray(data)) {
+    return [];
+  }
+  const result: CustomEmoji[] = [];
+  data.forEach((item) => {
+    if (!item || typeof item !== "object") {
+      return;
+    }
+    const typed = item as Record<string, unknown>;
+    const shortcode = typeof typed.shortcode === "string" ? typed.shortcode : "";
+    const url =
+      typeof typed.url === "string"
+        ? typed.url
+        : typeof typed.static_url === "string"
+          ? typed.static_url
+          : "";
+    if (!shortcode || !url) {
+      return;
+    }
+    result.push({
+      shortcode,
+      url,
+      category: typeof typed.category === "string" ? typed.category : null
+    });
+  });
+  return result;
+};
 
 export class MastodonHttpClient implements MastodonApi {
   async verifyAccount(
@@ -39,6 +68,17 @@ export class MastodonHttpClient implements MastodonApi {
     }
     const data = (await response.json()) as unknown[];
     return data.map(mapStatus);
+  }
+
+  async fetchCustomEmojis(account: Account): Promise<CustomEmoji[]> {
+    const response = await fetch(`${account.instanceUrl}/api/v1/custom_emojis`, {
+      headers: buildHeaders(account)
+    });
+    if (!response.ok) {
+      throw new Error("이모지를 불러오지 못했습니다.");
+    }
+    const data = (await response.json()) as unknown;
+    return mapCustomEmojis(data);
   }
 
   async uploadMedia(account: Account, file: File): Promise<string> {

@@ -30,6 +30,7 @@ export type Mention = {
 export type CustomEmoji = {
   shortcode: string;
   url: string;
+  category?: string | null;
 };
 
 export type Reaction = {

@@ -905,6 +905,8 @@ export const App = () => {
             {composeAccount ? (
               <ComposeBox
                 accountSelector={composeAccountSelector}
+                account={composeAccount}
+                api={services.api}
                 onSubmit={handleSubmit}
                 replyingTo={replyTarget ? { id: replyTarget.id, summary: replySummary ?? "" } : null}
                 onCancelReply={() => {
@@ -1034,6 +1036,8 @@ export const App = () => {
             {composeAccount ? (
               <ComposeBox
                 accountSelector={composeAccountSelector}
+                account={composeAccount}
+                api={services.api}
                 onSubmit={handleSubmit}
                 replyingTo={replyTarget ? { id: replyTarget.id, summary: replySummary ?? "" } : null}
                 onCancelReply={() => {

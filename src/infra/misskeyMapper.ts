@@ -58,6 +58,24 @@ const mapMentions = (mentions: unknown): Mention[] => {
     .filter((item): item is Mention => item !== null);
 };
 
+const normalizeEmojiShortcode = (value: string) => value.replace(/^:|:$/g, "");
+
+const resolveEmojiUrl = (typed: Record<string, unknown>): string => {
+  if (typeof typed.url === "string") {
+    return typed.url;
+  }
+  if (typeof typed.publicUrl === "string") {
+    return typed.publicUrl;
+  }
+  if (typeof typed.staticUrl === "string") {
+    return typed.staticUrl;
+  }
+  if (typeof typed.static_url === "string") {
+    return typed.static_url;
+  }
+  return "";
+};
+
 const mapCustomEmojis = (emojis: unknown): { shortcode: string; url: string }[] => {
   if (Array.isArray(emojis)) {
     return emojis
@@ -66,8 +84,14 @@ const mapCustomEmojis = (emojis: unknown): { shortcode: string; url: string }[] 
           return null;
         }
         const typed = emoji as Record<string, unknown>;
-        const shortcode = typeof typed.name === "string" ? typed.name : "";
-        const url = typeof typed.url === "string" ? typed.url : "";
+        const rawShortcode =
+          typeof typed.name === "string"
+            ? typed.name
+            : typeof typed.shortcode === "string"
+              ? typed.shortcode
+              : "";
+        const shortcode = rawShortcode ? normalizeEmojiShortcode(rawShortcode) : "";
+        const url = resolveEmojiUrl(typed);
         if (!shortcode || !url) {
           return null;
         }
@@ -81,7 +105,8 @@ const mapCustomEmojis = (emojis: unknown): { shortcode: string; url: string }[] 
         if (typeof url !== "string") {
           return null;
         }
-        return { shortcode, url };
+        const normalized = normalizeEmojiShortcode(shortcode);
+        return normalized ? { shortcode: normalized, url } : null;
       })
       .filter((item): item is { shortcode: string; url: string } => item !== null);
   }
@@ -90,6 +115,39 @@ const mapCustomEmojis = (emojis: unknown): { shortcode: string; url: string }[] 
 
 const buildEmojiMap = (emojis: CustomEmoji[]): Map<string, string> => {
   return new Map(emojis.map((emoji) => [emoji.shortcode, emoji.url]));
+};
+
+const extractLocalEmojiShortcodes = (text: string): string[] => {
+  const regex = /:([a-zA-Z0-9_+@.-]+):/g;
+  const found = new Set<string>();
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(text)) !== null) {
+    const raw = match[1];
+    if (!raw || raw.includes("@")) {
+      continue;
+    }
+    found.add(normalizeEmojiShortcode(raw));
+  }
+  return Array.from(found);
+};
+
+const buildFallbackEmojis = (text: string, instanceUrl?: string): CustomEmoji[] => {
+  if (!text || !instanceUrl) {
+    return [];
+  }
+  const host = getHostFromInstanceUrl(instanceUrl);
+  if (!host) {
+    return [];
+  }
+  return extractLocalEmojiShortcodes(text)
+    .map((shortcode) => {
+      const url = buildEmojiUrl(shortcode, host, instanceUrl);
+      if (!url) {
+        return null;
+      }
+      return { shortcode, url };
+    })
+    .filter((emoji): emoji is CustomEmoji => emoji !== null);
 };
 
 const getEmojiHost = (url: string | null): string | null => {
@@ -265,7 +323,9 @@ export const mapMisskeyStatusWithInstance = (raw: unknown, instanceUrl?: string)
   const reblogged = Boolean(value.myRenoteId);
   const myReaction = typeof value.myReaction === "string" ? value.myReaction : null;
   const favourited = Boolean(value.isFavorited ?? myReaction);
-  const customEmojis = mapCustomEmojis(value.emojis);
+  const mappedEmojis = mapCustomEmojis(value.emojis);
+  const customEmojis =
+    mappedEmojis.length > 0 ? mappedEmojis : buildFallbackEmojis(text, instanceUrl);
   const reactions = mapReactions(value.reactions, value.reactionEmojis, customEmojis, instanceUrl);
   const accountEmojis = mapCustomEmojis(user.emojis);
   const baseMentions = mapMentions(value.mentions);

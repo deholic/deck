@@ -1,4 +1,5 @@
 import type { Account } from "../domain/types";
+import type { CustomEmoji } from "../domain/types";
 import type { CreateStatusInput, MastodonApi } from "../services/MastodonApi";
 
 export class UnifiedApiClient implements MastodonApi {
@@ -17,6 +18,10 @@ export class UnifiedApiClient implements MastodonApi {
 
   fetchHomeTimeline(account: Account, limit: number, maxId?: string) {
     return this.getClient(account).fetchHomeTimeline(account, limit, maxId);
+  }
+
+  fetchCustomEmojis(account: Account): Promise<CustomEmoji[]> {
+    return this.getClient(account).fetchCustomEmojis(account);
   }
 
   uploadMedia(account: Account, file: File) {

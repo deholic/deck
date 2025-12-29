@@ -179,7 +179,7 @@ export const TimelineItem = ({
   }, []);
 
   const tokenizeWithEmojis = useCallback((text: string, emojiMap: Map<string, string>) => {
-    const regex = /:([a-zA-Z0-9_+-]+):/g;
+    const regex = /:([a-zA-Z0-9_+@.-]+):/g;
     const tokens: Array<{ type: "text"; value: string } | { type: "emoji"; name: string; url: string }> = [];
     let lastIndex = 0;
     let match: RegExpExecArray | null;
