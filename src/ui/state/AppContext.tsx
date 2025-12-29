@@ -98,6 +98,58 @@ export const AppProvider = ({ services, children }: { services: AppServices; chi
     [services.accountStore]
   );
 
+  useEffect(() => {
+    if (accounts.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+    const refreshAccounts = async () => {
+      const refreshed = await Promise.all(
+        accounts.map(async (account) => {
+          try {
+            const verified = await services.api.verifyAccount(account);
+            const handle = formatHandle(verified.handle, account.instanceUrl);
+            const displayName = verified.accountName || handle;
+            return {
+              ...account,
+              name: `${displayName} @${handle}`,
+              displayName,
+              handle,
+              avatarUrl: verified.avatarUrl
+            };
+          } catch {
+            return account;
+          }
+        })
+      );
+      if (cancelled) {
+        return;
+      }
+      const hasChange = refreshed.some((updated) => {
+        const current = accounts.find((account) => account.id === updated.id);
+        if (!current) {
+          return true;
+        }
+        return (
+          current.name !== updated.name ||
+          current.displayName !== updated.displayName ||
+          current.handle !== updated.handle ||
+          current.avatarUrl !== updated.avatarUrl
+        );
+      });
+      if (!hasChange) {
+        return;
+      }
+      persist(refreshed);
+    };
+
+    void refreshAccounts();
+    return () => {
+      cancelled = true;
+    };
+  }, [accounts, persist, services.api]);
+
   const addAccount = useCallback(
     (account: Account) => {
       persist([...accounts, account]);
