@@ -418,10 +418,21 @@ const TimelineSection = ({
   );
 };
 
+type ThemeMode = "default" | "christmas" | "monochrome";
+
+const isThemeMode = (value: string): value is ThemeMode =>
+  value === "default" || value === "christmas" || value === "monochrome";
+
+const getStoredTheme = (): ThemeMode => {
+  const storedTheme = localStorage.getItem("textodon.theme");
+  if (storedTheme && isThemeMode(storedTheme)) {
+    return storedTheme;
+  }
+  return localStorage.getItem("textodon.christmas") === "on" ? "christmas" : "default";
+};
+
 export const App = () => {
-  const [christmasMode, setChristmasMode] = useState(() => {
-    return localStorage.getItem("textodon.christmas") === "on";
-  });
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => getStoredTheme());
   const [sectionSize, setSectionSize] = useState<"small" | "medium" | "large">(() => {
     const stored = localStorage.getItem("textodon.sectionSize");
     if (stored === "medium" || stored === "large" || stored === "small") {
@@ -617,11 +628,17 @@ export const App = () => {
   }, [accountsState, services.api, services.oauth]);
 
   useEffect(() => {
-    const value = christmasMode ? "christmas" : "";
-    document.documentElement.dataset.theme = value;
-    document.body.dataset.theme = value;
-    localStorage.setItem("textodon.christmas", christmasMode ? "on" : "off");
-  }, [christmasMode]);
+    const value = themeMode === "default" ? "" : themeMode;
+    if (value) {
+      document.documentElement.dataset.theme = value;
+      document.body.dataset.theme = value;
+    } else {
+      delete document.documentElement.dataset.theme;
+      delete document.body.dataset.theme;
+    }
+    localStorage.setItem("textodon.theme", themeMode);
+    localStorage.setItem("textodon.christmas", themeMode === "christmas" ? "on" : "off");
+  }, [themeMode]);
 
   useEffect(() => {
     document.documentElement.dataset.sectionSize = sectionSize;
@@ -1099,17 +1116,23 @@ export const App = () => {
             </div>
             <div className="settings-item">
               <div>
-                <strong>크리스마스 모드</strong>
-                <p>레드/그린 테마로 전환합니다.</p>
+                <strong>테마</strong>
+                <p>기본, 크리스마스, 모노톤 테마를 선택합니다.</p>
               </div>
-              <label className="switch">
-                <input
-                  type="checkbox"
-                  checked={christmasMode}
-                  onChange={(event) => setChristmasMode(event.target.checked)}
-                />
-                <span className="slider" aria-hidden="true" />
-              </label>
+              <select
+                value={themeMode}
+                onChange={(event) => {
+                  const nextTheme = event.target.value;
+                  if (isThemeMode(nextTheme)) {
+                    setThemeMode(nextTheme);
+                  }
+                }}
+                aria-label="테마 선택"
+              >
+                <option value="default">기본</option>
+                <option value="christmas">크리스마스</option>
+                <option value="monochrome">모노톤</option>
+              </select>
             </div>
             <div className="settings-item">
               <div>
