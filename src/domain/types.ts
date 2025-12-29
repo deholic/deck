@@ -32,6 +32,14 @@ export type CustomEmoji = {
   url: string;
 };
 
+export type Reaction = {
+  name: string;
+  count: number;
+  url: string | null;
+  isCustom: boolean;
+  host: string | null;
+};
+
 export type LinkCard = {
   url: string;
   title: string;
@@ -55,6 +63,7 @@ export type Status = {
   repliesCount: number;
   reblogsCount: number;
   favouritesCount: number;
+  reactions: Reaction[];
   reblogged: boolean;
   favourited: boolean;
   inReplyToId: string | null;

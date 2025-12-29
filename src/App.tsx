@@ -120,6 +120,7 @@ const TimelineSection = ({
   canRemoveSection,
   showProfileImage,
   showCustomEmojis,
+  showReactions,
   registerTimelineListener,
   unregisterTimelineListener
 }: {
@@ -139,6 +140,7 @@ const TimelineSection = ({
   canRemoveSection: boolean;
   showProfileImage: boolean;
   showCustomEmojis: boolean;
+  showReactions: boolean;
   registerTimelineListener: (accountId: string, listener: (status: Status) => void) => void;
   unregisterTimelineListener: (accountId: string, listener: (status: Status) => void) => void;
 }) => {
@@ -405,6 +407,7 @@ const TimelineSection = ({
                         activeAccountUrl={account.url ?? null}
                         showProfileImage={showProfileImage}
                         showCustomEmojis={showCustomEmojis}
+                        showReactions={showReactions}
                       />
             ))}
           </div>
@@ -431,6 +434,9 @@ export const App = () => {
   });
   const [showCustomEmojis, setShowCustomEmojis] = useState(() => {
     return localStorage.getItem("textodon.customEmojis") !== "off";
+  });
+  const [showMisskeyReactions, setShowMisskeyReactions] = useState(() => {
+    return localStorage.getItem("textodon.reactions") !== "off";
   });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -641,6 +647,10 @@ export const App = () => {
   useEffect(() => {
     localStorage.setItem("textodon.customEmojis", showCustomEmojis ? "on" : "off");
   }, [showCustomEmojis]);
+
+  useEffect(() => {
+    localStorage.setItem("textodon.reactions", showMisskeyReactions ? "on" : "off");
+  }, [showMisskeyReactions]);
 
   const closeMobileMenu = useCallback(() => {
     setMobileMenuOpen(false);
@@ -949,43 +959,47 @@ export const App = () => {
           {actionError ? <p className="error">{actionError}</p> : null}
           {route === "home" ? (
             <section className="panel">
-              {sections.length > 0 ? (
-                <div
-                  className={`timeline-board${isBoardDragging ? " is-dragging" : ""}`}
-                  ref={timelineBoardRef}
-                  onPointerDown={handleBoardPointerDown}
-                  onPointerMove={handleBoardPointerMove}
+            {sections.length > 0 ? (
+              <div
+                className={`timeline-board${isBoardDragging ? " is-dragging" : ""}`}
+                ref={timelineBoardRef}
+                onPointerDown={handleBoardPointerDown}
+                onPointerMove={handleBoardPointerMove}
                   onPointerUp={handleBoardPointerUp}
                   onPointerLeave={handleBoardPointerUp}
                   onPointerCancel={handleBoardPointerUp}
                 >
-                  {sections.map((section, index) => (
-                    <TimelineSection
-                      key={section.id}
-                      section={section}
-                      account={
-                        section.accountId
-                          ? accountsState.accounts.find((account) => account.id === section.accountId) ?? null
-                          : null
-                      }
-                      services={services}
-                      accountsState={accountsState}
-                      onAccountChange={setSectionAccount}
-                      onAddSectionLeft={(id) => addSectionNear(id, "left")}
-                      onAddSectionRight={(id) => addSectionNear(id, "right")}
-                      onRemoveSection={removeSection}
-                      onReply={handleReply}
-                      onError={(message) => setActionError(message || null)}
-                      onMoveSection={moveSection}
-                      canMoveLeft={index > 0}
-                      canMoveRight={index < sections.length - 1}
-                      canRemoveSection={sections.length > 1}
-                      showProfileImage={showProfileImages}
-                      showCustomEmojis={showCustomEmojis}
-                      registerTimelineListener={registerTimelineListener}
-                      unregisterTimelineListener={unregisterTimelineListener}
-                    />
-                  ))}
+                  {sections.map((section, index) => {
+                    const sectionAccount =
+                      section.accountId
+                        ? accountsState.accounts.find((account) => account.id === section.accountId) ?? null
+                        : null;
+                    const shouldShowReactions = showMisskeyReactions;
+                    return (
+                      <TimelineSection
+                        key={section.id}
+                        section={section}
+                        account={sectionAccount}
+                        services={services}
+                        accountsState={accountsState}
+                        onAccountChange={setSectionAccount}
+                        onAddSectionLeft={(id) => addSectionNear(id, "left")}
+                        onAddSectionRight={(id) => addSectionNear(id, "right")}
+                        onRemoveSection={removeSection}
+                        onReply={handleReply}
+                        onError={(message) => setActionError(message || null)}
+                        onMoveSection={moveSection}
+                        canMoveLeft={index > 0}
+                        canMoveRight={index < sections.length - 1}
+                        canRemoveSection={sections.length > 1}
+                        showProfileImage={showProfileImages}
+                        showCustomEmojis={showCustomEmojis}
+                        showReactions={shouldShowReactions}
+                        registerTimelineListener={registerTimelineListener}
+                        unregisterTimelineListener={unregisterTimelineListener}
+                      />
+                    );
+                  })}
                 </div>
               ) : null}
               {accountsState.accounts.length === 0 ? (
@@ -1117,6 +1131,20 @@ export const App = () => {
                   type="checkbox"
                   checked={showCustomEmojis}
                   onChange={(event) => setShowCustomEmojis(event.target.checked)}
+                />
+                <span className="slider" aria-hidden="true" />
+              </label>
+            </div>
+            <div className="settings-item">
+              <div>
+                <strong>리액션 표시</strong>
+                <p>리액션 정보를 지원하는 서버에서 받은 리액션을 보여줍니다.</p>
+              </div>
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={showMisskeyReactions}
+                  onChange={(event) => setShowMisskeyReactions(event.target.checked)}
                 />
                 <span className="slider" aria-hidden="true" />
               </label>

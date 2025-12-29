@@ -1,4 +1,4 @@
-import type { MediaAttachment, Mention, Status, Visibility } from "../domain/types";
+import type { CustomEmoji, MediaAttachment, Mention, Reaction, Status, Visibility } from "../domain/types";
 
 const mapVisibility = (visibility: string): Visibility => {
   switch (visibility) {
@@ -88,6 +88,100 @@ const mapCustomEmojis = (emojis: unknown): { shortcode: string; url: string }[] 
   return [];
 };
 
+const buildEmojiMap = (emojis: CustomEmoji[]): Map<string, string> => {
+  return new Map(emojis.map((emoji) => [emoji.shortcode, emoji.url]));
+};
+
+const getEmojiHost = (url: string | null): string | null => {
+  if (!url) {
+    return null;
+  }
+  try {
+    const host = new URL(url).hostname;
+    return host || null;
+  } catch {
+    return null;
+  }
+};
+
+const getHostFromInstanceUrl = (instanceUrl?: string): string | null => {
+  if (!instanceUrl) {
+    return null;
+  }
+  try {
+    const host = new URL(instanceUrl).hostname;
+    return host || null;
+  } catch {
+    return null;
+  }
+};
+
+const buildEmojiUrl = (shortcode: string, host: string | null, instanceUrl?: string): string | null => {
+  if (!shortcode || !host) {
+    return null;
+  }
+  let base = `https://${host}`;
+  if (instanceUrl) {
+    try {
+      const parsed = new URL(instanceUrl);
+      base = `${parsed.protocol}//${host}`;
+    } catch {
+      /* noop */
+    }
+  }
+  return `${base.replace(/\/$/, "")}/emoji/${encodeURIComponent(shortcode)}.webp`;
+};
+
+const mapReactions = (
+  reactions: unknown,
+  reactionEmojis: unknown,
+  customEmojis: CustomEmoji[],
+  instanceUrl?: string
+): Reaction[] => {
+  if (!reactions || typeof reactions !== "object") {
+    return [];
+  }
+
+  const reactionEmojiMap = buildEmojiMap([
+    ...customEmojis,
+    ...mapCustomEmojis(reactionEmojis)
+  ]);
+
+  return Object.entries(reactions)
+    .map(([rawName, rawCount]) => {
+      if (typeof rawName !== "string") {
+        return null;
+      }
+      const count = typeof rawCount === "number" ? rawCount : Number(rawCount ?? 0);
+      if (!Number.isFinite(count) || count <= 0) {
+        return null;
+      }
+      const trimmedName =
+        rawName.startsWith(":") && rawName.endsWith(":") ? rawName.slice(1, -1) : rawName;
+      const baseName = trimmedName.includes("@") ? trimmedName.split("@")[0] : trimmedName;
+      const normalizedName = trimmedName.replace(/@\.?$/, "");
+      const url =
+        reactionEmojiMap.get(trimmedName) ??
+        reactionEmojiMap.get(normalizedName) ??
+        reactionEmojiMap.get(baseName) ??
+        null;
+      const hostFromName = trimmedName.includes("@")
+        ? trimmedName.split("@").slice(1).join("@").replace(/\.$/, "") || null
+        : null;
+      const host = getEmojiHost(url) ?? hostFromName ?? getHostFromInstanceUrl(instanceUrl);
+      const isCustom = Boolean(url) || rawName.startsWith(":") || trimmedName.includes("@");
+      const resolvedUrl = isCustom ? url ?? buildEmojiUrl(baseName, host, instanceUrl) : null;
+      return { name: rawName, count: Math.floor(count), url: resolvedUrl, isCustom, host };
+    })
+    .filter((reaction): reaction is Reaction => reaction !== null)
+    .sort((a, b) => {
+      if (a.count === b.count) {
+        return a.name.localeCompare(b.name);
+      }
+      return b.count - a.count;
+    });
+};
+
 const mapReplyMention = (reply: unknown): Mention | null => {
   if (!reply || typeof reply !== "object") {
     return null;
@@ -172,6 +266,7 @@ export const mapMisskeyStatusWithInstance = (raw: unknown, instanceUrl?: string)
   const myReaction = typeof value.myReaction === "string" ? value.myReaction : null;
   const favourited = Boolean(value.isFavorited ?? myReaction);
   const customEmojis = mapCustomEmojis(value.emojis);
+  const reactions = mapReactions(value.reactions, value.reactionEmojis, customEmojis, instanceUrl);
   const accountEmojis = mapCustomEmojis(user.emojis);
   const baseMentions = mapMentions(value.mentions);
   const replyMention = mapReplyMention(value.reply);
@@ -195,6 +290,7 @@ export const mapMisskeyStatusWithInstance = (raw: unknown, instanceUrl?: string)
     repliesCount: Number(value.repliesCount ?? 0),
     reblogsCount: Number(value.renoteCount ?? 0),
     favouritesCount: Number(reactionsCount ?? 0),
+    reactions,
     reblogged,
     favourited,
     inReplyToId: value.replyId ? String(value.replyId) : null,
