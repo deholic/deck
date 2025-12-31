@@ -2654,6 +2654,7 @@ body[data-theme="monochrome"] .compose-icon-button {
 
   :root[data-color-scheme="dark"][data-theme="christmas"] .section-menu-panel button,
   body[data-color-scheme="dark"][data-theme="christmas"] .section-menu-panel button {
+    background: none;
     color: #f7e7df;
   }
 
