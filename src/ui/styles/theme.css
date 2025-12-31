@@ -2531,6 +2531,17 @@ body[data-theme="monochrome"] .compose-icon-button {
     color: #cf8c8c;
   }
 
+  :root[data-color-scheme="dark"][data-theme="christmas"] .account-list button,
+  body[data-color-scheme="dark"][data-theme="christmas"] .account-list button {
+    background: none;
+    color: inherit;
+  }
+
+  :root[data-color-scheme="dark"][data-theme="christmas"] .account-list button.ghost,
+  body[data-color-scheme="dark"][data-theme="christmas"] .account-list button.ghost {
+    color: #cf8c8c;
+  }
+
   :root[data-color-scheme="dark"][data-theme="sky-pink"] button.ghost,
   body[data-color-scheme="dark"][data-theme="sky-pink"] button.ghost {
     color: #f0a6c8;
