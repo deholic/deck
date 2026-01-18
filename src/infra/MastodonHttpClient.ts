@@ -398,12 +398,12 @@ export class MastodonHttpClient implements MastodonApi {
     }
   }
 
-  async favourite(account: Account, statusId: string): Promise<Status> {
-    return this.postAction(account, statusId, "favourite");
+  async favourite(_account: Account, _statusId: string): Promise<Status> {
+    throw new Error("즐겨찾기는 미스키 계정에서만 사용할 수 있습니다.");
   }
 
-  async unfavourite(account: Account, statusId: string): Promise<Status> {
-    return this.postAction(account, statusId, "unfavourite");
+  async unfavourite(_account: Account, _statusId: string): Promise<Status> {
+    throw new Error("즐겨찾기는 미스키 계정에서만 사용할 수 있습니다.");
   }
 
   async bookmark(account: Account, statusId: string): Promise<Status> {

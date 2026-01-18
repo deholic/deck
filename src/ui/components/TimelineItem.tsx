@@ -79,12 +79,12 @@ export const TimelineItem = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { showToast } = useToast();
 
-  // 메뉴 열 때 즐겨찾기 상태 확인
+  // 메뉴 열 때 즐겨찾기 상태 확인 (미스키만)
   const handleMenuToggle = useCallback(async () => {
     const willOpen = !menuOpen;
     setMenuOpen(willOpen);
     
-    if (willOpen && account && api) {
+    if (willOpen && account && api && account.platform === "misskey") {
       try {
         const state = await api.fetchNoteState(account, displayStatus.id);
         setFavouriteState(state.isFavourited);
@@ -882,7 +882,8 @@ export const TimelineItem = ({
             <>
               <div className="overlay-backdrop" aria-hidden="true" />
               <div ref={menuRef} className="section-menu-panel status-menu-panel" role="menu">
-                {favouriteState !== null && (
+                {/* 미스키: 즐겨찾기만 사용 */}
+                {account?.platform === "misskey" && favouriteState !== null && (
                   <button 
                     type="button" 
                     onClick={async () => {
@@ -915,15 +916,20 @@ export const TimelineItem = ({
                     {favouriteState ? "즐겨찾기 취소" : "즐겨찾기"}
                   </button>
                 )}
-                <button 
-                  type="button" 
-                  onClick={() => {
-                    onToggleBookmark(displayStatus);
-                    setMenuOpen(false);
-                  }}
-                >
-                  {displayStatus.bookmarked ? "북마크 취소" : "북마크"}
-                </button>
+                
+                {/* 마스토돈: 북마크만 사용 */}
+                {account?.platform === "mastodon" && (
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      onToggleBookmark(displayStatus);
+                      setMenuOpen(false);
+                    }}
+                  >
+                    {displayStatus.bookmarked ? "북마크 취소" : "북마크"}
+                  </button>
+                )}
+                
                 <button type="button" onClick={handleOpenOrigin} disabled={!originUrl}>
                   원본 서버에서 보기
                 </button>

@@ -534,36 +534,16 @@ export class MisskeyHttpClient implements MastodonApi {
     };
   }
 
-  async bookmark(account: Account, statusId: string): Promise<Status> {
-    await this.postSimple(account, "/api/notes/favorites/create", { noteId: statusId });
-    return this.fetchNote(account, statusId);
+  async bookmark(_account: Account, _statusId: string): Promise<Status> {
+    throw new Error("북마크는 마스토돈 계정에서만 사용할 수 있습니다.");
   }
 
-  async unbookmark(account: Account, statusId: string): Promise<Status> {
-    await this.postSimple(account, "/api/notes/favorites/delete", { noteId: statusId });
-    return this.fetchNote(account, statusId);
+  async unbookmark(_account: Account, _statusId: string): Promise<Status> {
+    throw new Error("북마크는 마스토돈 계정에서만 사용할 수 있습니다.");
   }
 
-  async fetchBookmarks(account: Account, limit?: number, maxId?: string): Promise<Status[]> {
-    const response = await fetch(`${normalizeInstanceUrl(account.instanceUrl)}/api/i/favorites`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(buildBody(account, {
-        limit: limit ?? 20,
-        untilId: maxId
-      }))
-    });
-    if (!response.ok) {
-      throw new Error("북마크를 불러오지 못했습니다.");
-    }
-    const data = (await response.json()) as unknown[];
-    return data.map((item) => {
-      const typed = item as Record<string, unknown>;
-      const note = typed.note as unknown;
-      return mapMisskeyStatusWithInstance(note, account.instanceUrl);
-    }).filter((status): status is Status => status !== null);
+  async fetchBookmarks(_account: Account, _limit?: number, _maxId?: string): Promise<Status[]> {
+    throw new Error("북마크는 마스토돈 계정에서만 사용할 수 있습니다.");
   }
 
   async fetchThreadContext(account: Account, statusId: string): Promise<ThreadContext> {
