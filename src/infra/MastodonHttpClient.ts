@@ -422,6 +422,25 @@ export class MastodonHttpClient implements MastodonApi {
     throw new Error("리액션은 미스키 계정에서만 사용할 수 있습니다.");
   }
 
+  async fetchNoteState(account: Account, noteId: string): Promise<{ isFavourited: boolean; isReblogged: boolean; bookmarked: boolean }> {
+    // 마스토돈은 이미 Status 객체에 즐겨찾기, 리블로그, 북마크 상태가 포함되어 있음
+    const response = await fetch(`${account.instanceUrl}/api/v1/statuses/${noteId}`, {
+      headers: {
+        "Authorization": `Bearer ${account.accessToken}`
+      }
+    });
+    if (!response.ok) {
+      throw new Error("게시물 상태를 불러오지 못했습니다.");
+    }
+    const data = (await response.json()) as unknown;
+    const status = mapStatus(data);
+    return {
+      isFavourited: status.favourited,
+      isReblogged: status.reblogged,
+      bookmarked: status.bookmarked
+    };
+  }
+
   async reblog(account: Account, statusId: string): Promise<Status> {
     return this.postAction(account, statusId, "reblog");
   }
