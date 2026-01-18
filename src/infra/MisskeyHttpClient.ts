@@ -421,12 +421,23 @@ export class MisskeyHttpClient implements MastodonApi {
   }
 
   async favourite(account: Account, statusId: string): Promise<Status> {
-    await this.postSimple(account, "/api/notes/favorites/create", { noteId: statusId });
+    try {
+      await this.postSimple(account, "/api/notes/reactions/create", {
+        noteId: statusId,
+        reaction: DEFAULT_REACTION
+      });
+    } catch {
+      await this.postSimple(account, "/api/notes/favorites/create", { noteId: statusId });
+    }
     return this.fetchNote(account, statusId);
   }
 
   async unfavourite(account: Account, statusId: string): Promise<Status> {
-    await this.postSimple(account, "/api/notes/favorites/delete", { noteId: statusId });
+    try {
+      await this.postSimple(account, "/api/notes/reactions/delete", { noteId: statusId });
+    } catch {
+      await this.postSimple(account, "/api/notes/favorites/delete", { noteId: statusId });
+    }
     return this.fetchNote(account, statusId);
   }
 
@@ -513,41 +524,6 @@ export class MisskeyHttpClient implements MastodonApi {
     }
     const data = (await response.json()) as unknown[];
     return data.map((item) => mapMisskeyStatusWithInstance(item, account.instanceUrl));
-  }
-
-  async fetchNoteState(account: Account, noteId: string): Promise<{ isFavourited: boolean; isReblogged: boolean; bookmarked: boolean }> {
-    const response = await fetch(`${normalizeInstanceUrl(account.instanceUrl)}/api/notes/state`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(buildBody(account, { noteId }))
-    });
-    if (!response.ok) {
-      throw new Error("게시물 상태를 불러오지 못했습니다.");
-    }
-    const data = (await response.json()) as Record<string, unknown>;
-    return {
-      isFavourited: Boolean(data.isFavorited ?? data.isFavourited ?? false),
-      isReblogged: Boolean(data.isRenoted ?? false),
-      bookmarked: Boolean(data.bookmarked ?? false)
-    };
-  }
-
-  async bookmark(_account: Account, _statusId: string): Promise<Status> {
-    throw new Error("북마크는 마스토돈 계정에서만 사용할 수 있습니다.");
-  }
-
-  async unbookmark(_account: Account, _statusId: string): Promise<Status> {
-    throw new Error("북마크는 마스토돈 계정에서만 사용할 수 있습니다.");
-  }
-
-  async fetchBookmarks(_account: Account, _limit?: number, _maxId?: string): Promise<Status[]> {
-    throw new Error("북마크는 마스토돈 계정에서만 사용할 수 있습니다.");
-  }
-
-  async fetchThreadContext(account: Account, statusId: string): Promise<ThreadContext> {
-    return this.fetchConversation(account, statusId);
   }
 
   private async fetchNotifications(
