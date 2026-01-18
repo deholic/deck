@@ -123,6 +123,10 @@ export class UnifiedApiClient implements MastodonApi {
     return this.getClient(account).unreblog(account, statusId);
   }
 
+  fetchNoteState(account: Account, noteId: string) {
+    return this.getClient(account).fetchNoteState(account, noteId);
+  }
+
   async fetchThreadContext(account: Account, statusId: string): Promise<ThreadContext> {
     if (account.platform === "misskey") {
       // MisskeyHttpClient에는 fetchConversation 메서드가 있음
