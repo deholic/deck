@@ -378,7 +378,7 @@ export const ProfileModal = ({
           ? await api.unbookmark(account, target.id)
           : await api.bookmark(account, target.id);
         updateItem(updated);
-        showToast(isBookmarking ? "북마크했습니다." : "북마크를 취소했습니다.", { tone: "success" });
+        showToast(isBookmarking ? "북마크했습니다." : "북마크를 취소했습니다.");
       } catch (error) {
         setItemsError(error instanceof Error ? error.message : "북마크 처리에 실패했습니다.");
       }

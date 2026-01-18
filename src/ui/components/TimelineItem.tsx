@@ -10,7 +10,6 @@ import { ReactionPicker } from "./ReactionPicker";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { useImageZoom } from "../hooks/useImageZoom";
 import { AccountLabel } from "./AccountLabel";
-import { useToast } from "../state/ToastContext";
 
 const normalizeMentionHandle = (handle: string): string =>
   handle.replace(/^@/, "").trim().toLowerCase();
@@ -72,31 +71,10 @@ export const TimelineItem = ({
   const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
   const [showContent, setShowContent] = useState(() => displayStatus.spoilerText.length === 0);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [favouriteState, setFavouriteState] = useState<boolean | null>(false);
   const imageContainerRef = useRef<HTMLDivElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const { showToast } = useToast();
-
-  // 메뉴 열 때 즐겨찾기 상태 확인 (미스키만)
-  const handleMenuToggle = useCallback(async () => {
-    const willOpen = !menuOpen;
-    setMenuOpen(willOpen);
-    
-    if (willOpen && account && api && account.platform === "misskey") {
-      // 초기 상태를 null로 설정하여 비활성화 상태로 표시
-      setFavouriteState(null);
-      
-      try {
-        const state = await api.fetchNoteState(account, displayStatus.id);
-        setFavouriteState(state.isFavourited);
-      } catch (error) {
-        console.error("즐겨찾기 상태 확인 실패:", error);
-        setFavouriteState(false); // 실패 시 기본값은 false로 설정
-      }
-    }
-  }, [menuOpen, account, api, displayStatus.id]);
 
   // useImageZoom 사용
   const {
@@ -874,7 +852,7 @@ export const TimelineItem = ({
             className="icon-button"
             aria-label="게시글 메뉴 열기" aria-haspopup="menu"
             aria-expanded={menuOpen}
-            onClick={handleMenuToggle}
+            onClick={() => setMenuOpen((current) => !current)}
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="12" cy="5" r="1.7" />
@@ -886,60 +864,15 @@ export const TimelineItem = ({
             <>
               <div className="overlay-backdrop" aria-hidden="true" />
               <div ref={menuRef} className="section-menu-panel status-menu-panel" role="menu">
-                {/* 미스키: 즐겨찾기만 사용 */}
-                {account?.platform === "misskey" && (
-                  <button 
-                    type="button"
-                    disabled={favouriteState === null}
-                    onClick={() => {
-                      // 메뉴 즉시 닫기
-                      setMenuOpen(false);
-                      
-                      // 즐겨찾기 처리 비동기 실행
-                      (async () => {
-                        try {
-                          // 현재 상태에 따라 적절한 API 호출
-                          let updatedStatus: Status;
-                          if (favouriteState) {
-                            updatedStatus = await api.unfavourite(account!, displayStatus.id);
-                          } else {
-                            updatedStatus = await api.favourite(account!, displayStatus.id);
-                          }
-                          
-                          // API 호출 후 최신 상태 다시 확인
-                          const state = await api.fetchNoteState(account!, displayStatus.id);
-                          const newFavouriteState = state.isFavourited;
-                          setFavouriteState(newFavouriteState);
-                          
-                          // 토스트 메시지 표시
-                          showToast(
-                            newFavouriteState ? "즐겨찾기에 추가했습니다." : "즐겨찾기에서 해제했습니다.",
-                            { tone: "success" }
-                          );
-                        } catch (error) {
-                          console.error("즐겨찾기 처리 실패:", error);
-                          showToast("즐겨찾기 처리에 실패했습니다.", { tone: "error" });
-                        }
-                      })();
-                    }}
-                  >
-                    {favouriteState === null ? "로딩..." : (favouriteState ? "즐겨찾기 취소" : "즐겨찾기")}
-                  </button>
-                )}
-                
-                {/* 마스토돈: 북마크만 사용 */}
-                {account?.platform === "mastodon" && (
-                  <button 
-                    type="button" 
-                    onClick={() => {
-                      onToggleBookmark(displayStatus);
-                      setMenuOpen(false);
-                    }}
-                  >
-                    {displayStatus.bookmarked ? "북마크 취소" : "북마크"}
-                  </button>
-                )}
-                
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    onToggleBookmark(displayStatus);
+                    setMenuOpen(false);
+                  }}
+                >
+                  {displayStatus.bookmarked ? "북마크 취소" : "북마크"}
+                </button>
                 <button type="button" onClick={handleOpenOrigin} disabled={!originUrl}>
                   원본 서버에서 보기
                 </button>

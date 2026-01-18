@@ -560,9 +560,9 @@ const TimelineSection = ({
         : await services.api.bookmark(account, status.id);
       timeline.updateItem(updated);
       if (isBookmarking) {
-        showToast("북마크했습니다.", { tone: "success" });
+        showToast("북마크했습니다.");
       } else {
-        showToast("북마크를 취소했습니다.", { tone: "success" });
+        showToast("북마크를 취소했습니다.");
       }
     } catch (err) {
       onError(err instanceof Error ? err.message : "북마크 처리에 실패했습니다.");
