@@ -40,4 +40,5 @@ export interface MastodonApi {
   unblockAccount(account: Account, accountId: string): Promise<AccountRelationship>;
   fetchAccountStatuses(account: Account, accountId: string, limit: number, maxId?: string): Promise<Status[]>;
   fetchThreadContext(account: Account, statusId: string): Promise<ThreadContext>;
+  fetchNoteState(account: Account, noteId: string): Promise<{ isFavourited: boolean; isReblogged: boolean; bookmarked: boolean }>;
 }
