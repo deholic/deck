@@ -6,11 +6,12 @@ import { ComposeBox } from "./ui/components/ComposeBox";
 import { ProfileModal } from "./ui/components/ProfileModal";
 import { StatusModal } from "./ui/components/StatusModal";
 import { TimelineItem } from "./ui/components/TimelineItem";
+import { PomodoroTimer } from "./ui/components/PomodoroTimer";
 import { useTimeline } from "./ui/hooks/useTimeline";
 import { useClickOutside } from "./ui/hooks/useClickOutside";
 import { useAppContext } from "./ui/state/AppContext";
 import type { AccountsState, AppServices } from "./ui/state/AppContext";
-import { createAccountId, formatHandle, normalizeInstanceUrl } from "./ui/utils/account";
+import { createAccountId, formatHandle, formatReplyHandle, normalizeInstanceUrl } from "./ui/utils/account";
 import { clearPendingOAuth, createOauthState, loadPendingOAuth, loadRegisteredApp, saveRegisteredApp, storePendingOAuth } from "./ui/utils/oauth";
 import { getTimelineLabel, getTimelineOptions, normalizeTimelineType } from "./ui/utils/timeline";
 import { sanitizeHtml } from "./ui/utils/htmlSanitizer";
@@ -132,8 +133,10 @@ const buildOptimisticReactionStatus = (
   };
 };
 
-const TimelineIcon = ({ timeline }: { timeline: TimelineType }) => {
+const TimelineIcon = ({ timeline }: { timeline: TimelineType | string }) => {
   switch (timeline) {
+    case "divider-before-bookmarks":
+      return null;
     case "home":
       return (
         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -181,6 +184,12 @@ const TimelineIcon = ({ timeline }: { timeline: TimelineType }) => {
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 7h18s-3 0-3-7" />
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+        </svg>
+      );
+     case "bookmarks":
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
         </svg>
       );
     default:
@@ -400,8 +409,12 @@ const TimelineSection = ({
     timelineType,
     onNotification: handleNotification
   });
-  const actionsDisabled = timelineType === "notifications";
-  const emptyMessage = timelineType === "notifications" ? "표시할 알림이 없습니다." : "표시할 글이 없습니다.";
+  const actionsDisabled = timelineType === "notifications" || timelineType === "bookmarks";
+  const emptyMessage = timelineType === "notifications" 
+    ? "표시할 알림이 없습니다." 
+    : timelineType === "bookmarks" 
+      ? "북마크한 글이 없습니다."
+      : "표시할 글이 없습니다.";
 
   useEffect(() => {
     if (!timeline.error) {
@@ -529,6 +542,34 @@ const TimelineSection = ({
     }
   };
 
+  const handleToggleBookmark = async (status: Status) => {
+    if (!account) {
+      onError("계정을 선택해주세요.");
+      return;
+    }
+    onError(null);
+    const isBookmarking = !status.bookmarked;
+    const optimistic = {
+      ...status,
+      bookmarked: isBookmarking
+    };
+    timeline.updateItem(optimistic);
+    try {
+      const updated = status.bookmarked
+        ? await services.api.unbookmark(account, status.id)
+        : await services.api.bookmark(account, status.id);
+      timeline.updateItem(updated);
+      if (isBookmarking) {
+        showToast("북마크했습니다.");
+      } else {
+        showToast("북마크를 취소했습니다.");
+      }
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "북마크 처리에 실패했습니다.");
+      timeline.updateItem(status);
+    }
+  };
+
   const handleReact = useCallback(
     (status: Status, reaction: ReactionInput) => {
       onReact(account, status, reaction);
@@ -609,7 +650,13 @@ const TimelineSection = ({
                   aria-label="타임라인 선택"
                 >
                   {timelineOptions.map((option) => {
-                    const isSelected = timelineType === option.id;
+                    if (option.isDivider) {
+                      return (
+                        <div key={option.id} className="timeline-selector-divider" role="separator" />
+                      );
+                    }
+                    
+                    const isSelected = !option.isDivider && timelineType === option.id;
                     return (
                       <button
                         key={option.id}
@@ -617,11 +664,14 @@ const TimelineSection = ({
                         className={isSelected ? "is-active" : ""}
                         aria-pressed={isSelected}
                         onClick={() => {
-                          onTimelineChange(section.id, option.id);
-                          setTimelineMenuOpen(false);
+                          if (!option.isDivider) {
+                            onTimelineChange(section.id, option.id as TimelineType);
+                            setTimelineMenuOpen(false);
+                          }
                         }}
+                        disabled={option.isDivider}
                       >
-                        <TimelineIcon timeline={option.id} />
+                        {!option.isDivider && <TimelineIcon timeline={option.id as TimelineType} />}
                         <span>{option.label}</span>
                       </button>
                     );
@@ -678,8 +728,9 @@ const TimelineSection = ({
                              onReply={(item) => onReply(item, account)}
                              onStatusClick={(status) => onStatusClick(status, account)}
                              onToggleFavourite={handleToggleFavourite}
-                            onToggleReblog={handleToggleReblog}
-                            onDelete={handleDeleteStatus}
+                             onToggleReblog={handleToggleReblog}
+                             onToggleBookmark={handleToggleBookmark}
+                             onDelete={handleDeleteStatus}
                             onReact={handleReact}
                             onProfileClick={(item) => onProfileClick(item, account)}
                             activeHandle={
@@ -810,8 +861,9 @@ const TimelineSection = ({
                  onReply={(item) => onReply(item, account)}
                  onStatusClick={(status) => onStatusClick(status, account)}
                  onToggleFavourite={handleToggleFavourite}
-                onToggleReblog={handleToggleReblog}
-                onDelete={handleDeleteStatus}
+                 onToggleReblog={handleToggleReblog}
+                 onToggleBookmark={handleToggleBookmark}
+                 onDelete={handleDeleteStatus}
                 onReact={handleReact}
                 onProfileClick={(item) => onProfileClick(item, account)}
                 activeHandle={
@@ -897,6 +949,23 @@ export const App = () => {
   const [showMisskeyReactions, setShowMisskeyReactions] = useState(() => {
     return localStorage.getItem("textodon.reactions") !== "off";
   });
+  const [showPomodoro, setShowPomodoro] = useState(() => {
+    return localStorage.getItem("textodon.pomodoro") === "on";
+  });
+  const [pomodoroFocus, setPomodoroFocus] = useState(() => {
+    const stored = localStorage.getItem("textodon.pomodoro.focus");
+    return stored ? Number(stored) : 25;
+  });
+  const [pomodoroBreak, setPomodoroBreak] = useState(() => {
+    const stored = localStorage.getItem("textodon.pomodoro.break");
+    return stored ? Number(stored) : 5;
+  });
+  const [pomodoroLongBreak, setPomodoroLongBreak] = useState(() => {
+    const stored = localStorage.getItem("textodon.pomodoro.longBreak");
+    return stored ? Number(stored) : 30;
+  });
+  const [pomodoroSessionType, setPomodoroSessionType] = useState<"focus" | "break" | "longBreak">("focus");
+  const [pomodoroIsRunning, setPomodoroIsRunning] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsAccountId, setSettingsAccountId] = useState<string | null>(null);
   const [reauthLoading, setReauthLoading] = useState(false);
@@ -966,7 +1035,7 @@ export const App = () => {
   const dragStateRef = useRef<{ startX: number; scrollLeft: number; pointerId: number } | null>(null);
   const [isBoardDragging, setIsBoardDragging] = useState(false);
   const replySummary = replyTarget
-    ? `@${replyTarget.accountHandle} · ${replyTarget.content.slice(0, 80)}`
+    ? `@${formatReplyHandle(replyTarget.accountHandle, replyTarget.accountUrl, composeAccount?.instanceUrl ?? "")} · ${replyTarget.content.slice(0, 80)}`
     : null;
   const [route, setRoute] = useState<Route>(() => parseRoute());
   const timelineListeners = useRef<Map<string, Set<(status: Status) => void>>>(new Map());
@@ -1195,6 +1264,22 @@ export const App = () => {
     localStorage.setItem("textodon.reactions", showMisskeyReactions ? "on" : "off");
   }, [showMisskeyReactions]);
 
+  useEffect(() => {
+    localStorage.setItem("textodon.pomodoro", showPomodoro ? "on" : "off");
+  }, [showPomodoro]);
+
+  useEffect(() => {
+    localStorage.setItem("textodon.pomodoro.focus", String(pomodoroFocus));
+  }, [pomodoroFocus]);
+
+  useEffect(() => {
+    localStorage.setItem("textodon.pomodoro.break", String(pomodoroBreak));
+  }, [pomodoroBreak]);
+
+  useEffect(() => {
+    localStorage.setItem("textodon.pomodoro.longBreak", String(pomodoroLongBreak));
+  }, [pomodoroLongBreak]);
+
   const closeMobileMenu = useCallback(() => {
     setMobileMenuOpen(false);
     setMobileComposeOpen(false);
@@ -1408,7 +1493,8 @@ export const App = () => {
     }
     setComposeAccountId(account.id);
     setReplyTarget(status);
-    setMentionSeed(`@${status.accountHandle}`);
+    const formattedHandle = formatReplyHandle(status.accountHandle, status.accountUrl, account.instanceUrl);
+    setMentionSeed(`@${formattedHandle}`);
     setSelectedStatus(null);
   };
 
@@ -1622,6 +1708,15 @@ export const App = () => {
               />
             ) : null}
           </div>
+          {route === "home" && showPomodoro ? (
+            <PomodoroTimer
+              focusMinutes={pomodoroFocus}
+              breakMinutes={pomodoroBreak}
+              longBreakMinutes={pomodoroLongBreak}
+              onSessionTypeChange={setPomodoroSessionType}
+              onRunningChange={setPomodoroIsRunning}
+            />
+          ) : null}
           {route === "home" ? (
             <section className="panel sidebar-panel">
               <div className="brand">
@@ -1696,7 +1791,16 @@ export const App = () => {
             {oauthLoading ? <p className="empty">OAuth 인증 중...</p> : null}
             {route === "home" ? (
               <section className="panel">
-                {sections.length > 0 ? (
+                {showPomodoro && pomodoroSessionType === "focus" && pomodoroIsRunning ? (
+                  <div className="pomodoro-focus-message">
+                    <div className="pomodoro-focus-message-content">
+                      <h2>🎯 집중 세션 진행 중</h2>
+                      <p>뽀모도로 타이머가 동작 중입니다.<br />타임라인은 집중이 끝날 때까지 숨겨집니다.</p>
+                    </div>
+                  </div>
+                ) : null}
+                <div className={`panel-content${showPomodoro && pomodoroSessionType === "focus" && pomodoroIsRunning ? " pomodoro-focus-blur" : ""}`}>
+                  {sections.length > 0 ? (
                   <div
                     className={`timeline-board${isBoardDragging ? " is-dragging" : ""}`}
                     ref={timelineBoardRef}
@@ -1754,6 +1858,7 @@ onAccountChange={setSectionAccount}
                     })}
                   </div>
                 ) : null}
+                </div>
               </section>
             ) : null}
             {route === "terms" ? <TermsPage /> : null}
@@ -1988,6 +2093,60 @@ onAccountChange={setSectionAccount}
             </div>
             <div className="settings-item">
               <div>
+                <strong>뽀모도로 타이머</strong>
+                <p>사이드바에 뽀모도로 타이머를 표시합니다.</p>
+              </div>
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={showPomodoro}
+                  onChange={(event) => setShowPomodoro(event.target.checked)}
+                />
+                <span className="slider" aria-hidden="true" />
+              </label>
+            </div>
+            {showPomodoro ? (
+              <div className="settings-item settings-item-pomodoro">
+                <div>
+                  <strong>뽀모도로 시간 설정</strong>
+                  <p>집중, 휴식, 긴 휴식 시간을 분 단위로 설정합니다.</p>
+                </div>
+                <div className="pomodoro-time-inputs">
+                  <label>
+                    집중
+                    <input
+                      type="number"
+                      min="1"
+                      max="60"
+                      value={pomodoroFocus}
+                      onChange={(event) => setPomodoroFocus(Number(event.target.value))}
+                    />
+                  </label>
+                  <label>
+                    휴식
+                    <input
+                      type="number"
+                      min="1"
+                      max="30"
+                      value={pomodoroBreak}
+                      onChange={(event) => setPomodoroBreak(Number(event.target.value))}
+                    />
+                  </label>
+                  <label>
+                    긴 휴식
+                    <input
+                      type="number"
+                      min="1"
+                      max="60"
+                      value={pomodoroLongBreak}
+                      onChange={(event) => setPomodoroLongBreak(Number(event.target.value))}
+                    />
+                  </label>
+                </div>
+              </div>
+            ) : null}
+            <div className="settings-item">
+              <div>
                 <strong>로컬 저장소 초기화</strong>
                 <p>계정과 설정을 포함한 모든 로컬 데이터를 삭제합니다.</p>
               </div>
@@ -2065,6 +2224,27 @@ onAccountChange={setSectionAccount}
               setSelectedStatus(updated);
             } catch (err) {
               setActionError(err instanceof Error ? err.message : "부스트 처리에 실패했습니다.");
+            }
+          }}
+          onToggleBookmark={async (status) => {
+            if (!composeAccount) {
+              setActionError("계정을 선택해주세요.");
+              return;
+            }
+            setActionError(null);
+            const isBookmarking = !status.bookmarked;
+            try {
+              const updated = status.bookmarked
+                ? await services.api.unbookmark(composeAccount, status.id)
+                : await services.api.bookmark(composeAccount, status.id);
+              setSelectedStatus(updated);
+              if (isBookmarking) {
+                showToast("북마크했습니다.");
+              } else {
+                showToast("북마크를 취소했습니다.");
+              }
+            } catch (err) {
+              setActionError(err instanceof Error ? err.message : "북마크 처리에 실패했습니다.");
             }
           }}
           onDelete={async (status) => {
