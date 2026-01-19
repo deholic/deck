@@ -34,6 +34,7 @@ describe("oauth utils", () => {
   beforeEach(() => {
     memoryStorage.clear();
     globalThis.sessionStorage = memoryStorage as Storage;
+    globalThis.localStorage = memoryStorage as Storage;
   });
 
   it("stores and clears pending OAuth state", () => {
