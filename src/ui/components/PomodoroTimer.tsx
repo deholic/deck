@@ -151,6 +151,8 @@ export const PomodoroTimer = ({
             playNotificationSound();
             setIsBlinking(true);
             
+            const totalSessions = targetCycles * 2;
+            
             // 현재 세션을 완료된 세션 목록에 추가
             setCompletedSessions((prev) => {
               const updated = [...prev, { session, type: sessionInfo.type }];
@@ -158,10 +160,15 @@ export const PomodoroTimer = ({
               const filtered = updated.filter((cs, index) => 
                 updated.findIndex(item => item.session === cs.session) === index
               );
+              
+              // 한 사이클이 끝나면 점 초기화
+              if (session === totalSessions) {
+                return [];
+              }
+              
               return filtered;
             });
             
-            const totalSessions = targetCycles * 2;
             const nextSession = session >= totalSessions ? 1 : session + 1;
             const nextInfo = getSessionInfo(nextSession);
             setSession(nextSession);
