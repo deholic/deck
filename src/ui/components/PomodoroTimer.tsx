@@ -53,9 +53,37 @@ export const PomodoroTimer = ({
     [focusDuration, breakDuration, longBreakDuration, targetCycles]
   );
 
-  const [session, setSession] = useState(1);
-  const [timeLeft, setTimeLeft] = useState(focusDuration);
-  const [isRunning, setIsRunning] = useState(false);
+  const [session, setSession] = useState(() => {
+    try {
+      const stored = localStorage.getItem("textodon.pomodoro.currentSession");
+      return stored ? Number(stored) : 1;
+    } catch {
+      return 1;
+    }
+  });
+  
+  const [timeLeft, setTimeLeft] = useState(() => {
+    try {
+      const stored = localStorage.getItem("textodon.pomodoro.timeLeft");
+      const savedSession = localStorage.getItem("textodon.pomodoro.currentSession");
+      if (stored && savedSession) {
+        return Number(stored);
+      }
+      return focusDuration;
+    } catch {
+      return focusDuration;
+    }
+  });
+  
+  const [isRunning, setIsRunning] = useState(() => {
+    try {
+      const stored = localStorage.getItem("textodon.pomodoro.isRunning");
+      return stored === "true";
+    } catch {
+      return false;
+    }
+  });
+  
   const [isBlinking, setIsBlinking] = useState(false);
   const intervalRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -76,6 +104,19 @@ export const PomodoroTimer = ({
   useEffect(() => {
     localStorage.setItem("textodon.pomodoro.completedSessions", JSON.stringify(completedSessions));
   }, [completedSessions]);
+
+  // 현재 세션 상태 localStorage 저장
+  useEffect(() => {
+    localStorage.setItem("textodon.pomodoro.currentSession", String(session));
+  }, [session]);
+
+  useEffect(() => {
+    localStorage.setItem("textodon.pomodoro.timeLeft", String(timeLeft));
+  }, [timeLeft]);
+
+  useEffect(() => {
+    localStorage.setItem("textodon.pomodoro.isRunning", String(isRunning));
+  }, [isRunning]);
 
   const playNotificationSound = useCallback(() => {
     try {
