@@ -9,7 +9,7 @@ type PomodoroTimerProps = {
   targetCycles?: number;
 };
 
-const TOTAL_SESSIONS = 8;
+// TOTAL_SESSIONS을 targetCycles에 따라 동적으로 계산
 
 const getSessionLabel = (type: SessionType): string => {
   switch (type) {
@@ -40,7 +40,9 @@ export const PomodoroTimer = ({
 
   const getSessionInfo = useCallback(
     (sess: number): { type: SessionType; duration: number } => {
-      if (sess === 8) {
+      const totalSessions = targetCycles * 2;
+      // 마지막 세션은 긴 휴식
+      if (sess === totalSessions) {
         return { type: "longBreak", duration: longBreakDuration };
       }
       if (sess % 2 === 0) {
@@ -48,7 +50,7 @@ export const PomodoroTimer = ({
       }
       return { type: "focus", duration: focusDuration };
     },
-    [focusDuration, breakDuration, longBreakDuration]
+    [focusDuration, breakDuration, longBreakDuration, targetCycles]
   );
 
   const [session, setSession] = useState(1);
@@ -100,7 +102,8 @@ export const PomodoroTimer = ({
   }, []);
 
   const handleSessionToggle = useCallback(() => {
-    const nextSession = session >= TOTAL_SESSIONS ? 1 : session + 1;
+    const totalSessions = targetCycles * 2;
+    const nextSession = session >= totalSessions ? 1 : session + 1;
     const nextInfo = getSessionInfo(nextSession);
     setSession(nextSession);
     setTimeLeft(nextInfo.duration);
@@ -110,7 +113,7 @@ export const PomodoroTimer = ({
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-  }, [session, getSessionInfo]);
+  }, [session, getSessionInfo, targetCycles]);
 
   const handleStart = useCallback(() => {
     setIsBlinking(false);
@@ -151,12 +154,15 @@ export const PomodoroTimer = ({
             // 현재 세션을 완료된 세션 목록에 추가
             setCompletedSessions((prev) => {
               const updated = [...prev, { session, type: sessionInfo.type }];
-              // 최근 targetCycles * 2개 세션까지만 유지 (집중+휴식이 한 사이클)
-              const maxSessions = targetCycles * 2;
-              return updated.slice(-maxSessions);
+              // 중복 세션 제거 (동일 세션 번호가 있으면 기존 것 제거)
+              const filtered = updated.filter((cs, index) => 
+                updated.findIndex(item => item.session === cs.session) === index
+              );
+              return filtered;
             });
             
-            const nextSession = session >= TOTAL_SESSIONS ? 1 : session + 1;
+            const totalSessions = targetCycles * 2;
+            const nextSession = session >= totalSessions ? 1 : session + 1;
             const nextInfo = getSessionInfo(nextSession);
             setSession(nextSession);
             setIsRunning(false);
