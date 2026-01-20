@@ -292,16 +292,16 @@ export const PomodoroTimer = ({
         >
           {getSessionLabel(sessionInfo.type)} {sessionInfo.type === "focus" ? focusCount : ""}
         </button>
-      </div>
-      <div className="pomodoro-row pomodoro-timer-section">
-        <span className="pomodoro-time" aria-live="polite" aria-atomic="true">
-          {formatTime(timeLeft)}
-        </span>
-        <div className="pomodoro-progress-dots">
-          {renderProgressDots()}
+        
+        <div className="pomodoro-timer-section">
+          <span className="pomodoro-time" aria-live="polite" aria-atomic="true">
+            {formatTime(timeLeft)}
+          </span>
+          <div className="pomodoro-progress-dots">
+            {renderProgressDots()}
+          </div>
         </div>
-      </div>
-      <div className="pomodoro-row">
+        
         <div className="pomodoro-controls">
           <button
             type="button"
