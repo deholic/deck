@@ -47,6 +47,9 @@
   --color-settings-select-border: #d8d1c7;
   --color-settings-select-text: #1f1b16;
   --color-settings-select-placeholder: #6b5c4f;
+  --color-settings-scrollbar-track: rgba(0, 0, 0, 0.1);
+  --color-settings-scrollbar-thumb: rgba(0, 0, 0, 0.3);
+  --color-settings-scrollbar-thumb-hover: rgba(0, 0, 0, 0.5);
   --color-action-bg: #3b5fa8;
   --color-action-text: #f2f6ff;
   --color-action-active-bg: #9db6e3;

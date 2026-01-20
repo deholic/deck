@@ -109,6 +109,9 @@
     --color-settings-select-bg: #151310;
     --color-settings-select-border: #3a312a;
     --color-settings-select-text: #f0e7dc;
+    --color-settings-scrollbar-track: rgba(240, 231, 220, 0.1);
+    --color-settings-scrollbar-thumb: rgba(240, 231, 220, 0.3);
+    --color-settings-scrollbar-thumb-hover: rgba(240, 231, 220, 0.5);
     --color-compose-input-bg: #151310;
     --color-attachments-bg: #1a1814;
     --color-attachments-border: #3a312a;
@@ -235,6 +238,9 @@
     --color-settings-select-bg: #1a100f;
     --color-settings-select-border: #3b2624;
     --color-settings-select-text: #f7e7df;
+    --color-settings-scrollbar-track: rgba(247, 231, 223, 0.1);
+    --color-settings-scrollbar-thumb: rgba(247, 231, 223, 0.3);
+    --color-settings-scrollbar-thumb-hover: rgba(247, 231, 223, 0.5);
     --color-compose-input-bg: #1a100f;
     --color-attachments-bg: #2a1b19;
     --color-attachments-border: #3b2624;
@@ -346,6 +352,9 @@
     --color-settings-select-bg: #181e2a;
     --color-settings-select-border: #2e3b50;
     --color-settings-select-text: #eff1f7;
+    --color-settings-scrollbar-track: rgba(239, 241, 247, 0.1);
+    --color-settings-scrollbar-thumb: rgba(239, 241, 247, 0.3);
+    --color-settings-scrollbar-thumb-hover: rgba(239, 241, 247, 0.5);
     --color-compose-input-bg: #181e2a;
     --color-attachments-bg: #212a3a;
     --color-attachments-border: #2e3b50;
@@ -463,6 +472,9 @@
     --color-settings-select-bg: #101010;
     --color-settings-select-border: #3a3a3a;
     --color-settings-select-text: #f0f0f0;
+    --color-settings-scrollbar-track: rgba(240, 240, 240, 0.1);
+    --color-settings-scrollbar-thumb: rgba(240, 240, 240, 0.3);
+    --color-settings-scrollbar-thumb-hover: rgba(240, 240, 240, 0.5);
     --color-compose-input-bg: #101010;
     --color-attachments-bg: #181818;
     --color-attachments-border: #3a3a3a;
@@ -583,6 +595,9 @@
     --color-settings-select-bg: #0a120e;
     --color-settings-select-border: #1f3a2b;
     --color-settings-select-text: #c6f3d0;
+    --color-settings-scrollbar-track: rgba(198, 243, 208, 0.1);
+    --color-settings-scrollbar-thumb: rgba(198, 243, 208, 0.3);
+    --color-settings-scrollbar-thumb-hover: rgba(198, 243, 208, 0.5);
     --color-compose-input-bg: #0a120e;
     --color-attachments-bg: #101c15;
     --color-attachments-border: #1f3a2b;
@@ -856,6 +871,9 @@
   --color-settings-select-bg: #1a100f;
   --color-settings-select-border: #3b2624;
   --color-settings-select-text: #f7e7df;
+  --color-settings-scrollbar-track: rgba(247, 231, 223, 0.1);
+  --color-settings-scrollbar-thumb: rgba(247, 231, 223, 0.3);
+  --color-settings-scrollbar-thumb-hover: rgba(247, 231, 223, 0.5);
   --color-compose-input-bg: #1a100f;
   --color-attachments-bg: #2a1b19;
   --color-attachments-border: #3b2624;
@@ -967,6 +985,9 @@
   --color-settings-select-bg: #181e2a;
   --color-settings-select-border: #2e3b50;
   --color-settings-select-text: #eff1f7;
+  --color-settings-scrollbar-track: rgba(239, 241, 247, 0.1);
+  --color-settings-scrollbar-thumb: rgba(239, 241, 247, 0.3);
+  --color-settings-scrollbar-thumb-hover: rgba(239, 241, 247, 0.5);
   --color-compose-input-bg: #181e2a;
   --color-attachments-bg: #212a3a;
   --color-attachments-border: #2e3b50;
@@ -1084,6 +1105,9 @@
   --color-settings-select-bg: #101010;
   --color-settings-select-border: #3a3a3a;
   --color-settings-select-text: #f0f0f0;
+  --color-settings-scrollbar-track: rgba(240, 240, 240, 0.1);
+  --color-settings-scrollbar-thumb: rgba(240, 240, 240, 0.3);
+  --color-settings-scrollbar-thumb-hover: rgba(240, 240, 240, 0.5);
   --color-compose-input-bg: #101010;
   --color-attachments-bg: #181818;
   --color-attachments-border: #3a3a3a;
@@ -1204,6 +1228,9 @@
   --color-settings-select-bg: #0a120e;
   --color-settings-select-border: #1f3a2b;
   --color-settings-select-text: #c6f3d0;
+  --color-settings-scrollbar-track: rgba(198, 243, 208, 0.1);
+  --color-settings-scrollbar-thumb: rgba(198, 243, 208, 0.3);
+  --color-settings-scrollbar-thumb-hover: rgba(198, 243, 208, 0.5);
   --color-compose-input-bg: #0a120e;
   --color-attachments-bg: #101c15;
   --color-attachments-border: #1f3a2b;

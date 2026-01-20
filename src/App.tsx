@@ -1960,7 +1960,8 @@ onAccountChange={setSectionAccount}
                 닫기
               </button>
             </div>
-            <div className="settings-item settings-item-account">
+            <div className="settings-modal-body">
+              <div className="settings-item settings-item-account">
               <div>
                 <strong>계정 관리</strong>
                 <p>계정을 선택하여 재인증하거나 삭제합니다.</p>
@@ -2162,6 +2163,7 @@ onAccountChange={setSectionAccount}
               >
                 모두 삭제
               </button>
+            </div>
             </div>
           </div>
         </div>
