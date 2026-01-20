@@ -295,6 +295,11 @@ export const PomodoroTimer = ({
         <span className="pomodoro-time" aria-live="polite" aria-atomic="true">
           {formatTime(timeLeft)}
         </span>
+      </div>
+      <div className="pomodoro-progress-dots">
+        {renderProgressDots()}
+      </div>
+      <div className="pomodoro-row">
         <div className="pomodoro-controls">
           <button
             type="button"
@@ -311,9 +316,6 @@ export const PomodoroTimer = ({
             리셋
           </button>
         </div>
-      </div>
-      <div className="pomodoro-progress-dots">
-        {renderProgressDots()}
       </div>
     </section>
   );

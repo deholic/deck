@@ -2787,7 +2787,8 @@ button.ghost {
   display: flex;
   gap: 6px;
   justify-content: center;
-  margin-top: 12px;
+  margin-top: 8px;
+  margin-bottom: 12px;
   flex-wrap: wrap;
 }
 
