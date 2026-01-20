@@ -1691,6 +1691,14 @@ export const App = () => {
           </button>
         </div>
       </header>
+      <div className="mobile-blocker" role="dialog" aria-modal="true" aria-label="모바일 안내">
+        <div className="mobile-blocker-card">
+          <h2>모바일 환경에서는 사용이 불가능합니다 🙇‍♂️</h2>
+          <p>
+            멀티 컬럼 인터페이스 특성상 모바일 지원이 제한됩니다. 데스크톱 또는 태블릿에서 이용해 주세요.
+          </p>
+        </div>
+      </div>
 
       <main className={`layout${hasAccounts ? "" : " layout-empty"}`}>
         <aside>

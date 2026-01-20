@@ -7,6 +7,10 @@
     --color-sidebar-description: #c4b6a6;
     --color-brand-text: #c4b6a6;
     --color-oss-list: #c4b6a6;
+    --color-mobile-blocker-bg: radial-gradient(circle at top left, #1e1b18, #141210 60%, #0d0c0b);
+    --color-mobile-blocker-card-bg: #221f1c;
+    --color-mobile-blocker-title: #f5ede3;
+    --color-mobile-blocker-body: #c7b8a8;
     --color-sidebar-description-link: #8fa6cf;
     --color-sidebar-link: #d7cbbd;
     --color-sidebar-divider: #3b342d;
@@ -643,6 +647,10 @@
   --color-sidebar-description: #c4b6a6;
   --color-brand-text: #c4b6a6;
   --color-oss-list: #c4b6a6;
+  --color-mobile-blocker-bg: radial-gradient(circle at top left, #1e1b18, #141210 60%, #0d0c0b);
+  --color-mobile-blocker-card-bg: #221f1c;
+  --color-mobile-blocker-title: #f5ede3;
+  --color-mobile-blocker-body: #c7b8a8;
   --color-sidebar-description-link: #8fa6cf;
   --color-sidebar-link: #d7cbbd;
   --color-sidebar-divider: #3b342d;
