@@ -964,10 +964,6 @@ export const App = () => {
     const stored = localStorage.getItem("textodon.pomodoro.longBreak");
     return stored ? Number(stored) : 30;
   });
-  const [pomodoroTargetCycles, setPomodoroTargetCycles] = useState(() => {
-    const stored = localStorage.getItem("textodon.pomodoro.targetCycles");
-    return stored ? Number(stored) : 4;
-  });
   const [pomodoroSessionType, setPomodoroSessionType] = useState<"focus" | "break" | "longBreak">("focus");
   const [pomodoroIsRunning, setPomodoroIsRunning] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -1284,11 +1280,7 @@ export const App = () => {
     localStorage.setItem("textodon.pomodoro.longBreak", String(pomodoroLongBreak));
   }, [pomodoroLongBreak]);
 
-  useEffect(() => {
-    localStorage.setItem("textodon.pomodoro.targetCycles", String(pomodoroTargetCycles));
-    // 목표 사이클 수가 변경되면 완료된 세션 초기화
-    localStorage.removeItem("textodon.pomodoro.completedSessions");
-  }, [pomodoroTargetCycles]);
+
 
   const closeMobileMenu = useCallback(() => {
     setMobileMenuOpen(false);
@@ -1723,7 +1715,6 @@ export const App = () => {
               focusMinutes={pomodoroFocus}
               breakMinutes={pomodoroBreak}
               longBreakMinutes={pomodoroLongBreak}
-              targetCycles={pomodoroTargetCycles}
             />
           ) : null}
           {route === "home" ? (
@@ -2150,24 +2141,6 @@ onAccountChange={setSectionAccount}
                         max="60"
                         value={pomodoroLongBreak}
                         onChange={(event) => setPomodoroLongBreak(Number(event.target.value))}
-                      />
-                    </label>
-                  </div>
-                </div>
-                <div className="settings-item settings-item-pomodoro">
-                  <div>
-                    <strong>목표 사이클 수</strong>
-                    <p>완료할 뽀모도로 사이클 수를 설정합니다 (고정: 4사이클).</p>
-                  </div>
-                  <div className="pomodoro-time-inputs">
-                    <label>
-                      목표 사이클
-                      <input
-                        type="number"
-                        min="1"
-                        max="20"
-                        value={pomodoroTargetCycles}
-                        onChange={(event) => setPomodoroTargetCycles(Number(event.target.value))}
                       />
                     </label>
                   </div>

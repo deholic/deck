@@ -6,7 +6,6 @@ type PomodoroTimerProps = {
   focusMinutes?: number;
   breakMinutes?: number;
   longBreakMinutes?: number;
-  targetCycles?: number;
 };
 
 // TOTAL_SESSIONS을 targetCycles에 따라 동적으로 계산
@@ -32,8 +31,8 @@ export const PomodoroTimer = ({
   focusMinutes = 25,
   breakMinutes = 5,
   longBreakMinutes = 30,
-  targetCycles = 4,
 }: PomodoroTimerProps) => {
+  const targetCycles = 4; // 고정된 4사이클
   const focusDuration = focusMinutes * 60;
   const breakDuration = breakMinutes * 60;
   const longBreakDuration = longBreakMinutes * 60;
