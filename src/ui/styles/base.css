@@ -27,6 +27,10 @@
   --color-oss-list: #6b5c4f;
   --color-app-header-text: #5b4e43;
   --color-back-link: #7c6152;
+  --color-mobile-blocker-bg: radial-gradient(circle at top left, #f5f1ea, #efe9e0 60%, #fdfbf7);
+  --color-mobile-blocker-card-bg: #fffdf8;
+  --color-mobile-blocker-title: #1f1b16;
+  --color-mobile-blocker-body: #5f5347;
   --color-panel-bg: #ffffffcc;
   --color-panel-border: #e2ddd5;
   --shadow-panel: 0 18px 40px rgba(67, 57, 45, 0.08);
