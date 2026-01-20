@@ -2714,7 +2714,7 @@ button.ghost {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   flex: 1;
 }
 
@@ -2796,7 +2796,6 @@ button.ghost {
   display: flex;
   gap: 6px;
   justify-content: center;
-  margin-top: 8px;
   flex-wrap: wrap;
 }
 
