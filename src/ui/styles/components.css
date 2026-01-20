@@ -2709,6 +2709,12 @@ button.ghost {
   gap: 12px;
 }
 
+.pomodoro-timer-section {
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
 .pomodoro-mode-toggle {
   padding: 6px 12px;
   border: none;
