@@ -295,9 +295,9 @@ export const PomodoroTimer = ({
         <span className="pomodoro-time" aria-live="polite" aria-atomic="true">
           {formatTime(timeLeft)}
         </span>
-      </div>
-      <div className="pomodoro-progress-dots">
-        {renderProgressDots()}
+        <div className="pomodoro-progress-dots">
+          {renderProgressDots()}
+        </div>
       </div>
       <div className="pomodoro-row">
         <div className="pomodoro-controls">
