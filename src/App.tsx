@@ -1280,6 +1280,8 @@ export const App = () => {
     localStorage.setItem("textodon.pomodoro.longBreak", String(pomodoroLongBreak));
   }, [pomodoroLongBreak]);
 
+
+
   const closeMobileMenu = useCallback(() => {
     setMobileMenuOpen(false);
     setMobileComposeOpen(false);
@@ -2106,44 +2108,46 @@ onAccountChange={setSectionAccount}
               </label>
             </div>
             {showPomodoro ? (
-              <div className="settings-item settings-item-pomodoro">
-                <div>
-                  <strong>뽀모도로 시간 설정</strong>
-                  <p>집중, 휴식, 긴 휴식 시간을 분 단위로 설정합니다.</p>
+              <>
+                <div className="settings-item settings-item-pomodoro">
+                  <div>
+                    <strong>뽀모도로 시간 설정</strong>
+                    <p>집중, 휴식, 긴 휴식 시간을 분 단위로 설정합니다.</p>
+                  </div>
+                  <div className="pomodoro-time-inputs">
+                    <label>
+                      집중
+                      <input
+                        type="number"
+                        min="1"
+                        max="60"
+                        value={pomodoroFocus}
+                        onChange={(event) => setPomodoroFocus(Number(event.target.value))}
+                      />
+                    </label>
+                    <label>
+                      휴식
+                      <input
+                        type="number"
+                        min="1"
+                        max="30"
+                        value={pomodoroBreak}
+                        onChange={(event) => setPomodoroBreak(Number(event.target.value))}
+                      />
+                    </label>
+                    <label>
+                      긴 휴식
+                      <input
+                        type="number"
+                        min="1"
+                        max="60"
+                        value={pomodoroLongBreak}
+                        onChange={(event) => setPomodoroLongBreak(Number(event.target.value))}
+                      />
+                    </label>
+                  </div>
                 </div>
-                <div className="pomodoro-time-inputs">
-                  <label>
-                    집중
-                    <input
-                      type="number"
-                      min="1"
-                      max="60"
-                      value={pomodoroFocus}
-                      onChange={(event) => setPomodoroFocus(Number(event.target.value))}
-                    />
-                  </label>
-                  <label>
-                    휴식
-                    <input
-                      type="number"
-                      min="1"
-                      max="30"
-                      value={pomodoroBreak}
-                      onChange={(event) => setPomodoroBreak(Number(event.target.value))}
-                    />
-                  </label>
-                  <label>
-                    긴 휴식
-                    <input
-                      type="number"
-                      min="1"
-                      max="60"
-                      value={pomodoroLongBreak}
-                      onChange={(event) => setPomodoroLongBreak(Number(event.target.value))}
-                    />
-                  </label>
-                </div>
-              </div>
+              </>
             ) : null}
             <div className="settings-item">
               <div>

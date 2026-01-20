@@ -2706,7 +2706,16 @@ button.ghost {
 .pomodoro-row {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
+}
+
+.pomodoro-timer-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
 }
 
 .pomodoro-mode-toggle {
@@ -2781,4 +2790,45 @@ button.ghost {
   .pomodoro-panel {
     display: none;
   }
+}
+
+.pomodoro-progress-dots {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.pomodoro-progress-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 2px solid;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.pomodoro-progress-dot.incomplete {
+  border-color: var(--color-text-secondary);
+  background: var(--color-text-secondary);
+  opacity: 0.3;
+}
+
+.pomodoro-progress-dot.completed-focus {
+  border-color: var(--color-pomodoro-focus);
+  background: var(--color-pomodoro-focus);
+}
+
+.pomodoro-progress-dot.completed-break {
+  border-color: var(--color-pomodoro-break);
+  background: var(--color-pomodoro-break);
+}
+
+.pomodoro-progress-dot.completed-long-break {
+  border-color: var(--color-pomodoro-long-break);
+  background: var(--color-pomodoro-long-break);
+}
+
+.pomodoro-progress-dot:hover {
+  transform: scale(1.2);
 }
