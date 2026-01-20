@@ -2782,3 +2782,44 @@ button.ghost {
     display: none;
   }
 }
+
+.pomodoro-progress-dots {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.pomodoro-progress-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.pomodoro-progress-dot.incomplete {
+  border-color: var(--color-text-secondary);
+  background: transparent;
+}
+
+.pomodoro-progress-dot.completed-focus {
+  border-color: var(--color-pomodoro-focus);
+  background: var(--color-pomodoro-focus);
+}
+
+.pomodoro-progress-dot.completed-break {
+  border-color: var(--color-pomodoro-break);
+  background: var(--color-pomodoro-break);
+}
+
+.pomodoro-progress-dot.completed-long-break {
+  border-color: var(--color-pomodoro-long-break);
+  background: var(--color-pomodoro-long-break);
+}
+
+.pomodoro-progress-dot:hover {
+  transform: scale(1.2);
+}

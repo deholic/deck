@@ -6,8 +6,7 @@ type PomodoroTimerProps = {
   focusMinutes?: number;
   breakMinutes?: number;
   longBreakMinutes?: number;
-  onSessionTypeChange?: (type: SessionType) => void;
-  onRunningChange?: (isRunning: boolean) => void;
+  targetCycles?: number;
 };
 
 const TOTAL_SESSIONS = 8;
@@ -33,8 +32,7 @@ export const PomodoroTimer = ({
   focusMinutes = 25,
   breakMinutes = 5,
   longBreakMinutes = 30,
-  onSessionTypeChange,
-  onRunningChange,
+  targetCycles = 4,
 }: PomodoroTimerProps) => {
   const focusDuration = focusMinutes * 60;
   const breakDuration = breakMinutes * 60;
@@ -60,17 +58,22 @@ export const PomodoroTimer = ({
   const intervalRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
+  // 완료된 세션 추적
+  const [completedSessions, setCompletedSessions] = useState<Array<{session: number; type: SessionType}>>(() => {
+    try {
+      const stored = localStorage.getItem("textodon.pomodoro.completedSessions");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const sessionInfo = useMemo(() => getSessionInfo(session), [session, getSessionInfo]);
 
-  // 세션 타입 변경 시 부모 컴포넌트에 알림
+  // 완료된 세션 localStorage 저장
   useEffect(() => {
-    onSessionTypeChange?.(sessionInfo.type);
-  }, [sessionInfo.type, onSessionTypeChange]);
-
-  // 실행 상태 변경 시 부모 컴포넌트에 알림
-  useEffect(() => {
-    onRunningChange?.(isRunning);
-  }, [isRunning, onRunningChange]);
+    localStorage.setItem("textodon.pomodoro.completedSessions", JSON.stringify(completedSessions));
+  }, [completedSessions]);
 
   const playNotificationSound = useCallback(() => {
     try {
@@ -119,6 +122,7 @@ export const PomodoroTimer = ({
     setSession(1);
     setTimeLeft(focusDuration);
     setIsRunning(false);
+    setCompletedSessions([]);
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
@@ -143,6 +147,15 @@ export const PomodoroTimer = ({
           if (prev <= 1) {
             playNotificationSound();
             setIsBlinking(true);
+            
+            // 현재 세션을 완료된 세션 목록에 추가
+            setCompletedSessions((prev) => {
+              const updated = [...prev, { session, type: sessionInfo.type }];
+              // 최근 targetCycles * 2개 세션까지만 유지 (집중+휴식이 한 사이클)
+              const maxSessions = targetCycles * 2;
+              return updated.slice(-maxSessions);
+            });
+            
             const nextSession = session >= TOTAL_SESSIONS ? 1 : session + 1;
             const nextInfo = getSessionInfo(nextSession);
             setSession(nextSession);
@@ -169,6 +182,41 @@ export const PomodoroTimer = ({
   }, [isRunning, session, playNotificationSound]);
 
   const focusCount = Math.ceil(session / 2);
+
+  // 진행 상태 점 생성
+  const renderProgressDots = useCallback(() => {
+    const totalSessions = targetCycles * 2; // 각 사이클은 집중+휴식
+    const dots = [];
+    
+    for (let i = 1; i <= totalSessions; i++) {
+      const completedSession = completedSessions.find(cs => cs.session === i);
+      const isCompleted = !!completedSession;
+      const sessionType = completedSession?.type || getSessionInfo(i).type;
+      
+      let dotClass = "pomodoro-progress-dot";
+      if (isCompleted) {
+        if (sessionType === "focus") {
+          dotClass += " completed-focus";
+        } else if (sessionType === "break") {
+          dotClass += " completed-break";
+        } else if (sessionType === "longBreak") {
+          dotClass += " completed-long-break";
+        }
+      } else {
+        dotClass += " incomplete";
+      }
+      
+      dots.push(
+        <div
+          key={i}
+          className={dotClass}
+          aria-label={`세션 ${i}${isCompleted ? ` (${getSessionLabel(sessionType)} 완료)` : ' (진행 전)'}`}
+        />
+      );
+    }
+    
+    return dots;
+  }, [completedSessions, targetCycles, getSessionInfo]);
 
   const handlePanelClick = useCallback(() => {
     if (isBlinking) {
@@ -209,6 +257,9 @@ export const PomodoroTimer = ({
             리셋
           </button>
         </div>
+      </div>
+      <div className="pomodoro-progress-dots">
+        {renderProgressDots()}
       </div>
     </section>
   );
