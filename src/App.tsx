@@ -1715,6 +1715,8 @@ export const App = () => {
               focusMinutes={pomodoroFocus}
               breakMinutes={pomodoroBreak}
               longBreakMinutes={pomodoroLongBreak}
+              onSessionTypeChange={setPomodoroSessionType}
+              onRunningChange={setPomodoroIsRunning}
             />
           ) : null}
           {route === "home" ? (

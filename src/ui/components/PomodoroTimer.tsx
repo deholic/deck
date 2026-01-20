@@ -6,6 +6,8 @@ type PomodoroTimerProps = {
   focusMinutes?: number;
   breakMinutes?: number;
   longBreakMinutes?: number;
+  onSessionTypeChange?: (type: SessionType) => void;
+  onRunningChange?: (isRunning: boolean) => void;
 };
 
 // TOTAL_SESSIONS을 targetCycles에 따라 동적으로 계산
@@ -31,6 +33,8 @@ export const PomodoroTimer = ({
   focusMinutes = 25,
   breakMinutes = 5,
   longBreakMinutes = 30,
+  onSessionTypeChange,
+  onRunningChange,
 }: PomodoroTimerProps) => {
   const targetCycles = 4; // 고정된 4사이클
   const focusDuration = focusMinutes * 60;
@@ -98,6 +102,16 @@ export const PomodoroTimer = ({
   });
 
   const sessionInfo = useMemo(() => getSessionInfo(session), [session, getSessionInfo]);
+
+  // 세션 타입 변경 시 부모 컴포넌트에 알림
+  useEffect(() => {
+    onSessionTypeChange?.(sessionInfo.type);
+  }, [sessionInfo.type, onSessionTypeChange]);
+
+  // 실행 상태 변경 시 부모 컴포넌트에 알림
+  useEffect(() => {
+    onRunningChange?.(isRunning);
+  }, [isRunning, onRunningChange]);
 
   // 완료된 세션 localStorage 저장
   useEffect(() => {
