@@ -2802,7 +2802,8 @@ button.ghost {
 
 .pomodoro-progress-dot.incomplete {
   border-color: var(--color-text-secondary);
-  background: transparent;
+  background: var(--color-text-secondary);
+  opacity: 0.3;
 }
 
 .pomodoro-progress-dot.completed-focus {
