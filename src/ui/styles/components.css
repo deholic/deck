@@ -2786,6 +2786,116 @@ button.ghost {
   gap: 6px;
 }
 
+.pomodoro-divider {
+  margin: 12px 0;
+}
+
+.pomodoro-todos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pomodoro-todo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pomodoro-todo-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--color-panel-bg);
+  border: 1px solid var(--color-panel-border);
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.pomodoro-todo-item.is-completed .pomodoro-todo-text {
+  color: var(--color-text-secondary);
+  text-decoration: line-through;
+}
+
+.pomodoro-todo-item.is-completed {
+  opacity: 0.6;
+}
+
+.pomodoro-todo-checkbox {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--color-action-bg);
+  cursor: pointer;
+}
+
+.pomodoro-todo-text {
+  flex: 1;
+  word-break: break-word;
+}
+
+.pomodoro-todo-remove {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pomodoro-todo-remove:hover {
+  color: var(--color-danger, #d64545);
+}
+
+.pomodoro-todo-remove svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+.pomodoro-todo-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pomodoro-todo-input input {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--color-input-border);
+  background: var(--color-input-bg);
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.pomodoro-todo-input input:focus {
+  outline: 2px solid var(--color-action-bg);
+  outline-offset: 1px;
+}
+
+.pomodoro-todo-input button {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  background: var(--color-action-bg);
+  color: var(--color-action-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+
 .pomodoro-button {
   padding: 6px 10px;
   border: none;

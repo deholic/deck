@@ -2,6 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type SessionType = "focus" | "break" | "longBreak";
 
+type PomodoroTodoItem = {
+  id: string;
+  text: string;
+  completed: boolean;
+};
+
 type PomodoroTimerProps = {
   focusMinutes?: number;
   breakMinutes?: number;
@@ -91,6 +97,23 @@ export const PomodoroTimer = ({
   const intervalRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
+  const [todoInput, setTodoInput] = useState("");
+  const [todoItems, setTodoItems] = useState<PomodoroTodoItem[]>(() => {
+    try {
+      const stored = localStorage.getItem("textodon.pomodoro.todos");
+      if (!stored) {
+        return [];
+      }
+      const parsed = JSON.parse(stored) as PomodoroTodoItem[];
+      return parsed.map((item) => ({
+        ...item,
+        completed: item.completed ?? false,
+      }));
+    } catch {
+      return [];
+    }
+  });
+
   // 완료된 세션 추적
   const [completedSessions, setCompletedSessions] = useState<Array<{session: number; type: SessionType}>>(() => {
     try {
@@ -130,6 +153,10 @@ export const PomodoroTimer = ({
   useEffect(() => {
     localStorage.setItem("textodon.pomodoro.isRunning", String(isRunning));
   }, [isRunning]);
+
+  useEffect(() => {
+    localStorage.setItem("textodon.pomodoro.todos", JSON.stringify(todoItems));
+  }, [todoItems]);
 
   const playNotificationSound = useCallback(() => {
     try {
@@ -291,6 +318,34 @@ export const PomodoroTimer = ({
     }
   }, [isBlinking]);
 
+  const handleAddTodo = useCallback(() => {
+    const trimmed = todoInput.trim();
+    if (!trimmed) {
+      return;
+    }
+    const nextItem: PomodoroTodoItem = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      text: trimmed,
+      completed: false,
+    };
+    setTodoItems((prev) => [...prev, nextItem]);
+    setTodoInput("");
+  }, [todoInput]);
+
+  const handleToggleTodo = useCallback((id: string) => {
+    setTodoItems((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, completed: !item.completed } : item
+      )
+    );
+  }, []);
+
+  const handleRemoveTodo = useCallback((id: string) => {
+    setTodoItems((prev) => prev.filter((item) => item.id !== id));
+  }, []);
+
+  const displayedTodos = useMemo(() => todoItems, [todoItems]);
+
   return (
     <section
       className={`panel pomodoro-panel${isBlinking ? " blinking" : ""}`}
@@ -331,6 +386,57 @@ export const PomodoroTimer = ({
             리셋
           </button>
         </div>
+      </div>
+      <div className="compose-emoji-divider pomodoro-divider" />
+      <div className="pomodoro-todos" aria-label="뽀모도로 투두">
+        {displayedTodos.length > 0 ? (
+          <div className="pomodoro-todo-list">
+            {displayedTodos.map((item) => (
+              <div
+                key={item.id}
+                className={`pomodoro-todo-item${item.completed ? " is-completed" : ""}`}
+              >
+                <input
+                  type="checkbox"
+                  className="pomodoro-todo-checkbox"
+                  checked={item.completed}
+                  onChange={() => handleToggleTodo(item.id)}
+                  aria-label={`할 일 완료: ${item.text}`}
+                />
+                <span className="pomodoro-todo-text">{item.text}</span>
+              <button
+                type="button"
+                className="pomodoro-todo-remove"
+                aria-label={`할 일 삭제: ${item.text}`}
+                onClick={() => handleRemoveTodo(item.id)}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                </svg>
+              </button>
+            </div>
+          ))}
+          </div>
+        ) : null}
+        <form
+          className="pomodoro-todo-input"
+          onSubmit={(event) => {
+            event.preventDefault();
+            handleAddTodo();
+          }}
+        >
+          <input
+            type="text"
+            value={todoInput}
+            onChange={(event) => setTodoInput(event.target.value)}
+            placeholder="할 일 추가"
+            aria-label="뽀모도로 투두 입력"
+          />
+          <button type="submit" aria-label="투두 추가">
+            추가
+          </button>
+        </form>
       </div>
     </section>
   );
