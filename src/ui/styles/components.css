@@ -1348,6 +1348,11 @@ button.ghost {
   background: var(--color-status-bg);
 }
 
+.status.is-selected {
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--color-action-active-bg) inset;
+}
+
 .status header {
   display: flex;
   justify-content: flex-start;
