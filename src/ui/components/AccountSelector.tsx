@@ -9,12 +9,16 @@ export const AccountSelector = ({
   activeAccountId,
   setActiveAccount,
   onSelectionDone,
+  summaryRef,
+  summaryTitle,
   variant = "panel"
 }: {
   accounts: Account[];
   activeAccountId: string | null;
   setActiveAccount: (id: string) => void;
   onSelectionDone?: () => void;
+  summaryRef?: React.Ref<HTMLElement>;
+  summaryTitle?: string;
   variant?: "panel" | "inline";
 }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -112,7 +116,11 @@ export const AccountSelector = ({
           open={dropdownOpen}
           onToggle={(event) => setDropdownOpen(event.currentTarget.open)}
         >
-          <summary className="account-selector-summary" title="계정 선택 (Ctrl+Shift+A)">
+          <summary
+            ref={summaryRef}
+            className="account-selector-summary"
+            title={summaryTitle ?? "계정 선택 (Ctrl+Shift+A)"}
+          >
             {activeAccount ? (
               <AccountLabel
                 avatarUrl={activeAccount.avatarUrl}

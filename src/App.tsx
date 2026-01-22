@@ -307,6 +307,7 @@ const TimelineSection = ({
   showReactions,
   registerTimelineListener,
   unregisterTimelineListener,
+  registerTimelineShortcutHandler,
   columnRef,
   selectedStatusId
 }: {
@@ -339,6 +340,7 @@ const TimelineSection = ({
   showReactions: boolean;
   registerTimelineListener: (accountId: string, listener: (status: Status) => void) => void;
   unregisterTimelineListener: (accountId: string, listener: (status: Status) => void) => void;
+  registerTimelineShortcutHandler: (sectionId: string, handler: ((event: KeyboardEvent) => boolean) | null) => void;
   columnRef?: React.Ref<HTMLDivElement>;
   selectedStatusId: string | null;
 }) => {
@@ -362,15 +364,24 @@ const TimelineSection = ({
   const notificationMenuRef = useRef<HTMLDivElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const notificationScrollRef = useRef<HTMLDivElement | null>(null);
+  const accountSummaryRef = useRef<HTMLElement | null>(null);
   const lastNotificationToastRef = useRef(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [timelineMenuOpen, setTimelineMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
   const [isAtTop, setIsAtTop] = useState(true);
+  const [highlightedTimelineIndex, setHighlightedTimelineIndex] = useState<number | null>(null);
+  const [highlightedSectionMenuIndex, setHighlightedSectionMenuIndex] = useState<number | null>(null);
+  const [highlightedNotificationIndex, setHighlightedNotificationIndex] = useState<number | null>(null);
   const { showToast } = useToast();
   const timelineOptions = useMemo(() => getTimelineOptions(account?.platform, false), [account?.platform]);
+  const actionableTimelineOptions = useMemo(
+    () => timelineOptions.filter((option) => !option.isDivider),
+    [timelineOptions]
+  );
   const timelineButtonLabel = `타임라인 선택: ${getTimelineLabel(timelineType)}`;
+  const timelineShortcutLabel = `타임라인 단축키: A 계정 · T 타임라인 · M 메뉴 · B 알림 · ESC 닫기`;
   const hasNotificationBadge = notificationCount > 0;
   const instanceOriginUrl = useMemo(() => {
     if (!account) {
@@ -468,6 +479,55 @@ const TimelineSection = ({
   useClickOutside(timelineMenuRef, timelineMenuOpen, () => setTimelineMenuOpen(false));
 
   useClickOutside(notificationMenuRef, notificationsOpen, () => setNotificationsOpen(false));
+
+  useEffect(() => {
+    if (!timelineMenuOpen) {
+      setHighlightedTimelineIndex(null);
+      return;
+    }
+    const selectedIndex = actionableTimelineOptions.findIndex((option) => option.id === timelineType);
+    const nextIndex = selectedIndex >= 0 ? selectedIndex : 0;
+    setHighlightedTimelineIndex(nextIndex);
+  }, [actionableTimelineOptions, timelineMenuOpen, timelineType]);
+
+  useEffect(() => {
+    if (!menuOpen) {
+      setHighlightedSectionMenuIndex(null);
+      return;
+    }
+    setHighlightedSectionMenuIndex(0);
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!notificationsOpen) {
+      setHighlightedNotificationIndex(null);
+      return;
+    }
+    if (highlightedNotificationIndex !== null) {
+      return;
+    }
+    const hasNotifications = notificationItems.length > 0;
+    setHighlightedNotificationIndex(hasNotifications ? 0 : null);
+  }, [highlightedNotificationIndex, notificationItems.length, notificationsOpen]);
+
+  useEffect(() => {
+    if (!notificationsOpen) {
+      return;
+    }
+    if (highlightedNotificationIndex === null) {
+      return;
+    }
+    const container = notificationScrollRef.current;
+    if (!container) {
+      return;
+    }
+    const items = container.querySelectorAll<HTMLElement>(".status");
+    const target = items[highlightedNotificationIndex];
+    if (!target) {
+      return;
+    }
+    target.scrollIntoView({ block: "nearest" });
+  }, [highlightedNotificationIndex, notificationsOpen]);
 
   useEffect(() => {
     if (!notificationsOpen) {
@@ -616,8 +676,186 @@ const TimelineSection = ({
     setMenuOpen(false);
   }, [instanceOriginUrl]);
 
+  const handleTimelineShortcuts = useCallback(
+    (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      const hasModifier = event.ctrlKey || event.metaKey || event.shiftKey || event.altKey;
+      if (key === "escape") {
+        if (timelineMenuOpen) {
+          event.preventDefault();
+          setTimelineMenuOpen(false);
+          return true;
+        }
+        if (menuOpen) {
+          event.preventDefault();
+          setMenuOpen(false);
+          return true;
+        }
+        if (notificationsOpen) {
+          event.preventDefault();
+          setNotificationsOpen(false);
+          return true;
+        }
+        return false;
+      }
+      if (hasModifier) {
+        return false;
+      }
+      if (timelineMenuOpen && (key === "arrowup" || key === "arrowdown" || key === "enter")) {
+        if (!actionableTimelineOptions.length) {
+          return true;
+        }
+        if (key === "enter") {
+          const option = actionableTimelineOptions[
+            highlightedTimelineIndex ?? 0
+          ];
+          if (option) {
+            onTimelineChange(section.id, option.id as TimelineType);
+            setTimelineMenuOpen(false);
+          }
+          event.preventDefault();
+          return true;
+        }
+        event.preventDefault();
+        setHighlightedTimelineIndex((current) => {
+          const currentIndex = current ?? 0;
+          const offset = key === "arrowdown" ? 1 : -1;
+          const nextIndex =
+            (currentIndex + offset + actionableTimelineOptions.length) % actionableTimelineOptions.length;
+          return nextIndex;
+        });
+        return true;
+      }
+      if (menuOpen && (key === "arrowup" || key === "arrowdown" || key === "enter")) {
+        const menuButtons = menuRef.current?.querySelectorAll<HTMLButtonElement>("button");
+        if (!menuButtons || menuButtons.length === 0) {
+          return true;
+        }
+        if (key === "enter") {
+          const index = highlightedSectionMenuIndex ?? 0;
+          const targetButton = menuButtons[index];
+          if (targetButton) {
+            targetButton.click();
+            setMenuOpen(false);
+          }
+          event.preventDefault();
+          return true;
+        }
+        event.preventDefault();
+        setHighlightedSectionMenuIndex((current) => {
+          const currentIndex = current ?? 0;
+          const offset = key === "arrowdown" ? 1 : -1;
+          const nextIndex = (currentIndex + offset + menuButtons.length) % menuButtons.length;
+          return nextIndex;
+        });
+        return true;
+      }
+      if (notificationsOpen && (key === "arrowup" || key === "arrowdown")) {
+        if (notificationItems.length === 0) {
+          return true;
+        }
+        event.preventDefault();
+        setHighlightedNotificationIndex((current) => {
+          const currentIndex = current ?? 0;
+          if (key === "arrowup") {
+            return Math.max(0, currentIndex - 1);
+          }
+          return Math.min(notificationItems.length - 1, currentIndex + 1);
+        });
+        return true;
+      }
+      if (notificationsOpen && key === "enter") {
+        if (highlightedNotificationIndex === null) {
+          return true;
+        }
+        const status = notificationItems[highlightedNotificationIndex];
+        if (status) {
+          event.preventDefault();
+          onStatusClick(status, account);
+          return true;
+        }
+        return true;
+      }
+      if (!selectedStatusId) {
+        return false;
+      }
+      if (key === "a") {
+        const summary = accountSummaryRef.current;
+        if (!summary) {
+          return false;
+        }
+        const details = summary.closest("details");
+        if (details?.hasAttribute("open")) {
+          event.preventDefault();
+          summary.focus();
+          return true;
+        }
+        event.preventDefault();
+        summary.click();
+        summary.focus();
+        return true;
+      }
+      if (key === "t") {
+        if (!account) {
+          onError("계정을 선택해주세요.");
+          return true;
+        }
+        event.preventDefault();
+        setTimelineMenuOpen(true);
+        setMenuOpen(false);
+        setNotificationsOpen(false);
+        return true;
+      }
+      if (key === "m") {
+        event.preventDefault();
+        setMenuOpen(true);
+        setTimelineMenuOpen(false);
+        setNotificationsOpen(false);
+        return true;
+      }
+      if (key === "b") {
+        if (!account) {
+          onError("계정을 선택해주세요.");
+          return true;
+        }
+        event.preventDefault();
+        setNotificationsOpen(true);
+        setMenuOpen(false);
+        setTimelineMenuOpen(false);
+        return true;
+      }
+      return false;
+    },
+    [
+      account,
+      actionableTimelineOptions,
+      highlightedNotificationIndex,
+      highlightedSectionMenuIndex,
+      highlightedTimelineIndex,
+      menuOpen,
+      notificationItems,
+      notificationItems.length,
+      notificationsOpen,
+      onError,
+      onStatusClick,
+      onTimelineChange,
+      section.id,
+      selectedStatusId,
+      timelineMenuOpen
+    ]
+  );
+
+  useEffect(() => {
+    registerTimelineShortcutHandler(section.id, handleTimelineShortcuts);
+    return () => registerTimelineShortcutHandler(section.id, null);
+  }, [handleTimelineShortcuts, registerTimelineShortcutHandler, section.id]);
+
   return (
-    <div className="timeline-column" ref={columnRef} data-section-id={section.id}>
+    <div
+      className="timeline-column"
+      ref={columnRef}
+      data-section-id={section.id}
+    >
       <div className="timeline-column-header">
         <AccountSelector
           accounts={accountsState.accounts}
@@ -626,6 +864,8 @@ const TimelineSection = ({
             onAccountChange(section.id, id);
             accountsState.setActiveAccount(id);
           }}
+          summaryRef={accountSummaryRef}
+          summaryTitle="계정 선택 (A)"
           variant="inline"
         />
         <div className="timeline-column-actions" role="group" aria-label="타임라인 작업">
@@ -646,7 +886,7 @@ const TimelineSection = ({
               aria-label={timelineButtonLabel}
               aria-haspopup="menu"
               aria-expanded={timelineMenuOpen}
-              title={timelineButtonLabel}
+              title="타임라인 선택 (T)"
             >
               <TimelineIcon timeline={timelineType} />
               <span className="timeline-selector-label">{getTimelineLabel(timelineType)}</span>
@@ -666,14 +906,16 @@ const TimelineSection = ({
                         <div key={option.id} className="timeline-selector-divider" role="separator" />
                       );
                     }
-                    
+                    const optionIndex = actionableTimelineOptions.findIndex((item) => item.id === option.id);
                     const isSelected = !option.isDivider && timelineType === option.id;
+                    const isHighlighted = optionIndex === highlightedTimelineIndex;
                     return (
                       <button
                         key={option.id}
                         type="button"
-                        className={isSelected ? "is-active" : ""}
+                        className={`${isSelected ? "is-active" : ""}${isHighlighted ? " is-highlighted" : ""}`}
                         aria-pressed={isSelected}
+                        title={isHighlighted ? "선택 (Enter)" : undefined}
                         onClick={() => {
                           if (!option.isDivider) {
                             onTimelineChange(section.id, option.id as TimelineType);
@@ -707,7 +949,7 @@ const TimelineSection = ({
               disabled={!account}
               aria-label={notificationBadgeLabel}
               aria-pressed={notificationsOpen}
-              title={notificationBadgeLabel}
+              title="알림 열기 (B)"
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 7h18s-3 0-3-7" />
@@ -730,35 +972,36 @@ const TimelineSection = ({
                     {notificationsLoading && notificationItems.length === 0 ? (
                       <p className="empty">알림을 불러오는 중...</p>
                     ) : null}
-                    {notificationItems.length > 0 ? (
-                      <div className="timeline">
-                        {notificationItems.map((status) => (
-                          <TimelineItem
-                            key={status.id}
-                            status={status}
-                             onReply={(item) => onReply(item, account)}
-                             onStatusClick={(status) => onStatusClick(status, account)}
-                             onToggleFavourite={handleToggleFavourite}
-                             onToggleReblog={handleToggleReblog}
-                             onToggleBookmark={handleToggleBookmark}
-                             onDelete={handleDeleteStatus}
-                            onReact={handleReact}
-                            onProfileClick={(item) => onProfileClick(item, account)}
-                            activeHandle={
-                              account?.handle ? formatHandle(account.handle, account.instanceUrl) : account?.instanceUrl ?? ""
-                            }
-                            activeAccountHandle={account?.handle ?? ""}
-                            activeAccountUrl={account?.url ?? null}
-                            account={account}
-                            api={services.api}
-                            showProfileImage={showProfileImage}
-                            showCustomEmojis={showCustomEmojis}
-                            showReactions={showReactions}
-                            disableActions
-                          />
-                        ))}
-                      </div>
-                    ) : null}
+                     {notificationItems.length > 0 ? (
+                       <div className="timeline">
+                         {notificationItems.map((status, statusIndex) => (
+                           <TimelineItem
+                             key={status.id}
+                             status={status}
+                              onReply={(item) => onReply(item, account)}
+                              onStatusClick={(status) => onStatusClick(status, account)}
+                              onToggleFavourite={handleToggleFavourite}
+                              onToggleReblog={handleToggleReblog}
+                              onToggleBookmark={handleToggleBookmark}
+                              onDelete={handleDeleteStatus}
+                             onReact={handleReact}
+                             onProfileClick={(item) => onProfileClick(item, account)}
+                             activeHandle={
+                               account?.handle ? formatHandle(account.handle, account.instanceUrl) : account?.instanceUrl ?? ""
+                             }
+                             activeAccountHandle={account?.handle ?? ""}
+                             activeAccountUrl={account?.url ?? null}
+                             account={account}
+                             api={services.api}
+                             showProfileImage={showProfileImage}
+                             showCustomEmojis={showCustomEmojis}
+                             showReactions={showReactions}
+                             disableActions
+                             isSelected={highlightedNotificationIndex === statusIndex}
+                           />
+                         ))}
+                       </div>
+                     ) : null}
                     {notificationsLoadingMore ? <p className="empty">더 불러오는 중...</p> : null}
                   </div>
                 </div>
@@ -770,6 +1013,7 @@ const TimelineSection = ({
               type="button"
               className="icon-button menu-button"
               aria-label="섹션 메뉴 열기"
+              title="섹션 메뉴 열기 (M)"
               onClick={() => {
                 setMenuOpen((current) => !current);
                 setNotificationsOpen(false);
@@ -785,73 +1029,84 @@ const TimelineSection = ({
             {menuOpen ? (
               <>
                 <div className="overlay-backdrop" aria-hidden="true" />
-                <div ref={menuRef} className="section-menu-panel" role="menu">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      timeline.refresh();
-                      setMenuOpen(false);
-                    }}
-                    disabled={!account || timeline.loading}
-                  >
-                    새로고침
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleOpenInstanceOrigin}
-                    disabled={!instanceOriginUrl}
-                  >
-                    원본 서버에서 보기
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onAddSectionLeft(section.id);
-                      setMenuOpen(false);
-                    }}
-                  >
-                    왼쪽 섹션 추가
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onMoveSection(section.id, "left");
-                      setMenuOpen(false);
-                    }}
-                    disabled={!canMoveLeft}
-                  >
-                    왼쪽으로 이동
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onMoveSection(section.id, "right");
-                      setMenuOpen(false);
-                    }}
-                    disabled={!canMoveRight}
-                  >
-                    오른쪽으로 이동
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onAddSectionRight(section.id);
-                      setMenuOpen(false);
-                    }}
-                  >
-                    오른쪽 섹션 추가
-                  </button>
-                  <button
-                    type="button"
-                    className="danger"
-                    disabled={!canRemoveSection}
-                    onClick={() => {
-                      onRemoveSection(section.id);
-                      setMenuOpen(false);
-                    }}
-                  >
-                    섹션 삭제
-                  </button>
+                 <div ref={menuRef} className="section-menu-panel" role="menu">
+                  {(
+                    [
+                      {
+                        label: "새로고침",
+                        onClick: () => {
+                          timeline.refresh();
+                          setMenuOpen(false);
+                        },
+                        disabled: !account || timeline.loading
+                      },
+                      {
+                        label: "원본 서버에서 보기",
+                        onClick: handleOpenInstanceOrigin,
+                        disabled: !instanceOriginUrl
+                      },
+                      {
+                        label: "왼쪽 섹션 추가",
+                        onClick: () => {
+                          onAddSectionLeft(section.id);
+                          setMenuOpen(false);
+                        },
+                        disabled: false
+                      },
+                      {
+                        label: "왼쪽으로 이동",
+                        onClick: () => {
+                          onMoveSection(section.id, "left");
+                          setMenuOpen(false);
+                        },
+                        disabled: !canMoveLeft
+                      },
+                      {
+                        label: "오른쪽으로 이동",
+                        onClick: () => {
+                          onMoveSection(section.id, "right");
+                          setMenuOpen(false);
+                        },
+                        disabled: !canMoveRight
+                      },
+                      {
+                        label: "오른쪽 섹션 추가",
+                        onClick: () => {
+                          onAddSectionRight(section.id);
+                          setMenuOpen(false);
+                        },
+                        disabled: false
+                      },
+                      {
+                        label: "섹션 삭제",
+                        onClick: () => {
+                          onRemoveSection(section.id);
+                          setMenuOpen(false);
+                        },
+                        disabled: !canRemoveSection,
+                        danger: true
+                      }
+                    ]
+                  ).map((item, index) => {
+                    const className = [
+                      item.danger ? "danger" : "",
+                      highlightedSectionMenuIndex === index ? "is-highlighted" : ""
+                    ]
+                      .filter(Boolean)
+                      .join(" ");
+                    return (
+                      <button
+                        key={item.label}
+                        type="button"
+                        className={className}
+                        title={highlightedSectionMenuIndex === index ? "선택 (Enter)" : undefined}
+                        onClick={item.onClick}
+                        disabled={item.disabled}
+                      >
+                        {item.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </>
             ) : null}
@@ -1047,6 +1302,9 @@ export const App = () => {
   const timelineBoardRef = useRef<HTMLDivElement | null>(null);
   const sectionRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
   const sectionItemsRef = useRef<Map<string, Status[]>>(new Map());
+  const timelineShortcutHandlersRef = useRef<Map<string, (event: KeyboardEvent) => boolean>>(
+    new Map()
+  );
   const replySummary = replyTarget
     ? `@${formatReplyHandle(replyTarget.accountHandle, replyTarget.accountUrl, composeAccount?.instanceUrl ?? "")} · ${replyTarget.content.slice(0, 80)}`
     : null;
@@ -1124,6 +1382,17 @@ export const App = () => {
       return { sectionId, statusId };
     });
   }, []);
+
+  const registerTimelineShortcutHandler = useCallback(
+    (sectionId: string, handler: ((event: KeyboardEvent) => boolean) | null) => {
+      if (!handler) {
+        timelineShortcutHandlersRef.current.delete(sectionId);
+        return;
+      }
+      timelineShortcutHandlersRef.current.set(sectionId, handler);
+    },
+    []
+  );
 
   useEffect(() => {
     const onHashChange = () => setRoute(parseRoute());
@@ -1400,10 +1669,27 @@ export const App = () => {
       const key = event.key;
       if (key === "Escape") {
         if (selectedTimelineStatus) {
+          const keyHandledByTimeline = timelineShortcutHandlersRef.current.get(
+            selectedTimelineStatus.sectionId
+          )?.(event);
+          if (keyHandledByTimeline) {
+            return;
+          }
+        }
+        if (selectedTimelineStatus) {
           event.preventDefault();
           setSelectedTimelineStatus(null);
         }
         return;
+      }
+
+      if (selectedTimelineStatus) {
+        const keyHandledByTimeline = timelineShortcutHandlersRef.current.get(
+          selectedTimelineStatus.sectionId
+        )?.(event);
+        if (keyHandledByTimeline) {
+          return;
+        }
       }
 
       if (
@@ -1413,6 +1699,9 @@ export const App = () => {
         !event.shiftKey &&
         !event.altKey
       ) {
+        if (selectedTimelineStatus) {
+          return;
+        }
         const board = timelineBoardRef.current;
         if (!board) {
           return;
@@ -2004,46 +2293,47 @@ export const App = () => {
                           ? selectedTimelineStatus.statusId
                           : null;
                       return (
-                        <TimelineSection
-                          key={section.id}
-                          section={section}
-                          account={sectionAccount}
-                          services={services}
-                          accountsState={accountsState}
-onAccountChange={setSectionAccount}
-                          onTimelineChange={setSectionTimeline}
-                          onScrollToSection={scrollToSection}
-                          onAddSectionLeft={(id) => addSectionNear(id, "left")}
-                           onAddSectionRight={(id) => addSectionNear(id, "right")}
-                           onRemoveSection={removeSection}
-                          onReply={handleReply}
-                           onStatusClick={handleStatusClick}
-                           onReact={handleReaction}
-                           onProfileClick={handleProfileOpen}
-                           columnAccount={sectionAccount}
-                          columnRef={(node) => {
-                            if (node) {
-                              sectionRefs.current.set(section.id, node);
-                            } else {
-                              sectionRefs.current.delete(section.id);
-                            }
-                          }}
-                           onCloseStatusModal={handleCloseStatusModal}
-                           onError={(message) => setActionError(message || null)}
-                           onMoveSection={moveSection}
-                           onTimelineItemsChange={handleTimelineItemsChange}
-                           onSelectStatus={handleSelectStatus}
-                           canMoveLeft={index > 0}
-                           canMoveRight={index < sections.length - 1}
-                           canRemoveSection={sections.length > 1}
-                           timelineType={section.timelineType}
-                           showProfileImage={showProfileImages}
-                           showCustomEmojis={showCustomEmojis}
-                           showReactions={shouldShowReactions}
-                           registerTimelineListener={registerTimelineListener}
-                           unregisterTimelineListener={unregisterTimelineListener}
-                           selectedStatusId={selectedStatusId}
-                        />
+                          <TimelineSection
+                            key={section.id}
+                            section={section}
+                            account={sectionAccount}
+                            services={services}
+                            accountsState={accountsState}
+                            onAccountChange={setSectionAccount}
+                            onTimelineChange={setSectionTimeline}
+                            onScrollToSection={scrollToSection}
+                            onAddSectionLeft={(id) => addSectionNear(id, "left")}
+                            onAddSectionRight={(id) => addSectionNear(id, "right")}
+                            onRemoveSection={removeSection}
+                            onReply={handleReply}
+                            onStatusClick={handleStatusClick}
+                            onReact={handleReaction}
+                            onProfileClick={handleProfileOpen}
+                            columnAccount={sectionAccount}
+                            columnRef={(node) => {
+                              if (node) {
+                                sectionRefs.current.set(section.id, node);
+                              } else {
+                                sectionRefs.current.delete(section.id);
+                              }
+                            }}
+                            onCloseStatusModal={handleCloseStatusModal}
+                            onError={(message) => setActionError(message || null)}
+                            onMoveSection={moveSection}
+                            onTimelineItemsChange={handleTimelineItemsChange}
+                            onSelectStatus={handleSelectStatus}
+                            canMoveLeft={index > 0}
+                            canMoveRight={index < sections.length - 1}
+                            canRemoveSection={sections.length > 1}
+                            timelineType={section.timelineType}
+                            showProfileImage={showProfileImages}
+                            showCustomEmojis={showCustomEmojis}
+                            showReactions={shouldShowReactions}
+                            registerTimelineListener={registerTimelineListener}
+                            unregisterTimelineListener={unregisterTimelineListener}
+                            registerTimelineShortcutHandler={registerTimelineShortcutHandler}
+                            selectedStatusId={selectedStatusId}
+                          />
                       );
                     })}
                   </div>
