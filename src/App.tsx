@@ -1656,6 +1656,7 @@ export const App = () => {
       if (event.defaultPrevented) {
         return;
       }
+      const hasOverlayBackdrop = document.querySelector(".overlay-backdrop");
       if (selectedStatus || settingsOpen || infoModal || mobileMenuOpen || mobileComposeOpen) {
         return;
       }
@@ -1736,6 +1737,13 @@ export const App = () => {
       }
 
       if (!selectedTimelineStatus) {
+        return;
+      }
+
+      if (
+        hasOverlayBackdrop &&
+        (key === "ArrowUp" || key === "ArrowDown" || key === "ArrowLeft" || key === "ArrowRight")
+      ) {
         return;
       }
 
