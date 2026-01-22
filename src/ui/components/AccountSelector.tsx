@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { Account } from "../../domain/types";
+import type { Ref } from "react";
 import { formatHandle } from "../utils/account";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { AccountLabel } from "./AccountLabel";
@@ -17,7 +18,7 @@ export const AccountSelector = ({
   activeAccountId: string | null;
   setActiveAccount: (id: string) => void;
   onSelectionDone?: () => void;
-  summaryRef?: React.Ref<HTMLElement>;
+  summaryRef?: Ref<HTMLElement>;
   summaryTitle?: string;
   variant?: "panel" | "inline";
 }) => {
