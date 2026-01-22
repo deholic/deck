@@ -25,6 +25,7 @@ import termsMarkdown from "./ui/content/terms.md?raw";
 type Route = "home" | "terms" | "license" | "oss";
 type InfoModalType = "terms" | "license" | "oss";
 type TimelineSectionConfig = { id: string; accountId: string | null; timelineType: TimelineType };
+type SelectedTimelineStatus = { sectionId: string; statusId: string };
 type ProfileTarget = { status: Status; account: Account | null; zIndex: number };
 
 const SECTION_STORAGE_KEY = "textodon.sections";
@@ -290,6 +291,8 @@ const TimelineSection = ({
   onReply,
   onStatusClick,
   onCloseStatusModal,
+  onTimelineItemsChange,
+  onSelectStatus,
   onReact,
   onProfileClick,
   onError,
@@ -304,7 +307,8 @@ const TimelineSection = ({
   showReactions,
   registerTimelineListener,
   unregisterTimelineListener,
-  columnRef
+  columnRef,
+  selectedStatusId
 }: {
   section: TimelineSectionConfig;
   account: Account | null;
@@ -324,6 +328,8 @@ const TimelineSection = ({
   onMoveSection: (sectionId: string, direction: "left" | "right") => void;
   onScrollToSection: (sectionId: string) => void;
   onCloseStatusModal: () => void;
+  onTimelineItemsChange: (sectionId: string, items: Status[]) => void;
+  onSelectStatus: (sectionId: string, statusId: string) => void;
   canMoveLeft: boolean;
   canMoveRight: boolean;
   canRemoveSection: boolean;
@@ -334,6 +340,7 @@ const TimelineSection = ({
   registerTimelineListener: (accountId: string, listener: (status: Status) => void) => void;
   unregisterTimelineListener: (accountId: string, listener: (status: Status) => void) => void;
   columnRef?: React.Ref<HTMLDivElement>;
+  selectedStatusId: string | null;
 }) => {
   const notificationsTimeline = useTimeline({
     account,
@@ -415,6 +422,10 @@ const TimelineSection = ({
     : timelineType === "bookmarks" 
       ? "북마크한 글이 없습니다."
       : "표시할 글이 없습니다.";
+
+  useEffect(() => {
+    onTimelineItemsChange(section.id, timeline.items);
+  }, [onTimelineItemsChange, section.id, timeline.items]);
 
   useEffect(() => {
     if (!timeline.error) {
@@ -606,7 +617,7 @@ const TimelineSection = ({
   }, [instanceOriginUrl]);
 
   return (
-    <div className="timeline-column" ref={columnRef}>
+    <div className="timeline-column" ref={columnRef} data-section-id={section.id}>
       <div className="timeline-column-header">
         <AccountSelector
           accounts={accountsState.accounts}
@@ -860,10 +871,12 @@ const TimelineSection = ({
                 status={status}
                  onReply={(item) => onReply(item, account)}
                  onStatusClick={(status) => onStatusClick(status, account)}
-                 onToggleFavourite={handleToggleFavourite}
-                 onToggleReblog={handleToggleReblog}
-                 onToggleBookmark={handleToggleBookmark}
-                 onDelete={handleDeleteStatus}
+                 onSelect={(statusId) => onSelectStatus(section.id, statusId)}
+                 isSelected={selectedStatusId === status.id}
+                  onToggleFavourite={handleToggleFavourite}
+                  onToggleReblog={handleToggleReblog}
+                  onToggleBookmark={handleToggleBookmark}
+                  onDelete={handleDeleteStatus}
                 onReact={handleReact}
                 onProfileClick={(item) => onProfileClick(item, account)}
                 activeHandle={
@@ -1024,6 +1037,7 @@ export const App = () => {
   );
   const [replyTarget, setReplyTarget] = useState<Status | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<Status | null>(null);
+  const [selectedTimelineStatus, setSelectedTimelineStatus] = useState<SelectedTimelineStatus | null>(null);
   const [profileTargets, setProfileTargets] = useState<ProfileTarget[]>([]);
   const [statusModalZIndex, setStatusModalZIndex] = useState<number | null>(null);
   const nextModalZIndexRef = useRef(70);
@@ -1032,8 +1046,7 @@ export const App = () => {
   const [mentionSeed, setMentionSeed] = useState<string | null>(null);
   const timelineBoardRef = useRef<HTMLDivElement | null>(null);
   const sectionRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
-  const dragStateRef = useRef<{ startX: number; scrollLeft: number; pointerId: number } | null>(null);
-  const [isBoardDragging, setIsBoardDragging] = useState(false);
+  const sectionItemsRef = useRef<Map<string, Status[]>>(new Map());
   const replySummary = replyTarget
     ? `@${formatReplyHandle(replyTarget.accountHandle, replyTarget.accountUrl, composeAccount?.instanceUrl ?? "")} · ${replyTarget.content.slice(0, 80)}`
     : null;
@@ -1092,6 +1105,25 @@ export const App = () => {
     },
     [broadcastStatusUpdate]
   );
+
+  const handleTimelineItemsChange = useCallback((sectionId: string, items: Status[]) => {
+    sectionItemsRef.current.set(sectionId, items);
+    setSelectedTimelineStatus((current) => {
+      if (!current || current.sectionId !== sectionId) {
+        return current;
+      }
+      return items.some((item) => item.id === current.statusId) ? current : null;
+    });
+  }, []);
+
+  const handleSelectStatus = useCallback((sectionId: string, statusId: string) => {
+    setSelectedTimelineStatus((current) => {
+      if (current && current.sectionId === sectionId && current.statusId === statusId) {
+        return null;
+      }
+      return { sectionId, statusId };
+    });
+  }, []);
 
   useEffect(() => {
     const onHashChange = () => setRoute(parseRoute());
@@ -1339,65 +1371,182 @@ export const App = () => {
     window.location.reload();
   }, []);
 
-  const isInteractiveTarget = useCallback((target: EventTarget | null) => {
-    const element =
-      target instanceof Element
-        ? target
-        : target && "parentElement" in target
-          ? (target as Node).parentElement
-          : null;
+  const isEditableElement = useCallback((element: Element | null) => {
     if (!element) {
       return false;
     }
-    return Boolean(
-      element.closest(
-        "button, a, input, textarea, select, label, summary, details, [role='button'], [contenteditable='true'], [data-interactive='true']"
-      )
+    return (
+      element instanceof HTMLInputElement ||
+      element instanceof HTMLTextAreaElement ||
+      (element as HTMLElement).isContentEditable
     );
   }, []);
 
-  const handleBoardPointerDown = useCallback(
-    (event: React.PointerEvent<HTMLDivElement>) => {
-      if (event.button !== 0 || !timelineBoardRef.current) {
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) {
         return;
       }
-      if (isInteractiveTarget(event.target)) {
+      if (selectedStatus || settingsOpen || infoModal || mobileMenuOpen || mobileComposeOpen) {
         return;
       }
-      dragStateRef.current = {
-        startX: event.clientX,
-        scrollLeft: timelineBoardRef.current.scrollLeft,
-        pointerId: event.pointerId
-      };
-      setIsBoardDragging(true);
-      timelineBoardRef.current.setPointerCapture(event.pointerId);
-    },
-    [isInteractiveTarget]
-  );
+      if (profileTargets.length > 0) {
+        return;
+      }
+      if (isEditableElement(document.activeElement)) {
+        return;
+      }
 
-  const handleBoardPointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-    if (!timelineBoardRef.current || !dragStateRef.current) {
-      return;
-    }
-    if (event.pointerId !== dragStateRef.current.pointerId) {
-      return;
-    }
-    const delta = event.clientX - dragStateRef.current.startX;
-    timelineBoardRef.current.scrollLeft = dragStateRef.current.scrollLeft - delta;
-    event.preventDefault();
-  }, []);
+      const key = event.key;
+      if (key === "Escape") {
+        if (selectedTimelineStatus) {
+          event.preventDefault();
+          setSelectedTimelineStatus(null);
+        }
+        return;
+      }
 
-  const handleBoardPointerUp = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-    if (!timelineBoardRef.current || !dragStateRef.current) {
-      return;
-    }
-    if (event.pointerId !== dragStateRef.current.pointerId) {
-      return;
-    }
-    timelineBoardRef.current.releasePointerCapture(event.pointerId);
-    dragStateRef.current = null;
-    setIsBoardDragging(false);
-  }, []);
+      if (
+        key.toLowerCase() === "m" &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.shiftKey &&
+        !event.altKey
+      ) {
+        const board = timelineBoardRef.current;
+        if (!board) {
+          return;
+        }
+        const boardRect = board.getBoundingClientRect();
+        let leftmostSectionId: string | null = null;
+        let leftmostPosition = Number.POSITIVE_INFINITY;
+        sections.forEach((section) => {
+          const element = sectionRefs.current.get(section.id);
+          if (!element) {
+            return;
+          }
+          const rect = element.getBoundingClientRect();
+          if (rect.right <= boardRect.left || rect.left >= boardRect.right) {
+            return;
+          }
+          if (rect.left < leftmostPosition) {
+            leftmostPosition = rect.left;
+            leftmostSectionId = section.id;
+          }
+        });
+        if (!leftmostSectionId) {
+          return;
+        }
+        const items = sectionItemsRef.current.get(leftmostSectionId) ?? [];
+        if (items.length === 0) {
+          return;
+        }
+        event.preventDefault();
+        setSelectedTimelineStatus({ sectionId: leftmostSectionId, statusId: items[0].id });
+        return;
+      }
+
+      if (!selectedTimelineStatus) {
+        return;
+      }
+
+      const currentItems = sectionItemsRef.current.get(selectedTimelineStatus.sectionId) ?? [];
+      const currentIndex = currentItems.findIndex(
+        (item) => item.id === selectedTimelineStatus.statusId
+      );
+
+      if (key === "ArrowUp" || key === "ArrowDown") {
+        if (currentItems.length === 0 || currentIndex === -1) {
+          return;
+        }
+        const nextIndex = key === "ArrowUp" ? currentIndex - 1 : currentIndex + 1;
+        if (nextIndex < 0 || nextIndex >= currentItems.length) {
+          return;
+        }
+        event.preventDefault();
+        setSelectedTimelineStatus({
+          sectionId: selectedTimelineStatus.sectionId,
+          statusId: currentItems[nextIndex].id
+        });
+        return;
+      }
+
+      if (key === "ArrowLeft" || key === "ArrowRight") {
+        const currentSectionIndex = sections.findIndex(
+          (section) => section.id === selectedTimelineStatus.sectionId
+        );
+        if (currentSectionIndex === -1) {
+          return;
+        }
+        const currentSectionElement = sectionRefs.current.get(selectedTimelineStatus.sectionId);
+        const currentStatusElement = currentSectionElement?.querySelector<HTMLElement>(
+          `[data-status-id="${selectedTimelineStatus.statusId}"]`
+        );
+        const currentCenterY = currentStatusElement
+          ? currentStatusElement.getBoundingClientRect().top +
+            currentStatusElement.getBoundingClientRect().height / 2
+          : null;
+        const direction = key === "ArrowLeft" ? -1 : 1;
+        let targetIndex = currentSectionIndex + direction;
+        while (targetIndex >= 0 && targetIndex < sections.length) {
+          const targetSection = sections[targetIndex];
+          const items = sectionItemsRef.current.get(targetSection.id) ?? [];
+          if (items.length > 0) {
+            let nextStatusId = items[
+              Math.min(currentIndex >= 0 ? currentIndex : 0, items.length - 1)
+            ]?.id;
+            if (currentCenterY !== null) {
+              const targetSectionElement = sectionRefs.current.get(targetSection.id);
+              const statusElements = targetSectionElement?.querySelectorAll<HTMLElement>(
+                "[data-status-id]"
+              );
+              if (statusElements && statusElements.length > 0) {
+                let closestMatch: { id: string; distance: number } | null = null;
+                for (const element of Array.from(statusElements)) {
+                  const statusId = element.dataset.statusId;
+                  if (!statusId) {
+                    continue;
+                  }
+                  const rect = element.getBoundingClientRect();
+                  const centerY = rect.top + rect.height / 2;
+                  const distance = Math.abs(centerY - currentCenterY);
+                  if (!closestMatch || distance < closestMatch.distance) {
+                    closestMatch = { id: statusId, distance };
+                  }
+                }
+                if (closestMatch) {
+                  nextStatusId = closestMatch.id;
+                }
+              }
+            }
+            if (!nextStatusId) {
+              return;
+            }
+            event.preventDefault();
+            setSelectedTimelineStatus({
+              sectionId: targetSection.id,
+              statusId: nextStatusId
+            });
+            return;
+          }
+          targetIndex += direction;
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    infoModal,
+    isEditableElement,
+    mobileComposeOpen,
+    mobileMenuOpen,
+    profileTargets.length,
+    sections,
+    selectedStatus,
+    selectedTimelineStatus,
+    settingsOpen
+  ]);
 
   const scrollToSection = useCallback((sectionId: string) => {
     const target = sectionRefs.current.get(sectionId);
@@ -1406,6 +1555,26 @@ export const App = () => {
     }
     target.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
   }, []);
+
+  useEffect(() => {
+    if (!selectedTimelineStatus) {
+      return;
+    }
+    scrollToSection(selectedTimelineStatus.sectionId);
+    requestAnimationFrame(() => {
+      const section = sectionRefs.current.get(selectedTimelineStatus.sectionId);
+      if (!section) {
+        return;
+      }
+      const statusElement = section.querySelector<HTMLElement>(
+        `[data-status-id="${selectedTimelineStatus.statusId}"]`
+      );
+      if (!statusElement) {
+        return;
+      }
+      statusElement.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  }, [scrollToSection, selectedTimelineStatus]);
 
   useEffect(() => {
     setSections((current) =>
@@ -1455,6 +1624,15 @@ export const App = () => {
     }
     previousAccountIds.current = currentIds;
   }, [accountsState.accounts]);
+
+  useEffect(() => {
+    if (!selectedTimelineStatus) {
+      return;
+    }
+    if (!sections.some((section) => section.id === selectedTimelineStatus.sectionId)) {
+      setSelectedTimelineStatus(null);
+    }
+  }, [sections, selectedTimelineStatus]);
 
   const handleSubmit = async (params: {
     text: string;
@@ -1812,13 +1990,8 @@ export const App = () => {
                 <div className={`panel-content${showPomodoro && pomodoroSessionType === "focus" && pomodoroIsRunning ? " pomodoro-focus-blur" : ""}`}>
                   {sections.length > 0 ? (
                   <div
-                    className={`timeline-board${isBoardDragging ? " is-dragging" : ""}`}
+                    className="timeline-board"
                     ref={timelineBoardRef}
-                    onPointerDown={handleBoardPointerDown}
-                    onPointerMove={handleBoardPointerMove}
-                    onPointerUp={handleBoardPointerUp}
-                    onPointerLeave={handleBoardPointerUp}
-                    onPointerCancel={handleBoardPointerUp}
                   >
                     {sections.map((section, index) => {
                       const sectionAccount =
@@ -1826,6 +1999,10 @@ export const App = () => {
                           ? accountsState.accounts.find((account) => account.id === section.accountId) ?? null
                           : null;
                       const shouldShowReactions = showMisskeyReactions;
+                      const selectedStatusId =
+                        selectedTimelineStatus?.sectionId === section.id
+                          ? selectedTimelineStatus.statusId
+                          : null;
                       return (
                         <TimelineSection
                           key={section.id}
@@ -1853,16 +2030,19 @@ onAccountChange={setSectionAccount}
                           }}
                            onCloseStatusModal={handleCloseStatusModal}
                            onError={(message) => setActionError(message || null)}
-                          onMoveSection={moveSection}
-                          canMoveLeft={index > 0}
-                          canMoveRight={index < sections.length - 1}
-                          canRemoveSection={sections.length > 1}
-                          timelineType={section.timelineType}
-                          showProfileImage={showProfileImages}
-                          showCustomEmojis={showCustomEmojis}
-                          showReactions={shouldShowReactions}
-                          registerTimelineListener={registerTimelineListener}
-                          unregisterTimelineListener={unregisterTimelineListener}
+                           onMoveSection={moveSection}
+                           onTimelineItemsChange={handleTimelineItemsChange}
+                           onSelectStatus={handleSelectStatus}
+                           canMoveLeft={index > 0}
+                           canMoveRight={index < sections.length - 1}
+                           canRemoveSection={sections.length > 1}
+                           timelineType={section.timelineType}
+                           showProfileImage={showProfileImages}
+                           showCustomEmojis={showCustomEmojis}
+                           showReactions={shouldShowReactions}
+                           registerTimelineListener={registerTimelineListener}
+                           unregisterTimelineListener={unregisterTimelineListener}
+                           selectedStatusId={selectedStatusId}
                         />
                       );
                     })}

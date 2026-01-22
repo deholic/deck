@@ -1346,6 +1346,12 @@ button.ghost {
   border-radius: 12px;
   border: 1px solid var(--color-status-border);
   background: var(--color-status-bg);
+  user-select: none;
+}
+
+.status.is-selected {
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--color-action-active-bg) inset;
 }
 
 .status header {
@@ -1489,6 +1495,7 @@ button.ghost {
   font-size: 15px;
   line-height: 1.5;
   white-space: pre-wrap;
+  user-select: none;
 }
 
 .rich-content {
@@ -1496,6 +1503,7 @@ button.ghost {
   font-size: 15px;
   line-height: 1.5;
   white-space: pre-wrap;
+  user-select: none;
 }
 
 .rich-content p {
@@ -1577,6 +1585,13 @@ button.ghost {
   height: auto;
   width: auto;
   object-fit: contain;
+}
+
+.status img,
+.status .custom-emoji,
+.status .status-reaction img {
+  -webkit-user-drag: none;
+  user-drag: none;
 }
 
 .status-reaction-count {

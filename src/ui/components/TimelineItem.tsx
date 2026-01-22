@@ -35,6 +35,8 @@ export const TimelineItem = ({
   onReact,
   onProfileClick,
   onStatusClick,
+  onSelect,
+  isSelected = false,
   account,
   api,
   activeHandle,
@@ -55,6 +57,8 @@ export const TimelineItem = ({
   onReact?: (status: Status, reaction: ReactionInput) => void;
   onProfileClick?: (status: Status) => void;
   onStatusClick?: (status: Status) => void;
+  onSelect?: (statusId: string) => void;
+  isSelected?: boolean;
   account: Account | null;
   api: MastodonApi;
   activeHandle: string;
@@ -78,6 +82,26 @@ export const TimelineItem = ({
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { showToast } = useToast();
+  const handleSelect = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      if (!onSelect) {
+        return;
+      }
+      if (event.defaultPrevented) {
+        return;
+      }
+      const target = event.target instanceof Element ? event.target : null;
+      if (
+        target?.closest(
+          "button, a, input, textarea, select, label, summary, details, [role='button'], [role='link'], [contenteditable='true'], [data-interactive='true'], .overlay-backdrop, .image-modal, .confirm-modal"
+        )
+      ) {
+        return;
+      }
+      onSelect(status.id);
+    },
+    [onSelect, status.id]
+  );
 
   // 메뉴 열 때 즐겨찾기 상태 확인 (미스키만)
   const handleMenuToggle = useCallback(async () => {
@@ -775,7 +799,11 @@ export const TimelineItem = ({
   );
 
   return (
-    <article className="status">
+    <article
+      className={`status${isSelected ? " is-selected" : ""}`}
+      data-status-id={status.id}
+      onClick={handleSelect}
+    >
       {notificationLabel ? (
         <div className="notification-actor">
           <span className="status-avatar notification-actor-avatar" aria-hidden="true">
@@ -1218,8 +1246,6 @@ export const TimelineItem = ({
     </article>
   );
 };
-
-
 
 
 
