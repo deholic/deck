@@ -1497,20 +1497,54 @@ export const App = () => {
         if (currentSectionIndex === -1) {
           return;
         }
+        const currentSectionElement = sectionRefs.current.get(selectedTimelineStatus.sectionId);
+        const currentStatusElement = currentSectionElement?.querySelector<HTMLElement>(
+          `[data-status-id="${selectedTimelineStatus.statusId}"]`
+        );
+        const currentCenterY = currentStatusElement
+          ? currentStatusElement.getBoundingClientRect().top +
+            currentStatusElement.getBoundingClientRect().height / 2
+          : null;
         const direction = key === "ArrowLeft" ? -1 : 1;
         let targetIndex = currentSectionIndex + direction;
         while (targetIndex >= 0 && targetIndex < sections.length) {
           const targetSection = sections[targetIndex];
           const items = sectionItemsRef.current.get(targetSection.id) ?? [];
           if (items.length > 0) {
-            const nextIndex = Math.min(
-              currentIndex >= 0 ? currentIndex : 0,
-              items.length - 1
-            );
+            let nextStatusId = items[
+              Math.min(currentIndex >= 0 ? currentIndex : 0, items.length - 1)
+            ]?.id;
+            if (currentCenterY !== null) {
+              const targetSectionElement = sectionRefs.current.get(targetSection.id);
+              const statusElements = targetSectionElement?.querySelectorAll<HTMLElement>(
+                "[data-status-id]"
+              );
+              if (statusElements && statusElements.length > 0) {
+                let closestMatch: { id: string; distance: number } | null = null;
+                for (const element of Array.from(statusElements)) {
+                  const statusId = element.dataset.statusId;
+                  if (!statusId) {
+                    continue;
+                  }
+                  const rect = element.getBoundingClientRect();
+                  const centerY = rect.top + rect.height / 2;
+                  const distance = Math.abs(centerY - currentCenterY);
+                  if (!closestMatch || distance < closestMatch.distance) {
+                    closestMatch = { id: statusId, distance };
+                  }
+                }
+                if (closestMatch) {
+                  nextStatusId = closestMatch.id;
+                }
+              }
+            }
+            if (!nextStatusId) {
+              return;
+            }
             event.preventDefault();
             setSelectedTimelineStatus({
               sectionId: targetSection.id,
-              statusId: items[nextIndex].id
+              statusId: nextStatusId
             });
             return;
           }
