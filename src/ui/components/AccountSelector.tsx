@@ -37,7 +37,7 @@ export const AccountSelector = ({
           open={dropdownOpen}
           onToggle={(event) => setDropdownOpen(event.currentTarget.open)}
         >
-          <summary className="account-selector-summary">
+          <summary className="account-selector-summary" title="계정 선택 (Ctrl+Shift+A)">
             {activeAccount ? (
               <AccountLabel
                 avatarUrl={activeAccount.avatarUrl}
