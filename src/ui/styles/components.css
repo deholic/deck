@@ -1270,6 +1270,10 @@ button.ghost {
   border-radius: 8px;
 }
 
+.section-menu-panel button.is-highlighted {
+  background: var(--color-account-selector-highlight);
+}
+
 .section-menu-panel .danger {
   color: var(--color-section-menu-danger);
   font-weight: 600;
