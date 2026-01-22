@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { Account } from "../../domain/types";
 import { formatHandle } from "../utils/account";
 import { useClickOutside } from "../hooks/useClickOutside";
@@ -16,6 +16,8 @@ export const AccountSelector = ({
   variant?: "panel" | "inline";
 }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [highlightedAccountId, setHighlightedAccountId] = useState<string | null>(null);
+  const detailsRef = useRef<HTMLDetailsElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   useClickOutside(dropdownRef, dropdownOpen, () => setDropdownOpen(false));
@@ -25,6 +27,66 @@ export const AccountSelector = ({
     [accounts, activeAccountId]
   );
 
+  useEffect(() => {
+    if (!dropdownOpen) {
+      setHighlightedAccountId(null);
+      return;
+    }
+    setHighlightedAccountId(activeAccountId ?? accounts[0]?.id ?? null);
+  }, [activeAccountId, accounts, dropdownOpen]);
+
+  useEffect(() => {
+    if (!dropdownOpen) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!dropdownOpen) {
+        return;
+      }
+      if (!detailsRef.current?.contains(document.activeElement)) {
+        return;
+      }
+      if (accounts.length === 0) {
+        return;
+      }
+
+      const currentIndex = Math.max(
+        0,
+        accounts.findIndex((account) => account.id === (highlightedAccountId ?? activeAccountId))
+      );
+
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        const offset = event.key === "ArrowDown" ? 1 : -1;
+        const nextIndex = (currentIndex + offset + accounts.length) % accounts.length;
+        const nextAccount = accounts[nextIndex];
+        if (nextAccount) {
+          setHighlightedAccountId(nextAccount.id);
+          setActiveAccount(nextAccount.id);
+        }
+        return;
+      }
+
+      if (event.key === "Enter") {
+        event.preventDefault();
+        if (highlightedAccountId) {
+          setActiveAccount(highlightedAccountId);
+        }
+        setDropdownOpen(false);
+        return;
+      }
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setDropdownOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [accounts, activeAccountId, dropdownOpen, highlightedAccountId, setActiveAccount]);
+
   const wrapperClassName =
     variant === "panel" ? "panel account-selector-panel" : "account-selector-inline";
   const Wrapper = variant === "panel" ? "section" : "div";
@@ -33,6 +95,7 @@ export const AccountSelector = ({
     <Wrapper className={wrapperClassName}>
       <div className="account-selector-header">
         <details
+          ref={detailsRef}
           className="account-selector"
           open={dropdownOpen}
           onToggle={(event) => setDropdownOpen(event.currentTarget.open)}
@@ -60,7 +123,16 @@ export const AccountSelector = ({
               {accounts.map((account) => {
                 const isActiveAccount = account.id === activeAccountId;
                 return (
-                  <li key={account.id} className={isActiveAccount ? "active" : ""}>
+                  <li
+                    key={account.id}
+                    className={
+                      isActiveAccount
+                        ? "active"
+                        : account.id === highlightedAccountId
+                          ? "is-highlighted"
+                          : ""
+                    }
+                  >
                     <button
                       type="button"
                       onClick={() => {

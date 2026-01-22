@@ -79,6 +79,7 @@
     --color-account-selector-border: #3b342d;
     --shadow-account-selector: 0 18px 40px rgba(0, 0, 0, 0.45);
     --color-account-selector-placeholder: #c4b6a6;
+    --color-account-selector-highlight: rgba(255, 255, 255, 0.08);
     --color-account-handle: #c4b6a6;
     --color-avatar-bg: #221f1b;
     --color-avatar-border: #3b342d;
@@ -213,6 +214,7 @@
     --color-account-selector-border: #3b2624;
     --shadow-account-selector: 0 18px 40px rgba(64, 20, 20, 0.45);
     --color-account-selector-placeholder: #cf8c8c;
+    --color-account-selector-highlight: rgba(255, 255, 255, 0.08);
     --color-account-handle: #cf8c8c;
     --color-file-button-bg: #2a1b19;
     --color-file-button-text: #f7e7df;
@@ -328,6 +330,7 @@
     --color-account-selector-border: #2e3b50;
     --shadow-account-selector: 0 18px 40px rgba(12, 18, 28, 0.5);
     --color-account-selector-placeholder: #f0a6c8;
+    --color-account-selector-highlight: rgba(255, 255, 255, 0.08);
     --color-file-button-bg: #223047;
     --color-file-button-text: #d7e7fb;
     --color-secondary-button-bg: #223047;
@@ -447,6 +450,7 @@
     --color-account-selector-border: #3a3a3a;
     --shadow-account-selector: 0 18px 40px rgba(0, 0, 0, 0.45);
     --color-account-selector-placeholder: #cfcfcf;
+    --color-account-selector-highlight: rgba(255, 255, 255, 0.08);
     --color-account-handle: #d6d6d6;
     --color-file-button-bg: #2a2a2a;
     --color-file-button-text: #f0f0f0;
@@ -570,6 +574,7 @@
     --color-account-selector-border: #1f3a2b;
     --shadow-account-selector: 0 18px 40px rgba(0, 0, 0, 0.55);
     --color-account-selector-placeholder: #8cd49a;
+    --color-account-selector-highlight: rgba(255, 255, 255, 0.08);
     --color-account-handle: #a8e4b6;
     --color-file-button-bg: #163126;
     --color-file-button-text: #d7f6df;
@@ -719,6 +724,7 @@
   --color-account-selector-border: #3b342d;
   --shadow-account-selector: 0 18px 40px rgba(0, 0, 0, 0.45);
   --color-account-selector-placeholder: #c4b6a6;
+  --color-account-selector-highlight: rgba(255, 255, 255, 0.08);
   --color-account-handle: #c4b6a6;
   --color-avatar-bg: #221f1b;
   --color-avatar-border: #3b342d;
@@ -850,6 +856,7 @@
   --color-account-selector-border: #3b2624;
   --shadow-account-selector: 0 18px 40px rgba(64, 20, 20, 0.45);
   --color-account-selector-placeholder: #cf8c8c;
+  --color-account-selector-highlight: rgba(255, 255, 255, 0.08);
   --color-account-handle: #cf8c8c;
   --color-file-button-bg: #2a1b19;
   --color-file-button-text: #f7e7df;
@@ -965,6 +972,7 @@
   --color-account-selector-border: #2e3b50;
   --shadow-account-selector: 0 18px 40px rgba(12, 18, 28, 0.5);
   --color-account-selector-placeholder: #f0a6c8;
+  --color-account-selector-highlight: rgba(255, 255, 255, 0.08);
   --color-file-button-bg: #223047;
   --color-file-button-text: #d7e7fb;
   --color-secondary-button-bg: #223047;
@@ -1084,6 +1092,7 @@
   --color-account-selector-border: #3a3a3a;
   --shadow-account-selector: 0 18px 40px rgba(0, 0, 0, 0.45);
   --color-account-selector-placeholder: #cfcfcf;
+  --color-account-selector-highlight: rgba(255, 255, 255, 0.08);
   --color-account-handle: #d6d6d6;
   --color-file-button-bg: #2a2a2a;
   --color-file-button-text: #f0f0f0;
@@ -1207,6 +1216,7 @@
   --color-account-selector-border: #1f3a2b;
   --shadow-account-selector: 0 18px 40px rgba(0, 0, 0, 0.55);
   --color-account-selector-placeholder: #8cd49a;
+  --color-account-selector-highlight: rgba(255, 255, 255, 0.08);
   --color-account-handle: #a8e4b6;
   --color-file-button-bg: #163126;
   --color-file-button-text: #d7f6df;

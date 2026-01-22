@@ -44,6 +44,7 @@
   --color-account-selector-border: #e2ddd5;
   --shadow-account-selector: 0 18px 40px rgba(67, 57, 45, 0.12);
   --color-account-selector-placeholder: #8a6b58;
+  --color-account-selector-highlight: rgba(0, 0, 0, 0.06);
   --color-account-handle: #8a6b58;
   --color-settings-item-border: #e2ddd5;
   --color-settings-item-text: #6b5c4f;

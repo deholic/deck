@@ -31,6 +31,7 @@
   --color-account-selector-border: #ead7cc;
   --shadow-account-selector: 0 18px 40px rgba(134, 40, 40, 0.12);
   --color-account-selector-placeholder: #7b3f3f;
+  --color-account-selector-highlight: rgba(0, 0, 0, 0.06);
   --color-account-handle: #7b3f3f;
   --color-action-bg: #b43b3b;
   --color-action-text: #fff4f4;
@@ -149,6 +150,7 @@
   --color-account-selector-border: #d6e5f2;
   --shadow-account-selector: 0 18px 40px rgba(58, 118, 185, 0.16);
   --color-account-selector-placeholder: #4a6b86;
+  --color-account-selector-highlight: rgba(0, 0, 0, 0.06);
   --color-account-handle: #4a6b86;
   --color-action-bg: #f2a5c9;
   --color-action-text: #3d2130;
@@ -267,6 +269,7 @@
   --color-account-selector-border: #1d1d1d;
   --shadow-account-selector: 0 18px 40px rgba(0, 0, 0, 0.12);
   --color-account-selector-placeholder: #2a2a2a;
+  --color-account-selector-highlight: rgba(0, 0, 0, 0.06);
   --color-account-handle: #2a2a2a;
   --color-action-bg: #111111;
   --color-action-text: #ffffff;
@@ -389,6 +392,7 @@
   --color-account-selector-border: #cfe6d5;
   --shadow-account-selector: 0 18px 40px rgba(24, 84, 48, 0.12);
   --color-account-selector-placeholder: #2f6b46;
+  --color-account-selector-highlight: rgba(0, 0, 0, 0.06);
   --color-account-handle: #2f6b46;
   --color-action-bg: #1f9a50;
   --color-action-text: #f2fff6;
