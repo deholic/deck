@@ -1047,8 +1047,6 @@ export const App = () => {
   const timelineBoardRef = useRef<HTMLDivElement | null>(null);
   const sectionRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
   const sectionItemsRef = useRef<Map<string, Status[]>>(new Map());
-  const dragStateRef = useRef<{ startX: number; scrollLeft: number; pointerId: number } | null>(null);
-  const [isBoardDragging, setIsBoardDragging] = useState(false);
   const replySummary = replyTarget
     ? `@${formatReplyHandle(replyTarget.accountHandle, replyTarget.accountUrl, composeAccount?.instanceUrl ?? "")} · ${replyTarget.content.slice(0, 80)}`
     : null;
@@ -1384,23 +1382,6 @@ export const App = () => {
     );
   }, []);
 
-  const isInteractiveTarget = useCallback((target: EventTarget | null) => {
-    const element =
-      target instanceof Element
-        ? target
-        : target && "parentElement" in target
-          ? (target as Node).parentElement
-          : null;
-    if (!element) {
-      return false;
-    }
-    return Boolean(
-      element.closest(
-        "button, a, input, textarea, select, label, summary, details, [role='button'], [contenteditable='true'], [data-interactive='true']"
-      )
-    );
-  }, []);
-
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented) {
@@ -1566,49 +1547,6 @@ export const App = () => {
     selectedTimelineStatus,
     settingsOpen
   ]);
-
-  const handleBoardPointerDown = useCallback(
-    (event: React.PointerEvent<HTMLDivElement>) => {
-      if (event.button !== 0 || !timelineBoardRef.current) {
-        return;
-      }
-      if (isInteractiveTarget(event.target)) {
-        return;
-      }
-      dragStateRef.current = {
-        startX: event.clientX,
-        scrollLeft: timelineBoardRef.current.scrollLeft,
-        pointerId: event.pointerId
-      };
-      setIsBoardDragging(true);
-      timelineBoardRef.current.setPointerCapture(event.pointerId);
-    },
-    [isInteractiveTarget]
-  );
-
-  const handleBoardPointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-    if (!timelineBoardRef.current || !dragStateRef.current) {
-      return;
-    }
-    if (event.pointerId !== dragStateRef.current.pointerId) {
-      return;
-    }
-    const delta = event.clientX - dragStateRef.current.startX;
-    timelineBoardRef.current.scrollLeft = dragStateRef.current.scrollLeft - delta;
-    event.preventDefault();
-  }, []);
-
-  const handleBoardPointerUp = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-    if (!timelineBoardRef.current || !dragStateRef.current) {
-      return;
-    }
-    if (event.pointerId !== dragStateRef.current.pointerId) {
-      return;
-    }
-    timelineBoardRef.current.releasePointerCapture(event.pointerId);
-    dragStateRef.current = null;
-    setIsBoardDragging(false);
-  }, []);
 
   const scrollToSection = useCallback((sectionId: string) => {
     const target = sectionRefs.current.get(sectionId);
@@ -2052,13 +1990,8 @@ export const App = () => {
                 <div className={`panel-content${showPomodoro && pomodoroSessionType === "focus" && pomodoroIsRunning ? " pomodoro-focus-blur" : ""}`}>
                   {sections.length > 0 ? (
                   <div
-                    className={`timeline-board${isBoardDragging ? " is-dragging" : ""}`}
+                    className="timeline-board"
                     ref={timelineBoardRef}
-                    onPointerDown={handleBoardPointerDown}
-                    onPointerMove={handleBoardPointerMove}
-                    onPointerUp={handleBoardPointerUp}
-                    onPointerLeave={handleBoardPointerUp}
-                    onPointerCancel={handleBoardPointerUp}
                   >
                     {sections.map((section, index) => {
                       const sectionAccount =
