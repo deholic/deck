@@ -529,9 +529,12 @@
   border-radius: 10px;
 }
 
-.account-selector-dropdown .account-list li.is-highlighted button,
-.account-selector-dropdown .account-list li.active button {
+.account-selector-dropdown .account-list li.is-highlighted button {
   background: var(--color-account-selector-highlight);
+}
+
+.account-selector-dropdown .account-list li.active .account-text {
+  font-weight: 600;
 }
 
 .account-selector-dropdown .account-text {

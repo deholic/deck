@@ -8,17 +8,20 @@ export const AccountSelector = ({
   accounts,
   activeAccountId,
   setActiveAccount,
+  onSelectionDone,
   variant = "panel"
 }: {
   accounts: Account[];
   activeAccountId: string | null;
   setActiveAccount: (id: string) => void;
+  onSelectionDone?: () => void;
   variant?: "panel" | "inline";
 }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [highlightedAccountId, setHighlightedAccountId] = useState<string | null>(null);
   const detailsRef = useRef<HTMLDetailsElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const selectionChangeRef = useRef(false);
 
   useClickOutside(dropdownRef, dropdownOpen, () => setDropdownOpen(false));
 
@@ -34,6 +37,13 @@ export const AccountSelector = ({
     }
     setHighlightedAccountId(activeAccountId ?? accounts[0]?.id ?? null);
   }, [activeAccountId, accounts, dropdownOpen]);
+
+  useEffect(() => {
+    if (!dropdownOpen && selectionChangeRef.current) {
+      selectionChangeRef.current = false;
+      onSelectionDone?.();
+    }
+  }, [dropdownOpen, onSelectionDone]);
 
   useEffect(() => {
     if (!dropdownOpen) {
@@ -63,6 +73,7 @@ export const AccountSelector = ({
         const nextAccount = accounts[nextIndex];
         if (nextAccount) {
           setHighlightedAccountId(nextAccount.id);
+          selectionChangeRef.current = true;
           setActiveAccount(nextAccount.id);
         }
         return;
@@ -71,6 +82,7 @@ export const AccountSelector = ({
       if (event.key === "Enter") {
         event.preventDefault();
         if (highlightedAccountId) {
+          selectionChangeRef.current = true;
           setActiveAccount(highlightedAccountId);
         }
         setDropdownOpen(false);
@@ -122,20 +134,22 @@ export const AccountSelector = ({
             <ul className="account-list">
               {accounts.map((account) => {
                 const isActiveAccount = account.id === activeAccountId;
+                const classNames = [] as string[];
+                if (account.id === highlightedAccountId) {
+                  classNames.push("is-highlighted");
+                }
+                if (isActiveAccount) {
+                  classNames.push("active");
+                }
                 return (
                   <li
                     key={account.id}
-                    className={
-                      isActiveAccount
-                        ? "active"
-                        : account.id === highlightedAccountId
-                          ? "is-highlighted"
-                          : ""
-                    }
+                    className={classNames.join(" ")}
                   >
                     <button
                       type="button"
                       onClick={() => {
+                        selectionChangeRef.current = true;
                         setActiveAccount(account.id);
                         setDropdownOpen(false);
                       }}

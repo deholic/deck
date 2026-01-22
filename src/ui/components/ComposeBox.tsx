@@ -103,6 +103,12 @@ export const ComposeBox = ({
   const { showToast } = useToast();
   const lastEmojiErrorRef = useRef<string | null>(null);
 
+  const handleAccountSelectionDone = useCallback(() => {
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+    });
+  }, []);
+
   // 문자 수 관련 상태
   const [characterLimit, setCharacterLimit] = useState<number | null>(null);
   const [instanceLoading, setInstanceLoading] = useState(false);
@@ -139,6 +145,21 @@ export const ComposeBox = ({
     () => attachments.find((item) => item.id === activeImageId) ?? null,
     [attachments, activeImageId]
   );
+
+  const accountSelectorNode = useMemo(() => {
+    if (!accountSelector) {
+      return null;
+    }
+    if (React.isValidElement(accountSelector)) {
+      return React.cloneElement(
+        accountSelector as React.ReactElement<{ onSelectionDone?: () => void }>,
+        {
+          onSelectionDone: handleAccountSelectionDone
+        }
+      );
+    }
+    return accountSelector;
+  }, [accountSelector, handleAccountSelectionDone]);
 
   const emojiSuggestions = useMemo(() => {
     if (!emojiQuery) {
@@ -592,7 +613,9 @@ export const ComposeBox = ({
 
   return (
     <section className="panel compose-box" ref={composeRef}>
-      {accountSelector ? <div className="compose-account-select">{accountSelector}</div> : null}
+      {accountSelectorNode ? (
+        <div className="compose-account-select">{accountSelectorNode}</div>
+      ) : null}
       {replyingTo ? (
         <div className="replying">
           <span>답글 대상: {replyingTo.summary}</span>
