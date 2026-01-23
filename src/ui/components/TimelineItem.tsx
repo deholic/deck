@@ -1065,7 +1065,7 @@ export const TimelineItem = ({
           <div className="status-actions">
             {actionsEnabled ? (
               <>
-                <button type="button" onClick={() => onReply(displayStatus)}>
+                <button type="button" onClick={() => onReply(displayStatus)} data-action="reply">
                   답글
                 </button>
                 {account?.platform !== "misskey" ? (
@@ -1073,6 +1073,7 @@ export const TimelineItem = ({
                     type="button"
                     className={displayStatus.favourited ? "is-active" : undefined}
                     onClick={() => onToggleFavourite(displayStatus)}
+                    data-action="favourite"
                   >
                     {displayStatus.favourited ? "좋아요 취소" : "좋아요"}
                     {displayStatus.favouritesCount > 0 ? ` (${displayStatus.favouritesCount})` : ""}
@@ -1084,6 +1085,7 @@ export const TimelineItem = ({
                   onClick={() => onToggleReblog(displayStatus)}
                   disabled={boostDisabled}
                   title={boostDisabled ? "비공개 글은 부스트할 수 없습니다." : undefined}
+                  data-action="reblog"
                 >
                   {displayStatus.reblogged ? "부스트 취소" : "부스트"}
                   {displayStatus.reblogsCount > 0 ? ` (${displayStatus.reblogsCount})` : ""}
@@ -1094,6 +1096,7 @@ export const TimelineItem = ({
                     api={api}
                     onSelect={handleReactionSelect}
                     disabled={Boolean(displayStatus.myReaction)}
+                    buttonDataAction="reaction-picker"
                   />
                 ) : null}
               </>
@@ -1108,6 +1111,7 @@ export const TimelineItem = ({
                       resetImageZoom();
                       setActiveImageIndex(index);
                     }}
+                    data-action={index === 0 ? "open-image" : undefined}
                     aria-label={item.description ? `이미지 보기: ${item.description}` : "이미지 보기"}
                   >
                     <img src={item.url} alt={item.description ?? "첨부 이미지"} loading="lazy" />
@@ -1246,8 +1250,6 @@ export const TimelineItem = ({
     </article>
   );
 };
-
-
 
 
 

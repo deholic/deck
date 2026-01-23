@@ -22,8 +22,8 @@ import licenseText from "../LICENSE?raw";
 import ossMarkdown from "./ui/content/oss.md?raw";
 import termsMarkdown from "./ui/content/terms.md?raw";
 
-type Route = "home" | "terms" | "license" | "oss";
-type InfoModalType = "terms" | "license" | "oss";
+type Route = "home" | "terms" | "license" | "oss" | "shortcuts";
+type InfoModalType = "terms" | "license" | "oss" | "shortcuts";
 type TimelineSectionConfig = { id: string; accountId: string | null; timelineType: TimelineType };
 type SelectedTimelineStatus = { sectionId: string; statusId: string };
 type ProfileTarget = { status: Status; account: Account | null; zIndex: number };
@@ -40,6 +40,7 @@ const parseRoute = (): Route => {
   if (path === "terms") return "terms";
   if (path === "license") return "license";
   if (path === "oss") return "oss";
+  if (path === "shortcuts") return "shortcuts";
   return "home";
 };
 
@@ -211,6 +212,89 @@ const OssContent = () => (
   <div className="info-markdown" dangerouslySetInnerHTML={{ __html: ossHtml }} />
 );
 
+const shortcutSections: Array<{
+  title: string;
+  note?: string;
+  items: Array<{ keys: string; description: string }>;
+}> = [
+  {
+    title: "타임라인 이동",
+    items: [
+      { keys: "M", description: "선택이 없을 때 왼쪽 첫 글을 선택" },
+      { keys: "↑ / ↓", description: "선택된 글 위아래 이동" },
+      { keys: "← / →", description: "이웃 컬럼으로 이동" },
+      { keys: "ESC", description: "선택 해제" }
+    ]
+  },
+  {
+    title: "선택된 글 컨트롤",
+    note: "글을 선택한 상태에서만 동작합니다.",
+    items: [
+      { keys: "R", description: "답글 작성" },
+      { keys: "B", description: "부스트" },
+      { keys: "L", description: "좋아요 (마스토돈) / ❤️ 리액션 (미스키)" },
+      { keys: "C", description: "리액션 팔레트 열기 (미스키)" },
+      { keys: "I", description: "첨부 이미지 열기" },
+      { keys: "Enter", description: "글 팝업 열기 (열린 메뉴에서는 항목 선택)" },
+      { keys: "P", description: "작성자 프로필 팝업 열기" },
+      { keys: "A", description: "계정 선택 열기" },
+      { keys: "T", description: "타임라인 메뉴 열기" },
+      { keys: "M", description: "컬럼 메뉴 열기" },
+      { keys: "↑ / ↓", description: "열린 메뉴에서 항목 이동" },
+      { keys: "ESC", description: "열린 메뉴 닫기" }
+    ]
+  },
+  {
+    title: "글쓰기",
+    note: "글쓰기 영역 기준으로 동작합니다.",
+    items: [
+      { keys: "N", description: "글쓰기 입력으로 이동" },
+      { keys: "Ctrl+Shift+N", description: "글쓰기 입력으로 이동 (포커스 중)" },
+      { keys: "Ctrl+Shift+W", description: "내용 경고 토글" },
+      { keys: "Ctrl+Shift+A", description: "계정 선택 열기" },
+      { keys: "Ctrl+Shift+O", description: "공개 범위 선택" },
+      { keys: "Ctrl+Shift+I", description: "미디어 첨부" },
+      { keys: "Ctrl+Shift+E", description: "이모지 패널 토글" },
+      { keys: "Ctrl/Command+Enter", description: "글 올리기" },
+      { keys: "ESC", description: "글쓰기 입력 포커스 해제" }
+    ]
+  },
+  {
+    title: "이모지 추천",
+    note: "추천 목록이 열려 있을 때만 동작합니다.",
+    items: [
+      { keys: "↑ / ↓", description: "추천 항목 이동" },
+      { keys: "Enter", description: "추천 이모지 입력" },
+      { keys: "ESC", description: "추천 닫기" }
+    ]
+  },
+  {
+    title: "이미지 뷰어",
+    items: [
+      { keys: "← / →", description: "이미지 이동" },
+      { keys: "ESC", description: "이미지 보기 닫기" }
+    ]
+  }
+];
+
+const ShortcutsContent = () => (
+  <div className="shortcut-sections">
+    {shortcutSections.map((section) => (
+      <div key={section.title} className="shortcut-section">
+        <h4 className="shortcut-title">{section.title}</h4>
+        {section.note ? <p className="shortcut-note">{section.note}</p> : null}
+        <ul className="shortcut-list">
+          {section.items.map((item) => (
+            <li key={`${section.title}-${item.keys}`} className="shortcut-item">
+              <span className="shortcut-key">{item.keys}</span>
+              <span className="shortcut-desc">{item.description}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))}
+  </div>
+);
 const getInfoModalTitle = (type: InfoModalType) => {
   switch (type) {
     case "terms":
@@ -219,6 +303,8 @@ const getInfoModalTitle = (type: InfoModalType) => {
       return "라이선스";
     case "oss":
       return "오픈소스 목록";
+    case "shortcuts":
+      return "단축키";
     default:
       return "";
   }
@@ -232,6 +318,8 @@ const InfoModalContent = ({ type }: { type: InfoModalType }) => {
       return <LicenseContent />;
     case "oss":
       return <OssContent />;
+    case "shortcuts":
+      return <ShortcutsContent />;
     default:
       return null;
   }
@@ -275,6 +363,13 @@ const OssPage = () => (
   <section className="panel info-panel">
     <PageHeader title="오픈소스 목록" />
     <OssContent />
+  </section>
+);
+
+const ShortcutsPage = () => (
+  <section className="panel info-panel">
+    <PageHeader title="단축키" />
+    <ShortcutsContent />
   </section>
 );
 
@@ -779,6 +874,98 @@ const TimelineSection = ({
       if (!selectedStatusId) {
         return false;
       }
+      const selectedStatus = timeline.items.find((item) => item.id === selectedStatusId);
+      if (!selectedStatus) {
+        return false;
+      }
+      const selectedStatusElement = scrollRef.current?.querySelector<HTMLElement>(
+        `[data-status-id="${selectedStatus.id}"]`
+      );
+      const clickStatusAction = (action: string) => {
+        const button = selectedStatusElement?.querySelector<HTMLButtonElement>(
+          `[data-action="${action}"]`
+        );
+        if (!button || button.disabled) {
+          return false;
+        }
+        button.click();
+        button.focus();
+        return true;
+      };
+      if (key === "r") {
+        if (actionsDisabled) {
+          return false;
+        }
+        const handled = clickStatusAction("reply");
+        if (!handled) {
+          return false;
+        }
+        event.preventDefault();
+        return true;
+      }
+      if (key === "b") {
+        if (actionsDisabled) {
+          return false;
+        }
+        const handled = clickStatusAction("reblog");
+        if (!handled) {
+          return false;
+        }
+        event.preventDefault();
+        return true;
+      }
+      if (key === "l") {
+        if (actionsDisabled) {
+          return false;
+        }
+        if (account?.platform === "mastodon") {
+          const handled = clickStatusAction("favourite");
+          if (!handled) {
+            return false;
+          }
+          event.preventDefault();
+          return true;
+        }
+        if (account?.platform === "misskey" && showReactions) {
+          event.preventDefault();
+          onReact(account, selectedStatus, {
+            name: "❤️",
+            url: null,
+            isCustom: false,
+            host: null
+          });
+          return true;
+        }
+      }
+      if (key === "c") {
+        if (account?.platform !== "misskey" || !showReactions) {
+          return false;
+        }
+        const handled = clickStatusAction("reaction-picker");
+        if (!handled) {
+          return false;
+        }
+        event.preventDefault();
+        return true;
+      }
+      if (key === "i") {
+        const handled = clickStatusAction("open-image");
+        if (!handled) {
+          return false;
+        }
+        event.preventDefault();
+        return true;
+      }
+      if (key === "enter") {
+        event.preventDefault();
+        onStatusClick(selectedStatus, account);
+        return true;
+      }
+      if (key === "p") {
+        event.preventDefault();
+        onProfileClick(selectedStatus, account);
+        return true;
+      }
       if (key === "a") {
         const summary = accountSummaryRef.current;
         if (!summary) {
@@ -813,22 +1000,12 @@ const TimelineSection = ({
         setNotificationsOpen(false);
         return true;
       }
-      if (key === "b") {
-        if (!account) {
-          onError("계정을 선택해주세요.");
-          return true;
-        }
-        event.preventDefault();
-        setNotificationsOpen(true);
-        setMenuOpen(false);
-        setTimelineMenuOpen(false);
-        return true;
-      }
       return false;
     },
     [
       account,
       actionableTimelineOptions,
+      actionsDisabled,
       highlightedNotificationIndex,
       highlightedSectionMenuIndex,
       highlightedTimelineIndex,
@@ -837,10 +1014,14 @@ const TimelineSection = ({
       notificationItems.length,
       notificationsOpen,
       onError,
+      onProfileClick,
+      onReact,
       onStatusClick,
       onTimelineChange,
       section.id,
       selectedStatusId,
+      showReactions,
+      timeline.items,
       timelineMenuOpen
     ]
   );
@@ -2263,6 +2444,15 @@ export const App = () => {
                 >
                   오픈소스 목록
                 </a>
+                <a
+                  href="#/shortcuts"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    setInfoModal("shortcuts");
+                  }}
+                >
+                  단축키
+                </a>
                 <a href="https://github.com/deholic/textodon" target="_blank" rel="noreferrer">
                   소스 코드
                 </a>
@@ -2352,6 +2542,7 @@ export const App = () => {
             {route === "terms" ? <TermsPage /> : null}
             {route === "license" ? <LicensePage /> : null}
             {route === "oss" ? <OssPage /> : null}
+            {route === "shortcuts" ? <ShortcutsPage /> : null}
           </section>
         ) : null}
       </main>
