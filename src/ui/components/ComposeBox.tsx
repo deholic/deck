@@ -287,6 +287,9 @@ export const ComposeBox = ({
   useEffect(() => {
     if (mentionText) {
       setText(mentionText);
+      requestAnimationFrame(() => {
+        textareaRef.current?.focus();
+      });
     }
   }, [mentionText]);
 
