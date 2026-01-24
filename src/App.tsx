@@ -230,12 +230,18 @@ const shortcutSections: Array<{
     title: "선택된 글 컨트롤",
     note: "글을 선택한 상태에서만 동작합니다.",
     items: [
+      { keys: "R", description: "답글 작성" },
+      { keys: "B", description: "부스트" },
+      { keys: "L", description: "좋아요 (마스토돈) / ❤️ 리액션 (미스키)" },
+      { keys: "C", description: "리액션 팔레트 열기 (미스키)" },
+      { keys: "I", description: "첨부 이미지 열기" },
+      { keys: "Enter", description: "글 팝업 열기 (열린 메뉴에서는 항목 선택)" },
+      { keys: "P", description: "작성자 프로필 팝업 열기" },
       { keys: "A", description: "계정 선택 열기" },
       { keys: "T", description: "타임라인 메뉴 열기" },
       { keys: "M", description: "컬럼 메뉴 열기" },
-      { keys: "B", description: "알림 열기" },
+      { keys: "G", description: "알림 열기" },
       { keys: "↑ / ↓", description: "열린 메뉴에서 항목 이동" },
-      { keys: "Enter", description: "열린 메뉴에서 항목 선택" },
       { keys: "ESC", description: "열린 메뉴 닫기" }
     ]
   },
@@ -290,7 +296,6 @@ const ShortcutsContent = () => (
     ))}
   </div>
 );
-
 const getInfoModalTitle = (type: InfoModalType) => {
   switch (type) {
     case "terms":
@@ -472,7 +477,7 @@ const TimelineSection = ({
     [timelineOptions]
   );
   const timelineButtonLabel = `타임라인 선택: ${getTimelineLabel(timelineType)}`;
-  const timelineShortcutLabel = `타임라인 단축키: A 계정 · T 타임라인 · M 메뉴 · B 알림 · ESC 닫기`;
+  const timelineShortcutLabel = `타임라인 단축키: A 계정 · T 타임라인 · M 메뉴 · G 알림 · ESC 닫기`;
   const hasNotificationBadge = notificationCount > 0;
   const instanceOriginUrl = useMemo(() => {
     if (!account) {
@@ -870,6 +875,98 @@ const TimelineSection = ({
       if (!selectedStatusId) {
         return false;
       }
+      const selectedStatus = timeline.items.find((item) => item.id === selectedStatusId);
+      if (!selectedStatus) {
+        return false;
+      }
+      const selectedStatusElement = scrollRef.current?.querySelector<HTMLElement>(
+        `[data-status-id="${selectedStatus.id}"]`
+      );
+      const clickStatusAction = (action: string) => {
+        const button = selectedStatusElement?.querySelector<HTMLButtonElement>(
+          `[data-action="${action}"]`
+        );
+        if (!button || button.disabled) {
+          return false;
+        }
+        button.click();
+        button.focus();
+        return true;
+      };
+      if (key === "r") {
+        if (actionsDisabled) {
+          return false;
+        }
+        const handled = clickStatusAction("reply");
+        if (!handled) {
+          return false;
+        }
+        event.preventDefault();
+        return true;
+      }
+      if (key === "b") {
+        if (actionsDisabled) {
+          return false;
+        }
+        const handled = clickStatusAction("reblog");
+        if (!handled) {
+          return false;
+        }
+        event.preventDefault();
+        return true;
+      }
+      if (key === "l") {
+        if (actionsDisabled) {
+          return false;
+        }
+        if (account?.platform === "mastodon") {
+          const handled = clickStatusAction("favourite");
+          if (!handled) {
+            return false;
+          }
+          event.preventDefault();
+          return true;
+        }
+        if (account?.platform === "misskey" && showReactions) {
+          event.preventDefault();
+          onReact(account, selectedStatus, {
+            name: "❤️",
+            url: null,
+            isCustom: false,
+            host: null
+          });
+          return true;
+        }
+      }
+      if (key === "c") {
+        if (account?.platform !== "misskey" || !showReactions) {
+          return false;
+        }
+        const handled = clickStatusAction("reaction-picker");
+        if (!handled) {
+          return false;
+        }
+        event.preventDefault();
+        return true;
+      }
+      if (key === "i") {
+        const handled = clickStatusAction("open-image");
+        if (!handled) {
+          return false;
+        }
+        event.preventDefault();
+        return true;
+      }
+      if (key === "enter") {
+        event.preventDefault();
+        onStatusClick(selectedStatus, account);
+        return true;
+      }
+      if (key === "p") {
+        event.preventDefault();
+        onProfileClick(selectedStatus, account);
+        return true;
+      }
       if (key === "a") {
         const summary = accountSummaryRef.current;
         if (!summary) {
@@ -897,6 +994,17 @@ const TimelineSection = ({
         setNotificationsOpen(false);
         return true;
       }
+      if (key === "g") {
+        if (!account) {
+          onError("계정을 선택해주세요.");
+          return true;
+        }
+        event.preventDefault();
+        setNotificationsOpen((current) => !current);
+        setTimelineMenuOpen(false);
+        setMenuOpen(false);
+        return true;
+      }
       if (key === "m") {
         event.preventDefault();
         setMenuOpen(true);
@@ -904,22 +1012,12 @@ const TimelineSection = ({
         setNotificationsOpen(false);
         return true;
       }
-      if (key === "b") {
-        if (!account) {
-          onError("계정을 선택해주세요.");
-          return true;
-        }
-        event.preventDefault();
-        setNotificationsOpen(true);
-        setMenuOpen(false);
-        setTimelineMenuOpen(false);
-        return true;
-      }
       return false;
     },
     [
       account,
       actionableTimelineOptions,
+      actionsDisabled,
       highlightedNotificationIndex,
       highlightedSectionMenuIndex,
       highlightedTimelineIndex,
@@ -928,10 +1026,14 @@ const TimelineSection = ({
       notificationItems.length,
       notificationsOpen,
       onError,
+      onProfileClick,
+      onReact,
       onStatusClick,
       onTimelineChange,
       section.id,
       selectedStatusId,
+      showReactions,
+      timeline.items,
       timelineMenuOpen
     ]
   );
@@ -1040,7 +1142,7 @@ const TimelineSection = ({
               disabled={!account}
               aria-label={notificationBadgeLabel}
               aria-pressed={notificationsOpen}
-              title="알림 열기 (B)"
+              title="알림 열기 (G)"
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 7h18s-3 0-3-7" />
@@ -1747,7 +1849,9 @@ export const App = () => {
       if (event.defaultPrevented) {
         return;
       }
-      const hasOverlayBackdrop = document.querySelector(".overlay-backdrop");
+      const hasOverlayBackdrop = document.querySelector(
+        ".overlay-backdrop, .image-modal, .confirm-modal, .profile-modal, .status-modal, .settings-modal, .info-modal"
+      );
       if (selectedStatus || settingsOpen || infoModal || mobileMenuOpen || mobileComposeOpen) {
         return;
       }
@@ -1760,6 +1864,9 @@ export const App = () => {
 
       const key = event.key;
       if (key === "Escape") {
+        if (hasOverlayBackdrop) {
+          return;
+        }
         if (selectedTimelineStatus) {
           const keyHandledByTimeline = timelineShortcutHandlersRef.current.get(
             selectedTimelineStatus.sectionId
