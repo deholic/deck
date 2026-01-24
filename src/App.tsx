@@ -1837,7 +1837,9 @@ export const App = () => {
       if (event.defaultPrevented) {
         return;
       }
-      const hasOverlayBackdrop = document.querySelector(".overlay-backdrop");
+      const hasOverlayBackdrop = document.querySelector(
+        ".overlay-backdrop, .image-modal, .confirm-modal, .profile-modal, .status-modal, .settings-modal, .info-modal"
+      );
       if (selectedStatus || settingsOpen || infoModal || mobileMenuOpen || mobileComposeOpen) {
         return;
       }
@@ -1850,6 +1852,9 @@ export const App = () => {
 
       const key = event.key;
       if (key === "Escape") {
+        if (hasOverlayBackdrop) {
+          return;
+        }
         if (selectedTimelineStatus) {
           const keyHandledByTimeline = timelineShortcutHandlersRef.current.get(
             selectedTimelineStatus.sectionId
