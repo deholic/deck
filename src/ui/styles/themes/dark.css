@@ -7,6 +7,11 @@
     --color-sidebar-description: #c4b6a6;
     --color-brand-text: #c4b6a6;
     --color-oss-list: #c4b6a6;
+    --color-text-faint: var(--color-sidebar-description);
+    --color-mobile-blocker-bg: radial-gradient(circle at top left, #1e1b18, #141210 60%, #0d0c0b);
+    --color-mobile-blocker-card-bg: #221f1c;
+    --color-mobile-blocker-title: #f5ede3;
+    --color-mobile-blocker-body: #c7b8a8;
     --color-sidebar-description-link: #8fa6cf;
     --color-sidebar-link: #d7cbbd;
     --color-sidebar-divider: #3b342d;
@@ -75,6 +80,7 @@
     --color-account-selector-border: #3b342d;
     --shadow-account-selector: 0 18px 40px rgba(0, 0, 0, 0.45);
     --color-account-selector-placeholder: #c4b6a6;
+    --color-account-selector-highlight: rgba(255, 255, 255, 0.08);
     --color-account-handle: #c4b6a6;
     --color-avatar-bg: #221f1b;
     --color-avatar-border: #3b342d;
@@ -109,6 +115,9 @@
     --color-settings-select-bg: #151310;
     --color-settings-select-border: #3a312a;
     --color-settings-select-text: #f0e7dc;
+    --color-settings-scrollbar-track: rgba(240, 231, 220, 0.1);
+    --color-settings-scrollbar-thumb: rgba(240, 231, 220, 0.3);
+    --color-settings-scrollbar-thumb-hover: rgba(240, 231, 220, 0.5);
     --color-compose-input-bg: #151310;
     --color-attachments-bg: #1a1814;
     --color-attachments-border: #3a312a;
@@ -206,6 +215,7 @@
     --color-account-selector-border: #3b2624;
     --shadow-account-selector: 0 18px 40px rgba(64, 20, 20, 0.45);
     --color-account-selector-placeholder: #cf8c8c;
+    --color-account-selector-highlight: rgba(255, 255, 255, 0.08);
     --color-account-handle: #cf8c8c;
     --color-file-button-bg: #2a1b19;
     --color-file-button-text: #f7e7df;
@@ -235,6 +245,9 @@
     --color-settings-select-bg: #1a100f;
     --color-settings-select-border: #3b2624;
     --color-settings-select-text: #f7e7df;
+    --color-settings-scrollbar-track: rgba(247, 231, 223, 0.1);
+    --color-settings-scrollbar-thumb: rgba(247, 231, 223, 0.3);
+    --color-settings-scrollbar-thumb-hover: rgba(247, 231, 223, 0.5);
     --color-compose-input-bg: #1a100f;
     --color-attachments-bg: #2a1b19;
     --color-attachments-border: #3b2624;
@@ -318,6 +331,7 @@
     --color-account-selector-border: #2e3b50;
     --shadow-account-selector: 0 18px 40px rgba(12, 18, 28, 0.5);
     --color-account-selector-placeholder: #f0a6c8;
+    --color-account-selector-highlight: rgba(255, 255, 255, 0.08);
     --color-file-button-bg: #223047;
     --color-file-button-text: #d7e7fb;
     --color-secondary-button-bg: #223047;
@@ -346,6 +360,9 @@
     --color-settings-select-bg: #181e2a;
     --color-settings-select-border: #2e3b50;
     --color-settings-select-text: #eff1f7;
+    --color-settings-scrollbar-track: rgba(239, 241, 247, 0.1);
+    --color-settings-scrollbar-thumb: rgba(239, 241, 247, 0.3);
+    --color-settings-scrollbar-thumb-hover: rgba(239, 241, 247, 0.5);
     --color-compose-input-bg: #181e2a;
     --color-attachments-bg: #212a3a;
     --color-attachments-border: #2e3b50;
@@ -434,6 +451,7 @@
     --color-account-selector-border: #3a3a3a;
     --shadow-account-selector: 0 18px 40px rgba(0, 0, 0, 0.45);
     --color-account-selector-placeholder: #cfcfcf;
+    --color-account-selector-highlight: rgba(255, 255, 255, 0.08);
     --color-account-handle: #d6d6d6;
     --color-file-button-bg: #2a2a2a;
     --color-file-button-text: #f0f0f0;
@@ -463,6 +481,9 @@
     --color-settings-select-bg: #101010;
     --color-settings-select-border: #3a3a3a;
     --color-settings-select-text: #f0f0f0;
+    --color-settings-scrollbar-track: rgba(240, 240, 240, 0.1);
+    --color-settings-scrollbar-thumb: rgba(240, 240, 240, 0.3);
+    --color-settings-scrollbar-thumb-hover: rgba(240, 240, 240, 0.5);
     --color-compose-input-bg: #101010;
     --color-attachments-bg: #181818;
     --color-attachments-border: #3a3a3a;
@@ -554,6 +575,7 @@
     --color-account-selector-border: #1f3a2b;
     --shadow-account-selector: 0 18px 40px rgba(0, 0, 0, 0.55);
     --color-account-selector-placeholder: #8cd49a;
+    --color-account-selector-highlight: rgba(255, 255, 255, 0.08);
     --color-account-handle: #a8e4b6;
     --color-file-button-bg: #163126;
     --color-file-button-text: #d7f6df;
@@ -583,6 +605,9 @@
     --color-settings-select-bg: #0a120e;
     --color-settings-select-border: #1f3a2b;
     --color-settings-select-text: #c6f3d0;
+    --color-settings-scrollbar-track: rgba(198, 243, 208, 0.1);
+    --color-settings-scrollbar-thumb: rgba(198, 243, 208, 0.3);
+    --color-settings-scrollbar-thumb-hover: rgba(198, 243, 208, 0.5);
     --color-compose-input-bg: #0a120e;
     --color-attachments-bg: #101c15;
     --color-attachments-border: #1f3a2b;
@@ -628,6 +653,10 @@
   --color-sidebar-description: #c4b6a6;
   --color-brand-text: #c4b6a6;
   --color-oss-list: #c4b6a6;
+  --color-mobile-blocker-bg: radial-gradient(circle at top left, #1e1b18, #141210 60%, #0d0c0b);
+  --color-mobile-blocker-card-bg: #221f1c;
+  --color-mobile-blocker-title: #f5ede3;
+  --color-mobile-blocker-body: #c7b8a8;
   --color-sidebar-description-link: #8fa6cf;
   --color-sidebar-link: #d7cbbd;
   --color-sidebar-divider: #3b342d;
@@ -696,6 +725,7 @@
   --color-account-selector-border: #3b342d;
   --shadow-account-selector: 0 18px 40px rgba(0, 0, 0, 0.45);
   --color-account-selector-placeholder: #c4b6a6;
+  --color-account-selector-highlight: rgba(255, 255, 255, 0.08);
   --color-account-handle: #c4b6a6;
   --color-avatar-bg: #221f1b;
   --color-avatar-border: #3b342d;
@@ -827,6 +857,7 @@
   --color-account-selector-border: #3b2624;
   --shadow-account-selector: 0 18px 40px rgba(64, 20, 20, 0.45);
   --color-account-selector-placeholder: #cf8c8c;
+  --color-account-selector-highlight: rgba(255, 255, 255, 0.08);
   --color-account-handle: #cf8c8c;
   --color-file-button-bg: #2a1b19;
   --color-file-button-text: #f7e7df;
@@ -856,6 +887,9 @@
   --color-settings-select-bg: #1a100f;
   --color-settings-select-border: #3b2624;
   --color-settings-select-text: #f7e7df;
+  --color-settings-scrollbar-track: rgba(247, 231, 223, 0.1);
+  --color-settings-scrollbar-thumb: rgba(247, 231, 223, 0.3);
+  --color-settings-scrollbar-thumb-hover: rgba(247, 231, 223, 0.5);
   --color-compose-input-bg: #1a100f;
   --color-attachments-bg: #2a1b19;
   --color-attachments-border: #3b2624;
@@ -939,6 +973,7 @@
   --color-account-selector-border: #2e3b50;
   --shadow-account-selector: 0 18px 40px rgba(12, 18, 28, 0.5);
   --color-account-selector-placeholder: #f0a6c8;
+  --color-account-selector-highlight: rgba(255, 255, 255, 0.08);
   --color-file-button-bg: #223047;
   --color-file-button-text: #d7e7fb;
   --color-secondary-button-bg: #223047;
@@ -967,6 +1002,9 @@
   --color-settings-select-bg: #181e2a;
   --color-settings-select-border: #2e3b50;
   --color-settings-select-text: #eff1f7;
+  --color-settings-scrollbar-track: rgba(239, 241, 247, 0.1);
+  --color-settings-scrollbar-thumb: rgba(239, 241, 247, 0.3);
+  --color-settings-scrollbar-thumb-hover: rgba(239, 241, 247, 0.5);
   --color-compose-input-bg: #181e2a;
   --color-attachments-bg: #212a3a;
   --color-attachments-border: #2e3b50;
@@ -1055,6 +1093,7 @@
   --color-account-selector-border: #3a3a3a;
   --shadow-account-selector: 0 18px 40px rgba(0, 0, 0, 0.45);
   --color-account-selector-placeholder: #cfcfcf;
+  --color-account-selector-highlight: rgba(255, 255, 255, 0.08);
   --color-account-handle: #d6d6d6;
   --color-file-button-bg: #2a2a2a;
   --color-file-button-text: #f0f0f0;
@@ -1084,6 +1123,9 @@
   --color-settings-select-bg: #101010;
   --color-settings-select-border: #3a3a3a;
   --color-settings-select-text: #f0f0f0;
+  --color-settings-scrollbar-track: rgba(240, 240, 240, 0.1);
+  --color-settings-scrollbar-thumb: rgba(240, 240, 240, 0.3);
+  --color-settings-scrollbar-thumb-hover: rgba(240, 240, 240, 0.5);
   --color-compose-input-bg: #101010;
   --color-attachments-bg: #181818;
   --color-attachments-border: #3a3a3a;
@@ -1175,6 +1217,7 @@
   --color-account-selector-border: #1f3a2b;
   --shadow-account-selector: 0 18px 40px rgba(0, 0, 0, 0.55);
   --color-account-selector-placeholder: #8cd49a;
+  --color-account-selector-highlight: rgba(255, 255, 255, 0.08);
   --color-account-handle: #a8e4b6;
   --color-file-button-bg: #163126;
   --color-file-button-text: #d7f6df;
@@ -1204,6 +1247,9 @@
   --color-settings-select-bg: #0a120e;
   --color-settings-select-border: #1f3a2b;
   --color-settings-select-text: #c6f3d0;
+  --color-settings-scrollbar-track: rgba(198, 243, 208, 0.1);
+  --color-settings-scrollbar-thumb: rgba(198, 243, 208, 0.3);
+  --color-settings-scrollbar-thumb-hover: rgba(198, 243, 208, 0.5);
   --color-compose-input-bg: #0a120e;
   --color-attachments-bg: #101c15;
   --color-attachments-border: #1f3a2b;

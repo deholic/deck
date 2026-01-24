@@ -1,30 +1,28 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Account, Reaction, ReactionInput, Status, TimelineType } from "./domain/types";
+import type { Account, ReactionInput, Status, TimelineType } from "./domain/types";
 import { AccountAdd } from "./ui/components/AccountAdd";
 import { AccountSelector } from "./ui/components/AccountSelector";
 import { ComposeBox } from "./ui/components/ComposeBox";
-import { ProfileModal } from "./ui/components/ProfileModal";
-import { StatusModal } from "./ui/components/StatusModal";
-import { TimelineItem } from "./ui/components/TimelineItem";
+import { InfoModal } from "./ui/components/InfoModal";
+import { MobileComposeMenu, MobileMenu } from "./ui/components/MobileMenus";
 import { PomodoroTimer } from "./ui/components/PomodoroTimer";
-import { useTimeline } from "./ui/hooks/useTimeline";
-import { useClickOutside } from "./ui/hooks/useClickOutside";
+import { ProfileModal } from "./ui/components/ProfileModal";
+import { SettingsModal } from "./ui/components/SettingsModal";
+import { StatusModal } from "./ui/components/StatusModal";
+import { TimelineSection, type TimelineSectionConfig } from "./ui/components/TimelineSection";
+import { LicensePage, OssPage, ShortcutsPage, TermsPage } from "./ui/pages/InfoPages";
 import { useAppContext } from "./ui/state/AppContext";
-import type { AccountsState, AppServices } from "./ui/state/AppContext";
+import { useToast } from "./ui/state/ToastContext";
 import { createAccountId, formatHandle, formatReplyHandle, normalizeInstanceUrl } from "./ui/utils/account";
 import { clearPendingOAuth, createOauthState, loadPendingOAuth, loadRegisteredApp, saveRegisteredApp, storePendingOAuth } from "./ui/utils/oauth";
-import { getTimelineLabel, getTimelineOptions, normalizeTimelineType } from "./ui/utils/timeline";
-import { sanitizeHtml } from "./ui/utils/htmlSanitizer";
-import { renderMarkdown } from "./ui/utils/markdown";
-import { useToast } from "./ui/state/ToastContext";
+import { normalizeTimelineType } from "./ui/utils/timeline";
+import { buildOptimisticReactionStatus, hasSameReactions } from "./ui/utils/reactions";
+import { ColorScheme, ThemeMode, getStoredColorScheme, getStoredTheme, isColorScheme, isThemeMode } from "./ui/utils/theme";
+import type { InfoModalType } from "./ui/types/info";
 import logoUrl from "./ui/assets/textodon-icon-blue.png";
-import licenseText from "../LICENSE?raw";
-import ossMarkdown from "./ui/content/oss.md?raw";
-import termsMarkdown from "./ui/content/terms.md?raw";
 
-type Route = "home" | "terms" | "license" | "oss";
-type InfoModalType = "terms" | "license" | "oss";
-type TimelineSectionConfig = { id: string; accountId: string | null; timelineType: TimelineType };
+type Route = "home" | "terms" | "license" | "oss" | "shortcuts";
+type SelectedTimelineStatus = { sectionId: string; statusId: string };
 type ProfileTarget = { status: Status; account: Account | null; zIndex: number };
 
 const SECTION_STORAGE_KEY = "textodon.sections";
@@ -39,895 +37,8 @@ const parseRoute = (): Route => {
   if (path === "terms") return "terms";
   if (path === "license") return "license";
   if (path === "oss") return "oss";
+  if (path === "shortcuts") return "shortcuts";
   return "home";
-};
-
-const PageHeader = ({ title }: { title: string }) => (
-  <div className="page-header">
-    <a href="#/" className="back-link">
-      <span className="back-icon" aria-hidden="true">
-        ←
-      </span>
-      타임라인으로 돌아가기
-    </a>
-    <h2>{title}</h2>
-  </div>
-);
-
-const sortReactions = (reactions: Reaction[]) =>
-  [...reactions].sort((a, b) => {
-    if (a.count === b.count) {
-      return a.name.localeCompare(b.name);
-    }
-    return b.count - a.count;
-  });
-
-const buildReactionSignature = (reactions: Reaction[]) =>
-  sortReactions(reactions).map((reaction) =>
-    [reaction.name, reaction.count, reaction.url ?? "", reaction.isCustom ? "1" : "0", reaction.host ?? ""].join("|")
-  );
-
-const hasSameReactions = (left: Status, right: Status) => {
-  if (left.myReaction !== right.myReaction) {
-    return false;
-  }
-  const leftSig = buildReactionSignature(left.reactions);
-  const rightSig = buildReactionSignature(right.reactions);
-  if (leftSig.length !== rightSig.length) {
-    return false;
-  }
-  return leftSig.every((value, index) => value === rightSig[index]);
-};
-
-const adjustReactionCount = (
-  reactions: Reaction[],
-  name: string,
-  delta: number,
-  fallback?: ReactionInput
-) => {
-  let updated = false;
-  const next = reactions
-    .map((reaction) => {
-      if (reaction.name !== name) {
-        return reaction;
-      }
-      updated = true;
-      const count = reaction.count + delta;
-      if (count <= 0) {
-        return null;
-      }
-      return { ...reaction, count };
-    })
-    .filter((reaction): reaction is Reaction => reaction !== null);
-
-  if (!updated && delta > 0 && fallback) {
-    next.push({ ...fallback, count: delta });
-  }
-
-  return next;
-};
-
-const buildOptimisticReactionStatus = (
-  status: Status,
-  reaction: ReactionInput,
-  remove: boolean
-): Status => {
-  let nextReactions = status.reactions;
-  if (remove) {
-    nextReactions = adjustReactionCount(nextReactions, reaction.name, -1);
-  } else {
-    if (status.myReaction && status.myReaction !== reaction.name) {
-      nextReactions = adjustReactionCount(nextReactions, status.myReaction, -1);
-    }
-    nextReactions = adjustReactionCount(nextReactions, reaction.name, 1, reaction);
-  }
-  const sorted = sortReactions(nextReactions);
-  const favouritesCount = sorted.reduce((sum, item) => sum + item.count, 0);
-  const myReaction = remove ? null : reaction.name;
-  return {
-    ...status,
-    reactions: sorted,
-    myReaction,
-    favouritesCount,
-    favourited: Boolean(myReaction)
-  };
-};
-
-const TimelineIcon = ({ timeline }: { timeline: TimelineType | string }) => {
-  switch (timeline) {
-    case "divider-before-bookmarks":
-      return null;
-    case "home":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M3 11l9-7 9 7" />
-          <path d="M5 10v10h14V10" />
-        </svg>
-      );
-    case "local":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M12 21s-6-5.2-6-10a6 6 0 1 1 12 0c0 4.8-6 10-6 10z" />
-          <path d="M12 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" />
-        </svg>
-      );
-    case "federated":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="6" cy="12" r="3" />
-          <circle cx="18" cy="12" r="3" />
-          <path d="M9 12h6" />
-          <path d="M12 6v3" />
-          <path d="M12 15v3" />
-        </svg>
-      );
-    case "social":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="8" cy="9" r="3" />
-          <circle cx="16" cy="9" r="3" />
-          <path d="M4 20c0-3 2.5-5 4-5h0" />
-          <path d="M20 20c0-3-2.5-5-4-5h0" />
-        </svg>
-      );
-    case "global":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="12" cy="12" r="9" />
-          <path d="M3 12h18" />
-          <path d="M12 3a15 15 0 0 1 0 18" />
-          <path d="M12 3a15 15 0 0 0 0 18" />
-        </svg>
-      );
-    case "notifications":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 7h18s-3 0-3-7" />
-          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-        </svg>
-      );
-     case "bookmarks":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-        </svg>
-      );
-    default:
-      return null;
-  }
-};
-
-const termsHtml = sanitizeHtml(renderMarkdown(termsMarkdown));
-const ossHtml = sanitizeHtml(renderMarkdown(ossMarkdown));
-
-const TermsContent = () => (
-  <div className="info-markdown" dangerouslySetInnerHTML={{ __html: termsHtml }} />
-);
-
-const LicenseContent = () => <pre className="license">{licenseText}</pre>;
-
-const OssContent = () => (
-  <div className="info-markdown" dangerouslySetInnerHTML={{ __html: ossHtml }} />
-);
-
-const getInfoModalTitle = (type: InfoModalType) => {
-  switch (type) {
-    case "terms":
-      return "이용약관";
-    case "license":
-      return "라이선스";
-    case "oss":
-      return "오픈소스 목록";
-    default:
-      return "";
-  }
-};
-
-const InfoModalContent = ({ type }: { type: InfoModalType }) => {
-  switch (type) {
-    case "terms":
-      return <TermsContent />;
-    case "license":
-      return <LicenseContent />;
-    case "oss":
-      return <OssContent />;
-    default:
-      return null;
-  }
-};
-
-const InfoModal = ({ type, onClose }: { type: InfoModalType; onClose: () => void }) => {
-  const title = getInfoModalTitle(type);
-  return (
-    <div className="info-modal" role="dialog" aria-modal="true" aria-label={title}>
-      <div className="info-modal-backdrop" onClick={onClose} />
-      <div className="info-modal-content">
-        <div className="info-modal-header">
-          <h3 className="info-modal-title">{title}</h3>
-          <button type="button" className="ghost" onClick={onClose} aria-label={`${title} 닫기`}>
-            닫기
-          </button>
-        </div>
-        <div className="info-modal-body">
-          <InfoModalContent type={type} />
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const TermsPage = () => (
-  <section className="panel info-panel">
-    <PageHeader title="이용약관" />
-    <TermsContent />
-  </section>
-);
-
-const LicensePage = () => (
-  <section className="panel info-panel">
-    <PageHeader title="라이선스" />
-    <LicenseContent />
-  </section>
-);
-
-const OssPage = () => (
-  <section className="panel info-panel">
-    <PageHeader title="오픈소스 목록" />
-    <OssContent />
-  </section>
-);
-
-const TimelineSection = ({
-  section,
-  account,
-  services,
-  accountsState,
-  onAccountChange,
-  onTimelineChange,
-  onAddSectionLeft,
-  onAddSectionRight,
-  onRemoveSection,
-  onReply,
-  onStatusClick,
-  onCloseStatusModal,
-  onReact,
-  onProfileClick,
-  onError,
-  onMoveSection,
-  onScrollToSection,
-  canMoveLeft,
-  canMoveRight,
-  canRemoveSection,
-  timelineType,
-  showProfileImage,
-  showCustomEmojis,
-  showReactions,
-  registerTimelineListener,
-  unregisterTimelineListener,
-  columnRef
-}: {
-  section: TimelineSectionConfig;
-  account: Account | null;
-  services: AppServices;
-  accountsState: AccountsState;
-  onAccountChange: (sectionId: string, accountId: string | null) => void;
-  onTimelineChange: (sectionId: string, timelineType: TimelineType) => void;
-  onAddSectionLeft: (sectionId: string) => void;
-  onAddSectionRight: (sectionId: string) => void;
-  onRemoveSection: (sectionId: string) => void;
-  onReply: (status: Status, account: Account | null) => void;
-  onStatusClick: (status: Status, columnAccount: Account | null) => void;
-  onReact: (account: Account | null, status: Status, reaction: ReactionInput) => void;
-  onProfileClick: (status: Status, account: Account | null) => void;
-  onError: (message: string | null) => void;
-  columnAccount: Account | null;
-  onMoveSection: (sectionId: string, direction: "left" | "right") => void;
-  onScrollToSection: (sectionId: string) => void;
-  onCloseStatusModal: () => void;
-  canMoveLeft: boolean;
-  canMoveRight: boolean;
-  canRemoveSection: boolean;
-  timelineType: TimelineType;
-  showProfileImage: boolean;
-  showCustomEmojis: boolean;
-  showReactions: boolean;
-  registerTimelineListener: (accountId: string, listener: (status: Status) => void) => void;
-  unregisterTimelineListener: (accountId: string, listener: (status: Status) => void) => void;
-  columnRef?: React.Ref<HTMLDivElement>;
-}) => {
-  const notificationsTimeline = useTimeline({
-    account,
-    api: services.api,
-    streaming: services.streaming,
-    timelineType: "notifications",
-    enableStreaming: false
-  });
-  const {
-    items: notificationItems,
-    loading: notificationsLoading,
-    loadingMore: notificationsLoadingMore,
-    error: notificationsError,
-    refresh: refreshNotifications,
-    loadMore: loadMoreNotifications
-  } = notificationsTimeline;
-  const menuRef = useRef<HTMLDivElement | null>(null);
-  const timelineMenuRef = useRef<HTMLDivElement | null>(null);
-  const notificationMenuRef = useRef<HTMLDivElement | null>(null);
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-  const notificationScrollRef = useRef<HTMLDivElement | null>(null);
-  const lastNotificationToastRef = useRef(0);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [timelineMenuOpen, setTimelineMenuOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [notificationCount, setNotificationCount] = useState(0);
-  const [isAtTop, setIsAtTop] = useState(true);
-  const { showToast } = useToast();
-  const timelineOptions = useMemo(() => getTimelineOptions(account?.platform, false), [account?.platform]);
-  const timelineButtonLabel = `타임라인 선택: ${getTimelineLabel(timelineType)}`;
-  const hasNotificationBadge = notificationCount > 0;
-  const instanceOriginUrl = useMemo(() => {
-    if (!account) {
-      return null;
-    }
-    try {
-      return normalizeInstanceUrl(account.instanceUrl);
-    } catch {
-      return null;
-    }
-  }, [account]);
-  const notificationBadgeLabel = notificationsOpen
-    ? "알림 닫기"
-    : hasNotificationBadge
-      ? `알림 열기 (새 알림 ${notificationCount >= 99 ? "99개 이상" : `${notificationCount}개`})`
-      : "알림 열기";
-  const notificationBadgeText = notificationCount >= 99 ? "99+" : String(notificationCount);
-  const handleNotification = useCallback(() => {
-    if (notificationsOpen) {
-      refreshNotifications();
-      return;
-    }
-    setNotificationCount((count) => Math.min(count + 1, 99));
-    if (timelineType === "notifications") {
-      return;
-    }
-    const now = Date.now();
-    if (now - lastNotificationToastRef.current < 5000) {
-      return;
-    }
-    lastNotificationToastRef.current = now;
-    showToast("새 알림이 도착했습니다.", {
-      tone: "info",
-      actionLabel: "알림 받은 컬럼으로 이동",
-      actionAriaLabel: "알림이 도착한 컬럼으로 이동",
-      onAction: () => onScrollToSection(section.id)
-    });
-  }, [notificationsOpen, refreshNotifications, timelineType, showToast, onScrollToSection, section.id]);
-  const timeline = useTimeline({
-    account,
-    api: services.api,
-    streaming: services.streaming,
-    timelineType,
-    onNotification: handleNotification
-  });
-  const actionsDisabled = timelineType === "notifications" || timelineType === "bookmarks";
-  const emptyMessage = timelineType === "notifications" 
-    ? "표시할 알림이 없습니다." 
-    : timelineType === "bookmarks" 
-      ? "북마크한 글이 없습니다."
-      : "표시할 글이 없습니다.";
-
-  useEffect(() => {
-    if (!timeline.error) {
-      return;
-    }
-    showToast(timeline.error, { tone: "error" });
-  }, [showToast, timeline.error]);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) {
-      return;
-    }
-    const onScroll = () => {
-      const threshold = el.scrollHeight - el.clientHeight - 200;
-      if (el.scrollTop >= threshold) {
-        timeline.loadMore();
-      }
-      setIsAtTop(el.scrollTop <= 0);
-    };
-    onScroll();
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      el.removeEventListener("scroll", onScroll);
-    };
-  }, [timeline.loadMore]);
-
-  useEffect(() => {
-    if (!account || timelineType === "notifications") {
-      return;
-    }
-    registerTimelineListener(account.id, timeline.updateItem);
-    return () => {
-      unregisterTimelineListener(account.id, timeline.updateItem);
-    };
-  }, [account, registerTimelineListener, timeline.updateItem, timelineType, unregisterTimelineListener]);
-
-  useClickOutside(menuRef, menuOpen, () => setMenuOpen(false));
-
-  useClickOutside(timelineMenuRef, timelineMenuOpen, () => setTimelineMenuOpen(false));
-
-  useClickOutside(notificationMenuRef, notificationsOpen, () => setNotificationsOpen(false));
-
-  useEffect(() => {
-    if (!notificationsOpen) {
-      return;
-    }
-    const el = notificationScrollRef.current;
-    if (!el) {
-      return;
-    }
-      const onScroll = () => {
-        const threshold = el.scrollHeight - el.clientHeight - 120;
-        if (el.scrollTop >= threshold) {
-          loadMoreNotifications();
-        }
-      };
-    onScroll();
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      el.removeEventListener("scroll", onScroll);
-    };
-  }, [notificationsOpen, loadMoreNotifications]);
-
-  useEffect(() => {
-    if (!account) {
-      setNotificationsOpen(false);
-      setTimelineMenuOpen(false);
-    }
-    setNotificationCount(0);
-  }, [account?.id]);
-
-  useEffect(() => {
-    if (!notificationsOpen) {
-      return;
-    }
-    setNotificationCount(0);
-    refreshNotifications();
-  }, [notificationsOpen, refreshNotifications]);
-
-  useEffect(() => {
-    if (!notificationsError) {
-      return;
-    }
-    showToast(notificationsError, { tone: "error" });
-  }, [notificationsError, showToast]);
-
-  const handleToggleFavourite = async (status: Status) => {
-    if (!account) {
-      onError("계정을 선택해주세요.");
-      return;
-    }
-    onError(null);
-    try {
-      const updated = status.favourited
-        ? await services.api.unfavourite(account, status.id)
-        : await services.api.favourite(account, status.id);
-      timeline.updateItem(updated);
-    } catch (err) {
-      onError(err instanceof Error ? err.message : "좋아요 처리에 실패했습니다.");
-    }
-  };
-
-  const handleToggleReblog = async (status: Status) => {
-    if (!account) {
-      onError("계정을 선택해주세요.");
-      return;
-    }
-    onError(null);
-    const delta = status.reblogged ? -1 : 1;
-    const optimistic = {
-      ...status,
-      reblogged: !status.reblogged,
-      reblogsCount: Math.max(0, status.reblogsCount + delta)
-    };
-    timeline.updateItem(optimistic);
-    try {
-      const updated = status.reblogged
-        ? await services.api.unreblog(account, status.id)
-        : await services.api.reblog(account, status.id);
-      timeline.updateItem(updated);
-    } catch (err) {
-      onError(err instanceof Error ? err.message : "부스트 처리에 실패했습니다.");
-      timeline.updateItem(status);
-    }
-  };
-
-  const handleToggleBookmark = async (status: Status) => {
-    if (!account) {
-      onError("계정을 선택해주세요.");
-      return;
-    }
-    onError(null);
-    const isBookmarking = !status.bookmarked;
-    const optimistic = {
-      ...status,
-      bookmarked: isBookmarking
-    };
-    timeline.updateItem(optimistic);
-    try {
-      const updated = status.bookmarked
-        ? await services.api.unbookmark(account, status.id)
-        : await services.api.bookmark(account, status.id);
-      timeline.updateItem(updated);
-      if (isBookmarking) {
-        showToast("북마크했습니다.");
-      } else {
-        showToast("북마크를 취소했습니다.");
-      }
-    } catch (err) {
-      onError(err instanceof Error ? err.message : "북마크 처리에 실패했습니다.");
-      timeline.updateItem(status);
-    }
-  };
-
-  const handleReact = useCallback(
-    (status: Status, reaction: ReactionInput) => {
-      onReact(account, status, reaction);
-    },
-    [account, onReact]
-  );
-
-  const handleDeleteStatus = async (status: Status) => {
-    if (!account) {
-      return;
-    }
-    onError(null);
-    try {
-      await services.api.deleteStatus(account, status.id);
-      timeline.removeItem(status.id);
-      onCloseStatusModal();
-    } catch (err) {
-      onError(err instanceof Error ? err.message : "게시글 삭제에 실패했습니다.");
-    }
-  };
-
-  const scrollToTop = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
-
-  const handleOpenInstanceOrigin = useCallback(() => {
-    if (!instanceOriginUrl) {
-      return;
-    }
-    window.open(instanceOriginUrl, "_blank", "noopener,noreferrer");
-    setMenuOpen(false);
-  }, [instanceOriginUrl]);
-
-  return (
-    <div className="timeline-column" ref={columnRef}>
-      <div className="timeline-column-header">
-        <AccountSelector
-          accounts={accountsState.accounts}
-          activeAccountId={account?.id ?? null}
-          setActiveAccount={(id) => {
-            onAccountChange(section.id, id);
-            accountsState.setActiveAccount(id);
-          }}
-          variant="inline"
-        />
-        <div className="timeline-column-actions" role="group" aria-label="타임라인 작업">
-          <div className="timeline-selector">
-            <button
-              type="button"
-              className="timeline-selector-button"
-              onClick={() => {
-                if (!account) {
-                  onError("계정을 선택해주세요.");
-                  return;
-                }
-                setTimelineMenuOpen((current) => !current);
-                setMenuOpen(false);
-                setNotificationsOpen(false);
-              }}
-              disabled={!account}
-              aria-label={timelineButtonLabel}
-              aria-haspopup="menu"
-              aria-expanded={timelineMenuOpen}
-              title={timelineButtonLabel}
-            >
-              <TimelineIcon timeline={timelineType} />
-              <span className="timeline-selector-label">{getTimelineLabel(timelineType)}</span>
-            </button>
-            {timelineMenuOpen ? (
-              <>
-                <div className="overlay-backdrop" aria-hidden="true" />
-                <div
-                  ref={timelineMenuRef}
-                  className="section-menu-panel timeline-selector-panel"
-                  role="menu"
-                  aria-label="타임라인 선택"
-                >
-                  {timelineOptions.map((option) => {
-                    if (option.isDivider) {
-                      return (
-                        <div key={option.id} className="timeline-selector-divider" role="separator" />
-                      );
-                    }
-                    
-                    const isSelected = !option.isDivider && timelineType === option.id;
-                    return (
-                      <button
-                        key={option.id}
-                        type="button"
-                        className={isSelected ? "is-active" : ""}
-                        aria-pressed={isSelected}
-                        onClick={() => {
-                          if (!option.isDivider) {
-                            onTimelineChange(section.id, option.id as TimelineType);
-                            setTimelineMenuOpen(false);
-                          }
-                        }}
-                        disabled={option.isDivider}
-                      >
-                        {!option.isDivider && <TimelineIcon timeline={option.id as TimelineType} />}
-                        <span>{option.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </>
-            ) : null}
-          </div>
-          <div className="notification-menu">
-            <button
-              type="button"
-              className={`icon-button${notificationsOpen ? " is-active" : ""}`}
-              onClick={() => {
-                if (!account) {
-                  onError("계정을 선택해주세요.");
-                  return;
-                }
-                setMenuOpen(false);
-                setTimelineMenuOpen(false);
-                setNotificationsOpen((current) => !current);
-              }}
-              disabled={!account}
-              aria-label={notificationBadgeLabel}
-              aria-pressed={notificationsOpen}
-              title={notificationBadgeLabel}
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 7h18s-3 0-3-7" />
-                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-              </svg>
-              {hasNotificationBadge ? (
-                <span className="notification-badge" aria-hidden="true">
-                  {notificationBadgeText}
-                </span>
-              ) : null}
-            </button>
-            {notificationsOpen ? (
-              <>
-                <div className="overlay-backdrop" aria-hidden="true" />
-                <div ref={notificationMenuRef} className="notification-popover panel" role="dialog" aria-modal="true" aria-label="알림">
-                  <div className="notification-popover-body" ref={notificationScrollRef}>
-                    {notificationItems.length === 0 && !notificationsLoading ? (
-                      <p className="empty">표시할 알림이 없습니다.</p>
-                    ) : null}
-                    {notificationsLoading && notificationItems.length === 0 ? (
-                      <p className="empty">알림을 불러오는 중...</p>
-                    ) : null}
-                    {notificationItems.length > 0 ? (
-                      <div className="timeline">
-                        {notificationItems.map((status) => (
-                          <TimelineItem
-                            key={status.id}
-                            status={status}
-                             onReply={(item) => onReply(item, account)}
-                             onStatusClick={(status) => onStatusClick(status, account)}
-                             onToggleFavourite={handleToggleFavourite}
-                             onToggleReblog={handleToggleReblog}
-                             onToggleBookmark={handleToggleBookmark}
-                             onDelete={handleDeleteStatus}
-                            onReact={handleReact}
-                            onProfileClick={(item) => onProfileClick(item, account)}
-                            activeHandle={
-                              account?.handle ? formatHandle(account.handle, account.instanceUrl) : account?.instanceUrl ?? ""
-                            }
-                            activeAccountHandle={account?.handle ?? ""}
-                            activeAccountUrl={account?.url ?? null}
-                            account={account}
-                            api={services.api}
-                            showProfileImage={showProfileImage}
-                            showCustomEmojis={showCustomEmojis}
-                            showReactions={showReactions}
-                            disableActions
-                          />
-                        ))}
-                      </div>
-                    ) : null}
-                    {notificationsLoadingMore ? <p className="empty">더 불러오는 중...</p> : null}
-                  </div>
-                </div>
-              </>
-            ) : null}
-          </div>
-          <div className="section-menu">
-            <button
-              type="button"
-              className="icon-button menu-button"
-              aria-label="섹션 메뉴 열기"
-              onClick={() => {
-                setMenuOpen((current) => !current);
-                setNotificationsOpen(false);
-                setTimelineMenuOpen(false);
-              }}
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M4 7h16" />
-                <path d="M4 12h16" />
-                <path d="M4 17h16" />
-              </svg>
-            </button>
-            {menuOpen ? (
-              <>
-                <div className="overlay-backdrop" aria-hidden="true" />
-                <div ref={menuRef} className="section-menu-panel" role="menu">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      timeline.refresh();
-                      setMenuOpen(false);
-                    }}
-                    disabled={!account || timeline.loading}
-                  >
-                    새로고침
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleOpenInstanceOrigin}
-                    disabled={!instanceOriginUrl}
-                  >
-                    원본 서버에서 보기
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onAddSectionLeft(section.id);
-                      setMenuOpen(false);
-                    }}
-                  >
-                    왼쪽 섹션 추가
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onMoveSection(section.id, "left");
-                      setMenuOpen(false);
-                    }}
-                    disabled={!canMoveLeft}
-                  >
-                    왼쪽으로 이동
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onMoveSection(section.id, "right");
-                      setMenuOpen(false);
-                    }}
-                    disabled={!canMoveRight}
-                  >
-                    오른쪽으로 이동
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onAddSectionRight(section.id);
-                      setMenuOpen(false);
-                    }}
-                  >
-                    오른쪽 섹션 추가
-                  </button>
-                  <button
-                    type="button"
-                    className="danger"
-                    disabled={!canRemoveSection}
-                    onClick={() => {
-                      onRemoveSection(section.id);
-                      setMenuOpen(false);
-                    }}
-                  >
-                    섹션 삭제
-                  </button>
-                </div>
-              </>
-            ) : null}
-          </div>
-        </div>
-      </div>
-      <div className="timeline-column-body" ref={scrollRef}>
-        {!account ? <p className="empty">계정을 선택하면 타임라인을 불러옵니다.</p> : null}
-        {account && timeline.items.length === 0 && !timeline.loading ? (
-          <p className="empty">{emptyMessage}</p>
-        ) : null}
-        {account && timeline.items.length > 0 ? (
-          <div className="timeline">
-            {timeline.items.map((status) => (
-              <TimelineItem
-                key={status.id}
-                status={status}
-                 onReply={(item) => onReply(item, account)}
-                 onStatusClick={(status) => onStatusClick(status, account)}
-                 onToggleFavourite={handleToggleFavourite}
-                 onToggleReblog={handleToggleReblog}
-                 onToggleBookmark={handleToggleBookmark}
-                 onDelete={handleDeleteStatus}
-                onReact={handleReact}
-                onProfileClick={(item) => onProfileClick(item, account)}
-                activeHandle={
-                  account.handle ? formatHandle(account.handle, account.instanceUrl) : account.instanceUrl
-                }
-                activeAccountHandle={account.handle ?? ""}
-                activeAccountUrl={account.url ?? null}
-                account={account}
-                api={services.api}
-                showProfileImage={showProfileImage}
-                showCustomEmojis={showCustomEmojis}
-                showReactions={showReactions}
-                disableActions={actionsDisabled}
-              />
-            ))}
-          </div>
-        ) : null}
-        {timeline.loadingMore ? <p className="empty">더 불러오는 중...</p> : null}
-      </div>
-      <button
-        type="button"
-        className="icon-button scroll-top-fab"
-        onClick={scrollToTop}
-        disabled={isAtTop}
-        aria-label="최상단으로 이동"
-        title="최상단으로 이동"
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M12 19V5" />
-          <path d="M5 12l7-7 7 7" />
-        </svg>
-      </button>
-    </div>
-  );
-};
-
-type ThemeMode = "default" | "christmas" | "sky-pink" | "monochrome" | "matcha-core";
-
-const isThemeMode = (value: string): value is ThemeMode =>
-  value === "default" ||
-  value === "christmas" ||
-  value === "sky-pink" ||
-  value === "monochrome" ||
-  value === "matcha-core";
-
-const getStoredTheme = (): ThemeMode => {
-  const storedTheme = localStorage.getItem("textodon.theme");
-  if (storedTheme && isThemeMode(storedTheme)) {
-    return storedTheme;
-  }
-  return localStorage.getItem("textodon.christmas") === "on" ? "christmas" : "default";
-};
-
-type ColorScheme = "system" | "light" | "dark";
-
-const isColorScheme = (value: string): value is ColorScheme =>
-  value === "system" || value === "light" || value === "dark";
-
-const getStoredColorScheme = (): ColorScheme => {
-  const storedScheme = localStorage.getItem("textodon.colorScheme");
-  if (storedScheme && isColorScheme(storedScheme)) {
-    return storedScheme;
-  }
-  return "system";
 };
 
 export const App = () => {
@@ -1024,6 +135,7 @@ export const App = () => {
   );
   const [replyTarget, setReplyTarget] = useState<Status | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<Status | null>(null);
+  const [selectedTimelineStatus, setSelectedTimelineStatus] = useState<SelectedTimelineStatus | null>(null);
   const [profileTargets, setProfileTargets] = useState<ProfileTarget[]>([]);
   const [statusModalZIndex, setStatusModalZIndex] = useState<number | null>(null);
   const nextModalZIndexRef = useRef(70);
@@ -1032,8 +144,10 @@ export const App = () => {
   const [mentionSeed, setMentionSeed] = useState<string | null>(null);
   const timelineBoardRef = useRef<HTMLDivElement | null>(null);
   const sectionRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
-  const dragStateRef = useRef<{ startX: number; scrollLeft: number; pointerId: number } | null>(null);
-  const [isBoardDragging, setIsBoardDragging] = useState(false);
+  const sectionItemsRef = useRef<Map<string, Status[]>>(new Map());
+  const timelineShortcutHandlersRef = useRef<Map<string, (event: KeyboardEvent) => boolean>>(
+    new Map()
+  );
   const replySummary = replyTarget
     ? `@${formatReplyHandle(replyTarget.accountHandle, replyTarget.accountUrl, composeAccount?.instanceUrl ?? "")} · ${replyTarget.content.slice(0, 80)}`
     : null;
@@ -1091,6 +205,36 @@ export const App = () => {
       setSelectedStatus((current) => (current && current.id === status.id ? status : current));
     },
     [broadcastStatusUpdate]
+  );
+
+  const handleTimelineItemsChange = useCallback((sectionId: string, items: Status[]) => {
+    sectionItemsRef.current.set(sectionId, items);
+    setSelectedTimelineStatus((current) => {
+      if (!current || current.sectionId !== sectionId) {
+        return current;
+      }
+      return items.some((item) => item.id === current.statusId) ? current : null;
+    });
+  }, []);
+
+  const handleSelectStatus = useCallback((sectionId: string, statusId: string) => {
+    setSelectedTimelineStatus((current) => {
+      if (current && current.sectionId === sectionId && current.statusId === statusId) {
+        return null;
+      }
+      return { sectionId, statusId };
+    });
+  }, []);
+
+  const registerTimelineShortcutHandler = useCallback(
+    (sectionId: string, handler: ((event: KeyboardEvent) => boolean) | null) => {
+      if (!handler) {
+        timelineShortcutHandlersRef.current.delete(sectionId);
+        return;
+      }
+      timelineShortcutHandlersRef.current.set(sectionId, handler);
+    },
+    []
   );
 
   useEffect(() => {
@@ -1280,6 +424,8 @@ export const App = () => {
     localStorage.setItem("textodon.pomodoro.longBreak", String(pomodoroLongBreak));
   }, [pomodoroLongBreak]);
 
+
+
   const closeMobileMenu = useCallback(() => {
     setMobileMenuOpen(false);
     setMobileComposeOpen(false);
@@ -1337,65 +483,215 @@ export const App = () => {
     window.location.reload();
   }, []);
 
-  const isInteractiveTarget = useCallback((target: EventTarget | null) => {
-    const element =
-      target instanceof Element
-        ? target
-        : target && "parentElement" in target
-          ? (target as Node).parentElement
-          : null;
+  const isEditableElement = useCallback((element: Element | null) => {
     if (!element) {
       return false;
     }
-    return Boolean(
-      element.closest(
-        "button, a, input, textarea, select, label, summary, details, [role='button'], [contenteditable='true'], [data-interactive='true']"
-      )
+    return (
+      element instanceof HTMLInputElement ||
+      element instanceof HTMLTextAreaElement ||
+      (element as HTMLElement).isContentEditable
     );
   }, []);
 
-  const handleBoardPointerDown = useCallback(
-    (event: React.PointerEvent<HTMLDivElement>) => {
-      if (event.button !== 0 || !timelineBoardRef.current) {
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) {
         return;
       }
-      if (isInteractiveTarget(event.target)) {
+      const hasOverlayBackdrop = document.querySelector(
+        ".overlay-backdrop, .image-modal, .confirm-modal, .profile-modal, .status-modal, .settings-modal, .info-modal"
+      );
+      if (selectedStatus || settingsOpen || infoModal || mobileMenuOpen || mobileComposeOpen) {
         return;
       }
-      dragStateRef.current = {
-        startX: event.clientX,
-        scrollLeft: timelineBoardRef.current.scrollLeft,
-        pointerId: event.pointerId
-      };
-      setIsBoardDragging(true);
-      timelineBoardRef.current.setPointerCapture(event.pointerId);
-    },
-    [isInteractiveTarget]
-  );
+      if (profileTargets.length > 0) {
+        return;
+      }
+      if (isEditableElement(document.activeElement)) {
+        return;
+      }
 
-  const handleBoardPointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-    if (!timelineBoardRef.current || !dragStateRef.current) {
-      return;
-    }
-    if (event.pointerId !== dragStateRef.current.pointerId) {
-      return;
-    }
-    const delta = event.clientX - dragStateRef.current.startX;
-    timelineBoardRef.current.scrollLeft = dragStateRef.current.scrollLeft - delta;
-    event.preventDefault();
-  }, []);
+      const key = event.key;
+      if (key === "Escape") {
+        if (hasOverlayBackdrop) {
+          return;
+        }
+        if (selectedTimelineStatus) {
+          const keyHandledByTimeline = timelineShortcutHandlersRef.current.get(
+            selectedTimelineStatus.sectionId
+          )?.(event);
+          if (keyHandledByTimeline) {
+            return;
+          }
+        }
+        if (selectedTimelineStatus) {
+          event.preventDefault();
+          setSelectedTimelineStatus(null);
+        }
+        return;
+      }
 
-  const handleBoardPointerUp = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-    if (!timelineBoardRef.current || !dragStateRef.current) {
-      return;
-    }
-    if (event.pointerId !== dragStateRef.current.pointerId) {
-      return;
-    }
-    timelineBoardRef.current.releasePointerCapture(event.pointerId);
-    dragStateRef.current = null;
-    setIsBoardDragging(false);
-  }, []);
+      if (selectedTimelineStatus) {
+        const keyHandledByTimeline = timelineShortcutHandlersRef.current.get(
+          selectedTimelineStatus.sectionId
+        )?.(event);
+        if (keyHandledByTimeline) {
+          return;
+        }
+      }
+
+      if (
+        key.toLowerCase() === "m" &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.shiftKey &&
+        !event.altKey
+      ) {
+        if (selectedTimelineStatus) {
+          return;
+        }
+        const board = timelineBoardRef.current;
+        if (!board) {
+          return;
+        }
+        const boardRect = board.getBoundingClientRect();
+        let leftmostSectionId: string | null = null;
+        let leftmostPosition = Number.POSITIVE_INFINITY;
+        sections.forEach((section) => {
+          const element = sectionRefs.current.get(section.id);
+          if (!element) {
+            return;
+          }
+          const rect = element.getBoundingClientRect();
+          if (rect.right <= boardRect.left || rect.left >= boardRect.right) {
+            return;
+          }
+          if (rect.left < leftmostPosition) {
+            leftmostPosition = rect.left;
+            leftmostSectionId = section.id;
+          }
+        });
+        if (!leftmostSectionId) {
+          return;
+        }
+        const items = sectionItemsRef.current.get(leftmostSectionId) ?? [];
+        if (items.length === 0) {
+          return;
+        }
+        event.preventDefault();
+        setSelectedTimelineStatus({ sectionId: leftmostSectionId, statusId: items[0].id });
+        return;
+      }
+
+      if (!selectedTimelineStatus) {
+        return;
+      }
+
+      if (
+        hasOverlayBackdrop &&
+        (key === "ArrowUp" || key === "ArrowDown" || key === "ArrowLeft" || key === "ArrowRight")
+      ) {
+        return;
+      }
+
+      const currentItems = sectionItemsRef.current.get(selectedTimelineStatus.sectionId) ?? [];
+      const currentIndex = currentItems.findIndex(
+        (item) => item.id === selectedTimelineStatus.statusId
+      );
+
+      if (key === "ArrowUp" || key === "ArrowDown") {
+        if (currentItems.length === 0 || currentIndex === -1) {
+          return;
+        }
+        const nextIndex = key === "ArrowUp" ? currentIndex - 1 : currentIndex + 1;
+        if (nextIndex < 0 || nextIndex >= currentItems.length) {
+          return;
+        }
+        event.preventDefault();
+        setSelectedTimelineStatus({
+          sectionId: selectedTimelineStatus.sectionId,
+          statusId: currentItems[nextIndex].id
+        });
+        return;
+      }
+
+      if (key === "ArrowLeft" || key === "ArrowRight") {
+        const currentSectionIndex = sections.findIndex(
+          (section) => section.id === selectedTimelineStatus.sectionId
+        );
+        if (currentSectionIndex === -1) {
+          return;
+        }
+        const currentSectionElement = sectionRefs.current.get(selectedTimelineStatus.sectionId);
+        const currentStatusElement = currentSectionElement?.querySelector<HTMLElement>(
+          `[data-status-id="${selectedTimelineStatus.statusId}"]`
+        );
+        const currentCenterY = currentStatusElement
+          ? currentStatusElement.getBoundingClientRect().top +
+            currentStatusElement.getBoundingClientRect().height / 2
+          : null;
+        const direction = key === "ArrowLeft" ? -1 : 1;
+        let targetIndex = currentSectionIndex + direction;
+        while (targetIndex >= 0 && targetIndex < sections.length) {
+          const targetSection = sections[targetIndex];
+          const items = sectionItemsRef.current.get(targetSection.id) ?? [];
+          if (items.length > 0) {
+            let nextStatusId = items[
+              Math.min(currentIndex >= 0 ? currentIndex : 0, items.length - 1)
+            ]?.id;
+            if (currentCenterY !== null) {
+              const targetSectionElement = sectionRefs.current.get(targetSection.id);
+              const statusElements = targetSectionElement?.querySelectorAll<HTMLElement>(
+                "[data-status-id]"
+              );
+              if (statusElements && statusElements.length > 0) {
+                let closestMatch: { id: string; distance: number } | null = null;
+                for (const element of Array.from(statusElements)) {
+                  const statusId = element.dataset.statusId;
+                  if (!statusId) {
+                    continue;
+                  }
+                  const rect = element.getBoundingClientRect();
+                  const centerY = rect.top + rect.height / 2;
+                  const distance = Math.abs(centerY - currentCenterY);
+                  if (!closestMatch || distance < closestMatch.distance) {
+                    closestMatch = { id: statusId, distance };
+                  }
+                }
+                if (closestMatch) {
+                  nextStatusId = closestMatch.id;
+                }
+              }
+            }
+            if (!nextStatusId) {
+              return;
+            }
+            event.preventDefault();
+            setSelectedTimelineStatus({
+              sectionId: targetSection.id,
+              statusId: nextStatusId
+            });
+            return;
+          }
+          targetIndex += direction;
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    infoModal,
+    isEditableElement,
+    mobileComposeOpen,
+    mobileMenuOpen,
+    profileTargets.length,
+    sections,
+    selectedStatus,
+    selectedTimelineStatus,
+    settingsOpen
+  ]);
 
   const scrollToSection = useCallback((sectionId: string) => {
     const target = sectionRefs.current.get(sectionId);
@@ -1404,6 +700,26 @@ export const App = () => {
     }
     target.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
   }, []);
+
+  useEffect(() => {
+    if (!selectedTimelineStatus) {
+      return;
+    }
+    scrollToSection(selectedTimelineStatus.sectionId);
+    requestAnimationFrame(() => {
+      const section = sectionRefs.current.get(selectedTimelineStatus.sectionId);
+      if (!section) {
+        return;
+      }
+      const statusElement = section.querySelector<HTMLElement>(
+        `[data-status-id="${selectedTimelineStatus.statusId}"]`
+      );
+      if (!statusElement) {
+        return;
+      }
+      statusElement.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  }, [scrollToSection, selectedTimelineStatus]);
 
   useEffect(() => {
     setSections((current) =>
@@ -1453,6 +769,15 @@ export const App = () => {
     }
     previousAccountIds.current = currentIds;
   }, [accountsState.accounts]);
+
+  useEffect(() => {
+    if (!selectedTimelineStatus) {
+      return;
+    }
+    if (!sections.some((section) => section.id === selectedTimelineStatus.sectionId)) {
+      setSelectedTimelineStatus(null);
+    }
+  }, [sections, selectedTimelineStatus]);
 
   const handleSubmit = async (params: {
     text: string;
@@ -1689,6 +1014,14 @@ export const App = () => {
           </button>
         </div>
       </header>
+      <div className="mobile-blocker" role="dialog" aria-modal="true" aria-label="모바일 안내">
+        <div className="mobile-blocker-card">
+          <h2>모바일 환경에서는 사용이 불가능합니다 🙇‍♂️</h2>
+          <p>
+            멀티 컬럼 인터페이스 특성상 모바일 지원이 제한됩니다. 데스크톱 또는 태블릿에서 이용해 주세요.
+          </p>
+        </div>
+      </div>
 
       <main className={`layout${hasAccounts ? "" : " layout-empty"}`}>
         <aside>
@@ -1778,6 +1111,15 @@ export const App = () => {
                 >
                   오픈소스 목록
                 </a>
+                <a
+                  href="#/shortcuts"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    setInfoModal("shortcuts");
+                  }}
+                >
+                  단축키
+                </a>
                 <a href="https://github.com/deholic/textodon" target="_blank" rel="noreferrer">
                   소스 코드
                 </a>
@@ -1802,13 +1144,8 @@ export const App = () => {
                 <div className={`panel-content${showPomodoro && pomodoroSessionType === "focus" && pomodoroIsRunning ? " pomodoro-focus-blur" : ""}`}>
                   {sections.length > 0 ? (
                   <div
-                    className={`timeline-board${isBoardDragging ? " is-dragging" : ""}`}
+                    className="timeline-board"
                     ref={timelineBoardRef}
-                    onPointerDown={handleBoardPointerDown}
-                    onPointerMove={handleBoardPointerMove}
-                    onPointerUp={handleBoardPointerUp}
-                    onPointerLeave={handleBoardPointerUp}
-                    onPointerCancel={handleBoardPointerUp}
                   >
                     {sections.map((section, index) => {
                       const sectionAccount =
@@ -1816,44 +1153,51 @@ export const App = () => {
                           ? accountsState.accounts.find((account) => account.id === section.accountId) ?? null
                           : null;
                       const shouldShowReactions = showMisskeyReactions;
+                      const selectedStatusId =
+                        selectedTimelineStatus?.sectionId === section.id
+                          ? selectedTimelineStatus.statusId
+                          : null;
                       return (
-                        <TimelineSection
-                          key={section.id}
-                          section={section}
-                          account={sectionAccount}
-                          services={services}
-                          accountsState={accountsState}
-onAccountChange={setSectionAccount}
-                          onTimelineChange={setSectionTimeline}
-                          onScrollToSection={scrollToSection}
-                          onAddSectionLeft={(id) => addSectionNear(id, "left")}
-                           onAddSectionRight={(id) => addSectionNear(id, "right")}
-                           onRemoveSection={removeSection}
-                          onReply={handleReply}
-                           onStatusClick={handleStatusClick}
-                           onReact={handleReaction}
-                           onProfileClick={handleProfileOpen}
-                           columnAccount={sectionAccount}
-                          columnRef={(node) => {
-                            if (node) {
-                              sectionRefs.current.set(section.id, node);
-                            } else {
-                              sectionRefs.current.delete(section.id);
-                            }
-                          }}
-                           onCloseStatusModal={handleCloseStatusModal}
-                           onError={(message) => setActionError(message || null)}
-                          onMoveSection={moveSection}
-                          canMoveLeft={index > 0}
-                          canMoveRight={index < sections.length - 1}
-                          canRemoveSection={sections.length > 1}
-                          timelineType={section.timelineType}
-                          showProfileImage={showProfileImages}
-                          showCustomEmojis={showCustomEmojis}
-                          showReactions={shouldShowReactions}
-                          registerTimelineListener={registerTimelineListener}
-                          unregisterTimelineListener={unregisterTimelineListener}
-                        />
+                          <TimelineSection
+                            key={section.id}
+                            section={section}
+                            account={sectionAccount}
+                            services={services}
+                            accountsState={accountsState}
+                            onAccountChange={setSectionAccount}
+                            onTimelineChange={setSectionTimeline}
+                            onScrollToSection={scrollToSection}
+                            onAddSectionLeft={(id) => addSectionNear(id, "left")}
+                            onAddSectionRight={(id) => addSectionNear(id, "right")}
+                            onRemoveSection={removeSection}
+                            onReply={handleReply}
+                            onStatusClick={handleStatusClick}
+                            onReact={handleReaction}
+                            onProfileClick={handleProfileOpen}
+                            columnRef={(node) => {
+                              if (node) {
+                                sectionRefs.current.set(section.id, node);
+                              } else {
+                                sectionRefs.current.delete(section.id);
+                              }
+                            }}
+                            onCloseStatusModal={handleCloseStatusModal}
+                            onError={(message) => setActionError(message || null)}
+                            onMoveSection={moveSection}
+                            onTimelineItemsChange={handleTimelineItemsChange}
+                            onSelectStatus={handleSelectStatus}
+                            canMoveLeft={index > 0}
+                            canMoveRight={index < sections.length - 1}
+                            canRemoveSection={sections.length > 1}
+                            timelineType={section.timelineType}
+                            showProfileImage={showProfileImages}
+                            showCustomEmojis={showCustomEmojis}
+                            showReactions={shouldShowReactions}
+                            registerTimelineListener={registerTimelineListener}
+                            unregisterTimelineListener={unregisterTimelineListener}
+                            registerTimelineShortcutHandler={registerTimelineShortcutHandler}
+                            selectedStatusId={selectedStatusId}
+                          />
                       );
                     })}
                   </div>
@@ -1864,6 +1208,7 @@ onAccountChange={setSectionAccount}
             {route === "terms" ? <TermsPage /> : null}
             {route === "license" ? <LicensePage /> : null}
             {route === "oss" ? <OssPage /> : null}
+            {route === "shortcuts" ? <ShortcutsPage /> : null}
           </section>
         ) : null}
       </main>
@@ -1872,296 +1217,67 @@ onAccountChange={setSectionAccount}
         <InfoModal type={infoModal} onClose={() => setInfoModal(null)} />
       ) : null}
 
-      {mobileComposeOpen ? (
-        <div className="mobile-menu">
-          <div className="mobile-menu-backdrop" onClick={() => setMobileComposeOpen(false)} />
-          <div className="mobile-menu-panel panel">
-            <div className="mobile-menu-header">
-              <h3>글쓰기</h3>
-              <button
-                type="button"
-                className="ghost"
-                onClick={() => setMobileComposeOpen(false)}
-                aria-label="글쓰기 닫기"
-              >
-                닫기
-              </button>
-            </div>
-            {composeAccount ? (
-              <ComposeBox
-                accountSelector={composeAccountSelector}
-                account={composeAccount}
-                api={services.api}
-                onSubmit={handleSubmit}
-                replyingTo={replyTarget ? { id: replyTarget.id, summary: replySummary ?? "" } : null}
-                onCancelReply={() => {
-                  setReplyTarget(null);
-                  setMentionSeed(null);
-                }}
-                mentionText={mentionSeed}
-              />
-            ) : null}
-          </div>
-        </div>
-      ) : null}
+      <MobileComposeMenu
+        open={mobileComposeOpen}
+        onClose={() => setMobileComposeOpen(false)}
+        composeAccount={composeAccount}
+        composeAccountSelector={composeAccountSelector}
+        api={services.api}
+        onSubmit={handleSubmit}
+        replyingTo={replyTarget ? { id: replyTarget.id, summary: replySummary ?? "" } : null}
+        onCancelReply={() => {
+          setReplyTarget(null);
+          setMentionSeed(null);
+        }}
+        mentionText={mentionSeed}
+      />
 
-      {mobileMenuOpen ? (
-        <div className="mobile-menu">
-          <div className="mobile-menu-backdrop" onClick={closeMobileMenu} />
-          <div className="mobile-menu-panel panel">
-            <div className="mobile-menu-header">
-              <h3>메뉴</h3>
-              <button type="button" className="ghost" onClick={closeMobileMenu} aria-label="메뉴 닫기">
-                닫기
-              </button>
-            </div>
-            <div className="mobile-menu-actions">
-              <button
-                type="button"
-                className="button-with-icon"
-                onClick={() => {
-                  setSettingsOpen(true);
-                  closeMobileMenu();
-                }}
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M4 6h16" />
-                  <circle cx="9" cy="6" r="2" />
-                  <path d="M4 12h16" />
-                  <circle cx="15" cy="12" r="2" />
-                  <path d="M4 18h16" />
-                  <circle cx="8" cy="18" r="2" />
-                </svg>
-                설정 열기
-              </button>
-            </div>
-            <div className="mobile-menu-section">
-              <AccountAdd
-                oauth={services.oauth}
-              />
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <MobileMenu
+        open={mobileMenuOpen}
+        onClose={closeMobileMenu}
+        onOpenSettings={() => setSettingsOpen(true)}
+        oauth={services.oauth}
+      />
 
-      {settingsOpen ? (
-        <div className="settings-modal">
-          <div className="settings-modal-backdrop" onClick={() => setSettingsOpen(false)} />
-          <div className="settings-modal-content panel">
-            <div className="settings-modal-header">
-              <h3>설정</h3>
-              <button
-                type="button"
-                className="settings-close"
-                onClick={() => setSettingsOpen(false)}
-              >
-                닫기
-              </button>
-            </div>
-            <div className="settings-item settings-item-account">
-              <div>
-                <strong>계정 관리</strong>
-                <p>계정을 선택하여 재인증하거나 삭제합니다.</p>
-              </div>
-              <div className="settings-account-actions">
-                <AccountSelector
-                  accounts={accountsState.accounts}
-                  activeAccountId={settingsAccountId}
-                  setActiveAccount={setSettingsAccountId}
-                  variant="inline"
-                />
-                <div className="settings-account-buttons">
-                  <button
-                    type="button"
-                    onClick={handleSettingsReauth}
-                    disabled={!settingsAccountId || reauthLoading}
-                    aria-label="계정 재인증"
-                  >
-                    {reauthLoading ? "재인증 중..." : "재인증"}
-                  </button>
-                  <button
-                    type="button"
-                    className="settings-danger-button"
-                    onClick={handleSettingsRemove}
-                    disabled={!settingsAccountId}
-                    aria-label="계정 삭제"
-                  >
-                    삭제
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div className="settings-item">
-              <div>
-                <strong>테마</strong>
-                <p>기본, 크리스마스, 하늘핑크, 모노톤 테마를 선택합니다.</p>
-              </div>
-              <select
-                value={themeMode}
-                onChange={(event) => {
-                  const nextTheme = event.target.value;
-                  if (isThemeMode(nextTheme)) {
-                    setThemeMode(nextTheme);
-                  }
-                }}
-                aria-label="테마 선택"
-              >
-                <option value="default">기본</option>
-                <option value="christmas">크리스마스</option>
-                <option value="sky-pink">하늘핑크</option>
-                <option value="monochrome">모노톤</option>
-                <option value="matcha-core">말차코어</option>
-              </select>
-            </div>
-            <div className="settings-item">
-              <div>
-                <strong>색상 모드</strong>
-                <p>시스템 설정을 따르거나 라이트/다크 모드를 고정합니다.</p>
-              </div>
-              <select
-                value={colorScheme}
-                onChange={(event) => {
-                  const nextScheme = event.target.value;
-                  if (isColorScheme(nextScheme)) {
-                    setColorScheme(nextScheme);
-                  }
-                }}
-                aria-label="색상 모드 선택"
-              >
-                <option value="system">시스템</option>
-                <option value="light">라이트</option>
-                <option value="dark">다크</option>
-              </select>
-            </div>
-            <div className="settings-item">
-              <div>
-                <strong>프로필 이미지 표시</strong>
-                <p>피드에서 사용자 프로필 이미지를 보여줍니다.</p>
-              </div>
-              <label className="switch">
-                <input
-                  type="checkbox"
-                  checked={showProfileImages}
-                  onChange={(event) => setShowProfileImages(event.target.checked)}
-                />
-                <span className="slider" aria-hidden="true" />
-              </label>
-            </div>
-            <div className="settings-item">
-              <div>
-                <strong>커스텀 이모지 표시</strong>
-                <p>사용자 이름과 본문에 커스텀 이모지를 표시합니다.</p>
-              </div>
-              <label className="switch">
-                <input
-                  type="checkbox"
-                  checked={showCustomEmojis}
-                  onChange={(event) => setShowCustomEmojis(event.target.checked)}
-                />
-                <span className="slider" aria-hidden="true" />
-              </label>
-            </div>
-            <div className="settings-item">
-              <div>
-                <strong>리액션 표시</strong>
-                <p>리액션 정보를 지원하는 서버에서 받은 리액션을 보여줍니다.</p>
-              </div>
-              <label className="switch">
-                <input
-                  type="checkbox"
-                  checked={showMisskeyReactions}
-                  onChange={(event) => setShowMisskeyReactions(event.target.checked)}
-                />
-                <span className="slider" aria-hidden="true" />
-              </label>
-            </div>
-            <div className="settings-item">
-              <div>
-                <strong>섹션 폭</strong>
-                <p>타임라인 섹션의 가로 폭을 조절합니다.</p>
-              </div>
-              <select
-                value={sectionSize}
-                onChange={(event) =>
-                  setSectionSize(event.target.value as "small" | "medium" | "large")
-                }
-              >
-                <option value="small">소</option>
-                <option value="medium">중</option>
-                <option value="large">대</option>
-              </select>
-            </div>
-            <div className="settings-item">
-              <div>
-                <strong>뽀모도로 타이머</strong>
-                <p>사이드바에 뽀모도로 타이머를 표시합니다.</p>
-              </div>
-              <label className="switch">
-                <input
-                  type="checkbox"
-                  checked={showPomodoro}
-                  onChange={(event) => setShowPomodoro(event.target.checked)}
-                />
-                <span className="slider" aria-hidden="true" />
-              </label>
-            </div>
-            {showPomodoro ? (
-              <div className="settings-item settings-item-pomodoro">
-                <div>
-                  <strong>뽀모도로 시간 설정</strong>
-                  <p>집중, 휴식, 긴 휴식 시간을 분 단위로 설정합니다.</p>
-                </div>
-                <div className="pomodoro-time-inputs">
-                  <label>
-                    집중
-                    <input
-                      type="number"
-                      min="1"
-                      max="60"
-                      value={pomodoroFocus}
-                      onChange={(event) => setPomodoroFocus(Number(event.target.value))}
-                    />
-                  </label>
-                  <label>
-                    휴식
-                    <input
-                      type="number"
-                      min="1"
-                      max="30"
-                      value={pomodoroBreak}
-                      onChange={(event) => setPomodoroBreak(Number(event.target.value))}
-                    />
-                  </label>
-                  <label>
-                    긴 휴식
-                    <input
-                      type="number"
-                      min="1"
-                      max="60"
-                      value={pomodoroLongBreak}
-                      onChange={(event) => setPomodoroLongBreak(Number(event.target.value))}
-                    />
-                  </label>
-                </div>
-              </div>
-            ) : null}
-            <div className="settings-item">
-              <div>
-                <strong>로컬 저장소 초기화</strong>
-                <p>계정과 설정을 포함한 모든 로컬 데이터를 삭제합니다.</p>
-              </div>
-              <button
-                type="button"
-                className="settings-danger-button"
-                onClick={handleClearLocalStorage}
-                aria-label="로컬 저장소 초기화"
-              >
-                모두 삭제
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        accountsState={accountsState}
+        settingsAccountId={settingsAccountId}
+        setSettingsAccountId={setSettingsAccountId}
+        reauthLoading={reauthLoading}
+        onReauth={handleSettingsReauth}
+        onRemove={handleSettingsRemove}
+        onClearLocalStorage={handleClearLocalStorage}
+        themeMode={themeMode}
+        onThemeChange={(value) => {
+          if (isThemeMode(value)) {
+            setThemeMode(value);
+          }
+        }}
+        colorScheme={colorScheme}
+        onColorSchemeChange={(value) => {
+          if (isColorScheme(value)) {
+            setColorScheme(value);
+          }
+        }}
+        showProfileImages={showProfileImages}
+        onToggleProfileImages={setShowProfileImages}
+        showCustomEmojis={showCustomEmojis}
+        onToggleCustomEmojis={setShowCustomEmojis}
+        showMisskeyReactions={showMisskeyReactions}
+        onToggleMisskeyReactions={setShowMisskeyReactions}
+        sectionSize={sectionSize}
+        onSectionSizeChange={setSectionSize}
+        showPomodoro={showPomodoro}
+        onTogglePomodoro={setShowPomodoro}
+        pomodoroFocus={pomodoroFocus}
+        pomodoroBreak={pomodoroBreak}
+        pomodoroLongBreak={pomodoroLongBreak}
+        onPomodoroFocusChange={setPomodoroFocus}
+        onPomodoroBreakChange={setPomodoroBreak}
+        onPomodoroLongBreakChange={setPomodoroLongBreak}
+      />
       
       {profileTargets.map((target, index) => (
         <ProfileModal

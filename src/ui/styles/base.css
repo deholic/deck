@@ -10,7 +10,7 @@
   --color-text-strong: #1f1b16;
   --color-text-muted: #6b5c4f;
   --color-text-subtle: #8a6b58;
-  --color-text-faint: #7c6152;
+  --color-text-faint: var(--color-sidebar-description);
   --color-link: #3b5fa8;
   --color-link-muted: #7c6152;
   --color-link-accent: #6b5c4f;
@@ -27,6 +27,10 @@
   --color-oss-list: #6b5c4f;
   --color-app-header-text: #5b4e43;
   --color-back-link: #7c6152;
+  --color-mobile-blocker-bg: radial-gradient(circle at top left, #f5f1ea, #efe9e0 60%, #fdfbf7);
+  --color-mobile-blocker-card-bg: #fffdf8;
+  --color-mobile-blocker-title: #1f1b16;
+  --color-mobile-blocker-body: #5f5347;
   --color-panel-bg: #ffffffcc;
   --color-panel-border: #e2ddd5;
   --shadow-panel: 0 18px 40px rgba(67, 57, 45, 0.08);
@@ -40,6 +44,7 @@
   --color-account-selector-border: #e2ddd5;
   --shadow-account-selector: 0 18px 40px rgba(67, 57, 45, 0.12);
   --color-account-selector-placeholder: #8a6b58;
+  --color-account-selector-highlight: rgba(0, 0, 0, 0.06);
   --color-account-handle: #8a6b58;
   --color-settings-item-border: #e2ddd5;
   --color-settings-item-text: #6b5c4f;
@@ -47,6 +52,9 @@
   --color-settings-select-border: #d8d1c7;
   --color-settings-select-text: #1f1b16;
   --color-settings-select-placeholder: #6b5c4f;
+  --color-settings-scrollbar-track: rgba(0, 0, 0, 0.1);
+  --color-settings-scrollbar-thumb: rgba(0, 0, 0, 0.3);
+  --color-settings-scrollbar-thumb-hover: rgba(0, 0, 0, 0.5);
   --color-action-bg: #3b5fa8;
   --color-action-text: #f2f6ff;
   --color-action-active-bg: #9db6e3;

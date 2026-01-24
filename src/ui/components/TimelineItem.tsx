@@ -10,6 +10,7 @@ import { ReactionPicker } from "./ReactionPicker";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { useImageZoom } from "../hooks/useImageZoom";
 import { AccountLabel } from "./AccountLabel";
+import { useToast } from "../state/ToastContext";
 
 const normalizeMentionHandle = (handle: string): string =>
   handle.replace(/^@/, "").trim().toLowerCase();
@@ -34,6 +35,8 @@ export const TimelineItem = ({
   onReact,
   onProfileClick,
   onStatusClick,
+  onSelect,
+  isSelected = false,
   account,
   api,
   activeHandle,
@@ -54,6 +57,8 @@ export const TimelineItem = ({
   onReact?: (status: Status, reaction: ReactionInput) => void;
   onProfileClick?: (status: Status) => void;
   onStatusClick?: (status: Status) => void;
+  onSelect?: (statusId: string) => void;
+  isSelected?: boolean;
   account: Account | null;
   api: MastodonApi;
   activeHandle: string;
@@ -71,10 +76,51 @@ export const TimelineItem = ({
   const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
   const [showContent, setShowContent] = useState(() => displayStatus.spoilerText.length === 0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [favouriteState, setFavouriteState] = useState<boolean | null>(false);
   const imageContainerRef = useRef<HTMLDivElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const { showToast } = useToast();
+  const handleSelect = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      if (!onSelect) {
+        return;
+      }
+      if (event.defaultPrevented) {
+        return;
+      }
+      const target = event.target instanceof Element ? event.target : null;
+      if (
+        target?.closest(
+          "button, a, input, textarea, select, label, summary, details, [role='button'], [role='link'], [contenteditable='true'], [data-interactive='true'], .overlay-backdrop, .image-modal, .confirm-modal"
+        )
+      ) {
+        return;
+      }
+      onSelect(status.id);
+    },
+    [onSelect, status.id]
+  );
+
+  // 메뉴 열 때 즐겨찾기 상태 확인 (미스키만)
+  const handleMenuToggle = useCallback(async () => {
+    const willOpen = !menuOpen;
+    setMenuOpen(willOpen);
+
+    if (willOpen && account && api && account.platform === "misskey") {
+      // 초기 상태를 null로 설정하여 비활성화 상태로 표시
+      setFavouriteState(null);
+
+      try {
+        const state = await api.fetchNoteState(account, displayStatus.id);
+        setFavouriteState(state.isFavourited);
+      } catch (error) {
+        console.error("즐겨찾기 상태 확인 실패:", error);
+        setFavouriteState(false); // 실패 시 기본값은 false로 설정
+      }
+    }
+  }, [menuOpen, account, api, displayStatus.id]);
 
   // useImageZoom 사용
   const {
@@ -753,7 +799,11 @@ export const TimelineItem = ({
   );
 
   return (
-    <article className="status">
+    <article
+      className={`status${isSelected ? " is-selected" : ""}`}
+      data-status-id={status.id}
+      onClick={handleSelect}
+    >
       {notificationLabel ? (
         <div className="notification-actor">
           <span className="status-avatar notification-actor-avatar" aria-hidden="true">
@@ -852,7 +902,7 @@ export const TimelineItem = ({
             className="icon-button"
             aria-label="게시글 메뉴 열기" aria-haspopup="menu"
             aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((current) => !current)}
+            onClick={handleMenuToggle}
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="12" cy="5" r="1.7" />
@@ -864,15 +914,49 @@ export const TimelineItem = ({
             <>
               <div className="overlay-backdrop" aria-hidden="true" />
               <div ref={menuRef} className="section-menu-panel status-menu-panel" role="menu">
-                <button 
-                  type="button" 
-                  onClick={() => {
-                    onToggleBookmark(displayStatus);
-                    setMenuOpen(false);
-                  }}
-                >
-                  {displayStatus.bookmarked ? "북마크 취소" : "북마크"}
-                </button>
+                {account?.platform === "misskey" && (
+                  <button
+                    type="button"
+                    disabled={favouriteState === null}
+                    onClick={() => {
+                      setMenuOpen(false);
+
+                      void (async () => {
+                        try {
+                          if (favouriteState) {
+                            await api.unfavourite(account, displayStatus.id);
+                          } else {
+                            await api.favourite(account, displayStatus.id);
+                          }
+
+                          const state = await api.fetchNoteState(account, displayStatus.id);
+                          const newFavouriteState = state.isFavourited;
+                          setFavouriteState(newFavouriteState);
+                          showToast(
+                            newFavouriteState ? "즐겨찾기에 추가했습니다." : "즐겨찾기에서 해제했습니다.",
+                            { tone: "success" }
+                          );
+                        } catch (error) {
+                          console.error("즐겨찾기 처리 실패:", error);
+                          showToast("즐겨찾기 처리에 실패했습니다.", { tone: "error" });
+                        }
+                      })();
+                    }}
+                  >
+                    {favouriteState === null ? "로딩..." : favouriteState ? "즐겨찾기 취소" : "즐겨찾기"}
+                  </button>
+                )}
+                {account?.platform === "mastodon" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onToggleBookmark(displayStatus);
+                      setMenuOpen(false);
+                    }}
+                  >
+                    {displayStatus.bookmarked ? "북마크 취소" : "북마크"}
+                  </button>
+                )}
                 <button type="button" onClick={handleOpenOrigin} disabled={!originUrl}>
                   원본 서버에서 보기
                 </button>
@@ -970,7 +1054,7 @@ export const TimelineItem = ({
           <div className="status-actions">
             {actionsEnabled ? (
               <>
-                <button type="button" onClick={() => onReply(displayStatus)}>
+                <button type="button" onClick={() => onReply(displayStatus)} data-action="reply">
                   답글
                 </button>
                 {account?.platform !== "misskey" ? (
@@ -978,6 +1062,7 @@ export const TimelineItem = ({
                     type="button"
                     className={displayStatus.favourited ? "is-active" : undefined}
                     onClick={() => onToggleFavourite(displayStatus)}
+                    data-action="favourite"
                   >
                     {displayStatus.favourited ? "좋아요 취소" : "좋아요"}
                     {displayStatus.favouritesCount > 0 ? ` (${displayStatus.favouritesCount})` : ""}
@@ -989,6 +1074,7 @@ export const TimelineItem = ({
                   onClick={() => onToggleReblog(displayStatus)}
                   disabled={boostDisabled}
                   title={boostDisabled ? "비공개 글은 부스트할 수 없습니다." : undefined}
+                  data-action="reblog"
                 >
                   {displayStatus.reblogged ? "부스트 취소" : "부스트"}
                   {displayStatus.reblogsCount > 0 ? ` (${displayStatus.reblogsCount})` : ""}
@@ -999,6 +1085,7 @@ export const TimelineItem = ({
                     api={api}
                     onSelect={handleReactionSelect}
                     disabled={Boolean(displayStatus.myReaction)}
+                    buttonDataAction="reaction-picker"
                   />
                 ) : null}
               </>
@@ -1013,6 +1100,7 @@ export const TimelineItem = ({
                       resetImageZoom();
                       setActiveImageIndex(index);
                     }}
+                    data-action={index === 0 ? "open-image" : undefined}
                     aria-label={item.description ? `이미지 보기: ${item.description}` : "이미지 보기"}
                   >
                     <img src={item.url} alt={item.description ?? "첨부 이미지"} loading="lazy" />
@@ -1151,12 +1239,6 @@ export const TimelineItem = ({
     </article>
   );
 };
-
-
-
-
-
-
 
 
 

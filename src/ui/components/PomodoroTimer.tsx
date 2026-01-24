@@ -2,6 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type SessionType = "focus" | "break" | "longBreak";
 
+type PomodoroTodoItem = {
+  id: string;
+  text: string;
+  completed: boolean;
+};
+
 type PomodoroTimerProps = {
   focusMinutes?: number;
   breakMinutes?: number;
@@ -10,7 +16,7 @@ type PomodoroTimerProps = {
   onRunningChange?: (isRunning: boolean) => void;
 };
 
-const TOTAL_SESSIONS = 8;
+// TOTAL_SESSIONS을 targetCycles에 따라 동적으로 계산
 
 const getSessionLabel = (type: SessionType): string => {
   switch (type) {
@@ -36,13 +42,16 @@ export const PomodoroTimer = ({
   onSessionTypeChange,
   onRunningChange,
 }: PomodoroTimerProps) => {
+  const targetCycles = 4; // 고정된 4사이클
   const focusDuration = focusMinutes * 60;
   const breakDuration = breakMinutes * 60;
   const longBreakDuration = longBreakMinutes * 60;
 
   const getSessionInfo = useCallback(
     (sess: number): { type: SessionType; duration: number } => {
-      if (sess === 8) {
+      const totalSessions = targetCycles * 2;
+      // 마지막 세션은 긴 휴식
+      if (sess === totalSessions) {
         return { type: "longBreak", duration: longBreakDuration };
       }
       if (sess % 2 === 0) {
@@ -50,15 +59,70 @@ export const PomodoroTimer = ({
       }
       return { type: "focus", duration: focusDuration };
     },
-    [focusDuration, breakDuration, longBreakDuration]
+    [focusDuration, breakDuration, longBreakDuration, targetCycles]
   );
 
-  const [session, setSession] = useState(1);
-  const [timeLeft, setTimeLeft] = useState(focusDuration);
-  const [isRunning, setIsRunning] = useState(false);
+  const [session, setSession] = useState(() => {
+    try {
+      const stored = localStorage.getItem("textodon.pomodoro.currentSession");
+      return stored ? Number(stored) : 1;
+    } catch {
+      return 1;
+    }
+  });
+  
+  const [timeLeft, setTimeLeft] = useState(() => {
+    try {
+      const stored = localStorage.getItem("textodon.pomodoro.timeLeft");
+      const savedSession = localStorage.getItem("textodon.pomodoro.currentSession");
+      if (stored && savedSession) {
+        return Number(stored);
+      }
+      return focusDuration;
+    } catch {
+      return focusDuration;
+    }
+  });
+  
+  const [isRunning, setIsRunning] = useState(() => {
+    try {
+      const stored = localStorage.getItem("textodon.pomodoro.isRunning");
+      return stored === "true";
+    } catch {
+      return false;
+    }
+  });
+  
   const [isBlinking, setIsBlinking] = useState(false);
   const intervalRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+
+  const [todoInput, setTodoInput] = useState("");
+  const [todoItems, setTodoItems] = useState<PomodoroTodoItem[]>(() => {
+    try {
+      const stored = localStorage.getItem("textodon.pomodoro.todos");
+      if (!stored) {
+        return [];
+      }
+      const parsed = JSON.parse(stored) as PomodoroTodoItem[];
+      return parsed.map((item) => ({
+        ...item,
+        completed: item.completed ?? false,
+      }));
+    } catch {
+      return [];
+    }
+  });
+
+  // 완료된 세션 추적
+  const [completedSessions, setCompletedSessions] = useState<Array<{session: number; type: SessionType}>>(() => {
+    try {
+      const stored = localStorage.getItem("textodon.pomodoro.completedSessions");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
 
   const sessionInfo = useMemo(() => getSessionInfo(session), [session, getSessionInfo]);
 
@@ -71,6 +135,28 @@ export const PomodoroTimer = ({
   useEffect(() => {
     onRunningChange?.(isRunning);
   }, [isRunning, onRunningChange]);
+
+  // 완료된 세션 localStorage 저장
+  useEffect(() => {
+    localStorage.setItem("textodon.pomodoro.completedSessions", JSON.stringify(completedSessions));
+  }, [completedSessions]);
+
+  // 현재 세션 상태 localStorage 저장
+  useEffect(() => {
+    localStorage.setItem("textodon.pomodoro.currentSession", String(session));
+  }, [session]);
+
+  useEffect(() => {
+    localStorage.setItem("textodon.pomodoro.timeLeft", String(timeLeft));
+  }, [timeLeft]);
+
+  useEffect(() => {
+    localStorage.setItem("textodon.pomodoro.isRunning", String(isRunning));
+  }, [isRunning]);
+
+  useEffect(() => {
+    localStorage.setItem("textodon.pomodoro.todos", JSON.stringify(todoItems));
+  }, [todoItems]);
 
   const playNotificationSound = useCallback(() => {
     try {
@@ -97,7 +183,8 @@ export const PomodoroTimer = ({
   }, []);
 
   const handleSessionToggle = useCallback(() => {
-    const nextSession = session >= TOTAL_SESSIONS ? 1 : session + 1;
+    const totalSessions = targetCycles * 2;
+    const nextSession = session >= totalSessions ? 1 : session + 1;
     const nextInfo = getSessionInfo(nextSession);
     setSession(nextSession);
     setTimeLeft(nextInfo.duration);
@@ -107,7 +194,7 @@ export const PomodoroTimer = ({
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-  }, [session, getSessionInfo]);
+  }, [session, getSessionInfo, targetCycles]);
 
   const handleStart = useCallback(() => {
     setIsBlinking(false);
@@ -119,6 +206,7 @@ export const PomodoroTimer = ({
     setSession(1);
     setTimeLeft(focusDuration);
     setIsRunning(false);
+    setCompletedSessions([]);
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
@@ -143,7 +231,26 @@ export const PomodoroTimer = ({
           if (prev <= 1) {
             playNotificationSound();
             setIsBlinking(true);
-            const nextSession = session >= TOTAL_SESSIONS ? 1 : session + 1;
+            
+            const totalSessions = targetCycles * 2;
+            
+            // 현재 세션을 완료된 세션 목록에 추가
+            setCompletedSessions((prev) => {
+              const updated = [...prev, { session, type: sessionInfo.type }];
+              // 중복 세션 제거 (동일 세션 번호가 있으면 기존 것 제거)
+              const filtered = updated.filter((cs, index) => 
+                updated.findIndex(item => item.session === cs.session) === index
+              );
+              
+              // 한 사이클이 끝나면 점 초기화
+              if (session === totalSessions) {
+                return [];
+              }
+              
+              return filtered;
+            });
+            
+            const nextSession = session >= totalSessions ? 1 : session + 1;
             const nextInfo = getSessionInfo(nextSession);
             setSession(nextSession);
             setIsRunning(false);
@@ -170,11 +277,74 @@ export const PomodoroTimer = ({
 
   const focusCount = Math.ceil(session / 2);
 
+  // 진행 상태 점 생성
+  const renderProgressDots = useCallback(() => {
+    const totalSessions = targetCycles * 2; // 각 사이클은 집중+휴식
+    const dots = [];
+    
+    for (let i = 1; i <= totalSessions; i++) {
+      const completedSession = completedSessions.find(cs => cs.session === i);
+      const isCompleted = !!completedSession;
+      const sessionType = completedSession?.type || getSessionInfo(i).type;
+      
+      let dotClass = "pomodoro-progress-dot";
+      if (isCompleted) {
+        if (sessionType === "focus") {
+          dotClass += " completed-focus";
+        } else if (sessionType === "break") {
+          dotClass += " completed-break";
+        } else if (sessionType === "longBreak") {
+          dotClass += " completed-long-break";
+        }
+      } else {
+        dotClass += " incomplete";
+      }
+      
+      dots.push(
+        <div
+          key={i}
+          className={dotClass}
+          aria-label={`세션 ${i}${isCompleted ? ` (${getSessionLabel(sessionType)} 완료)` : ' (진행 전)'}`}
+        />
+      );
+    }
+    
+    return dots;
+  }, [completedSessions, targetCycles, getSessionInfo]);
+
   const handlePanelClick = useCallback(() => {
     if (isBlinking) {
       setIsBlinking(false);
     }
   }, [isBlinking]);
+
+  const handleAddTodo = useCallback(() => {
+    const trimmed = todoInput.trim();
+    if (!trimmed) {
+      return;
+    }
+    const nextItem: PomodoroTodoItem = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      text: trimmed,
+      completed: false,
+    };
+    setTodoItems((prev) => [...prev, nextItem]);
+    setTodoInput("");
+  }, [todoInput]);
+
+  const handleToggleTodo = useCallback((id: string) => {
+    setTodoItems((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, completed: !item.completed } : item
+      )
+    );
+  }, []);
+
+  const handleRemoveTodo = useCallback((id: string) => {
+    setTodoItems((prev) => prev.filter((item) => item.id !== id));
+  }, []);
+
+  const displayedTodos = useMemo(() => todoItems, [todoItems]);
 
   return (
     <section
@@ -190,9 +360,16 @@ export const PomodoroTimer = ({
         >
           {getSessionLabel(sessionInfo.type)} {sessionInfo.type === "focus" ? focusCount : ""}
         </button>
-        <span className="pomodoro-time" aria-live="polite" aria-atomic="true">
-          {formatTime(timeLeft)}
-        </span>
+        
+        <div className="pomodoro-timer-section">
+          <span className="pomodoro-time" aria-live="polite" aria-atomic="true">
+            {formatTime(timeLeft)}
+          </span>
+          <div className="pomodoro-progress-dots">
+            {renderProgressDots()}
+          </div>
+        </div>
+        
         <div className="pomodoro-controls">
           <button
             type="button"
@@ -209,6 +386,57 @@ export const PomodoroTimer = ({
             리셋
           </button>
         </div>
+      </div>
+      <div className="compose-emoji-divider pomodoro-divider" />
+      <div className="pomodoro-todos" aria-label="뽀모도로 투두">
+        {displayedTodos.length > 0 ? (
+          <div className="pomodoro-todo-list">
+            {displayedTodos.map((item) => (
+              <div
+                key={item.id}
+                className={`pomodoro-todo-item${item.completed ? " is-completed" : ""}`}
+              >
+                <input
+                  type="checkbox"
+                  className="pomodoro-todo-checkbox"
+                  checked={item.completed}
+                  onChange={() => handleToggleTodo(item.id)}
+                  aria-label={`할 일 완료: ${item.text}`}
+                />
+                <span className="pomodoro-todo-text">{item.text}</span>
+              <button
+                type="button"
+                className="pomodoro-todo-remove"
+                aria-label={`할 일 삭제: ${item.text}`}
+                onClick={() => handleRemoveTodo(item.id)}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                </svg>
+              </button>
+            </div>
+          ))}
+          </div>
+        ) : null}
+        <form
+          className="pomodoro-todo-input"
+          onSubmit={(event) => {
+            event.preventDefault();
+            handleAddTodo();
+          }}
+        >
+          <input
+            type="text"
+            value={todoInput}
+            onChange={(event) => setTodoInput(event.target.value)}
+            placeholder="할 일 추가"
+            aria-label="뽀모도로 투두 입력"
+          />
+          <button type="submit" aria-label="투두 추가">
+            추가
+          </button>
+        </form>
       </div>
     </section>
   );

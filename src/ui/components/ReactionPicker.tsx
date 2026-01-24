@@ -9,12 +9,14 @@ export const ReactionPicker = ({
   account,
   api,
   disabled = false,
-  onSelect
+  onSelect,
+  buttonDataAction
 }: {
   account: Account | null;
   api: MastodonApi;
   disabled?: boolean;
   onSelect: (reaction: ReactionInput) => void;
+  buttonDataAction?: string;
 }) => {
   const [open, setOpen] = useState(false);
   const [panelStyle, setPanelStyle] = useState<React.CSSProperties>({});
@@ -166,6 +168,7 @@ export const ReactionPicker = ({
         onClick={() => setOpen((current) => !current)}
         disabled={disabled}
         ref={buttonRef}
+        data-action={buttonDataAction}
         aria-label="리액션 추가"
         aria-haspopup="dialog"
         aria-expanded={open}

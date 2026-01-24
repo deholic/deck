@@ -82,6 +82,11 @@ export const ComposeBox = ({
   const imageRef = useRef<HTMLImageElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const cwInputRef = useRef<HTMLInputElement | null>(null);
+  const composeRef = useRef<HTMLElement | null>(null);
+  const visibilitySelectRef = useRef<HTMLSelectElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const emojiToggleRef = useRef<HTMLButtonElement | null>(null);
+  const cwToggleRef = useRef<HTMLButtonElement | null>(null);
 
   // useImageZoom 훅 사용
   const {
@@ -97,6 +102,12 @@ export const ComposeBox = ({
   const [recentOpen, setRecentOpen] = useState(true);
   const { showToast } = useToast();
   const lastEmojiErrorRef = useRef<string | null>(null);
+
+  const handleAccountSelectionDone = useCallback(() => {
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+    });
+  }, []);
 
   // 문자 수 관련 상태
   const [characterLimit, setCharacterLimit] = useState<number | null>(null);
@@ -134,6 +145,21 @@ export const ComposeBox = ({
     () => attachments.find((item) => item.id === activeImageId) ?? null,
     [attachments, activeImageId]
   );
+
+  const accountSelectorNode = useMemo(() => {
+    if (!accountSelector) {
+      return null;
+    }
+    if (React.isValidElement(accountSelector)) {
+      return React.cloneElement(
+        accountSelector as React.ReactElement<{ onSelectionDone?: () => void }>,
+        {
+          onSelectionDone: handleAccountSelectionDone
+        }
+      );
+    }
+    return accountSelector;
+  }, [accountSelector, handleAccountSelectionDone]);
 
   const emojiSuggestions = useMemo(() => {
     if (!emojiQuery) {
@@ -261,6 +287,9 @@ export const ComposeBox = ({
   useEffect(() => {
     if (mentionText) {
       setText(mentionText);
+      requestAnimationFrame(() => {
+        textareaRef.current?.focus();
+      });
     }
   }, [mentionText]);
 
@@ -349,6 +378,116 @@ export const ComposeBox = ({
       return next;
     });
   };
+
+  useEffect(() => {
+    const isEditableElement = (element: Element | null) => {
+      if (!element) {
+        return false;
+      }
+      return (
+        element instanceof HTMLInputElement ||
+        element instanceof HTMLTextAreaElement ||
+        (element as HTMLElement).isContentEditable
+      );
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      const activeElement = document.activeElement;
+      const isTextField = isEditableElement(activeElement);
+      const isInsideCompose =
+        !!composeRef.current && !!activeElement && composeRef.current.contains(activeElement);
+
+      if (key === "escape" && isTextField && isInsideCompose) {
+        event.preventDefault();
+        (activeElement as HTMLElement).blur();
+        return;
+      }
+
+      if (key === "n" && !event.ctrlKey && !event.metaKey && !event.shiftKey && !isTextField) {
+        event.preventDefault();
+        textareaRef.current?.focus();
+        return;
+      }
+
+      if (key === "n" && event.ctrlKey && event.shiftKey && !event.metaKey && isTextField) {
+        event.preventDefault();
+        textareaRef.current?.focus();
+        return;
+      }
+
+      if (!event.ctrlKey || event.metaKey || !event.shiftKey) {
+        return;
+      }
+
+      if (key === "w") {
+        if (cwToggleRef.current && !cwToggleRef.current.disabled) {
+          event.preventDefault();
+          toggleCw();
+          if (cwEnabled) {
+            requestAnimationFrame(() => {
+              textareaRef.current?.focus();
+            });
+          }
+        }
+        return;
+      }
+
+      if (!composeRef.current) {
+        return;
+      }
+
+      if (key === "a") {
+        const summary = composeRef.current.querySelector<HTMLElement>(
+          ".account-selector-summary"
+        );
+        if (summary) {
+          const details = summary.closest("details");
+          if (details?.hasAttribute("open")) {
+            event.preventDefault();
+            summary.focus();
+            return;
+          }
+          event.preventDefault();
+          summary.click();
+          summary.focus();
+        }
+        return;
+      }
+
+      if (key === "o") {
+        const select = visibilitySelectRef.current;
+        if (select && !select.disabled) {
+          event.preventDefault();
+          select.focus();
+          select.click();
+        }
+        return;
+      }
+
+      if (key === "i") {
+        if (fileInputRef.current && !fileInputRef.current.disabled) {
+          event.preventDefault();
+          fileInputRef.current.click();
+        }
+        return;
+      }
+
+      if (key === "e") {
+        if (emojiToggleRef.current && !emojiToggleRef.current.disabled) {
+          event.preventDefault();
+          setEmojiPanelOpen((open) => !open);
+          emojiToggleRef.current.focus();
+        }
+        return;
+      }
+
+      
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [cwEnabled, setEmojiPanelOpen, toggleCw]);
 
   const findEmojiQuery = useCallback(
     (value: string, cursor: number) => {
@@ -476,8 +615,10 @@ export const ComposeBox = ({
   }, [attachments]);
 
   return (
-    <section className="panel compose-box">
-      {accountSelector ? <div className="compose-account-select">{accountSelector}</div> : null}
+    <section className="panel compose-box" ref={composeRef}>
+      {accountSelectorNode ? (
+        <div className="compose-account-select">{accountSelectorNode}</div>
+      ) : null}
       {replyingTo ? (
         <div className="replying">
           <span>답글 대상: {replyingTo.summary}</span>
@@ -510,6 +651,8 @@ export const ComposeBox = ({
               updateEmojiQuery(nextValue, event.target.selectionStart ?? nextValue.length);
             }}
             placeholder="지금 무슨 생각을 하고 있나요?"
+            aria-label="글 작성"
+            title="글 작성 (N / Ctrl+Shift+N)"
             rows={4}
             onPaste={handlePaste}
             disabled={isSubmitting}
@@ -606,13 +749,18 @@ export const ComposeBox = ({
               ))}
               
               {/* 이미지 추가 버튼 */}
-              <label className="file-button attachment-thumb" aria-label="이미지 추가">
+              <label
+                className="file-button attachment-thumb"
+                aria-label="이미지 추가"
+                title="이미지 추가 (Ctrl+Shift+I)"
+              >
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <rect x="3" y="5" width="18" height="14" rx="2" ry="2" />
                   <circle cx="9" cy="10" r="2" />
                   <path d="M21 16l-5-5-4 4-2-2-5 5" />
                 </svg>
                 <input
+                  ref={fileInputRef}
                   type="file"
                   accept="image/*"
                   multiple
@@ -639,9 +787,11 @@ export const ComposeBox = ({
         ) : null}
         <div className="compose-actions">
           <select
+            ref={visibilitySelectRef}
             value={visibilityState.visibility}
             onChange={(event) => setVisibilityState(prev => ({ ...prev, visibility: event.target.value as Visibility }))}
             disabled={isSubmitting}
+            title="공개 범위 (Ctrl+Shift+O)"
           >
             {visibilityOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -655,8 +805,10 @@ export const ComposeBox = ({
               type="button"
               className={`icon-button compose-icon-button${emojiPanelOpen ? " is-active" : ""}`}
               aria-label="이모지 팔렛트 열기"
+              title="이모지 팔렛트 열기 (Ctrl+Shift+E)"
               onClick={() => setEmojiPanelOpen((open) => !open)}
               disabled={!account || isSubmitting}
+              ref={emojiToggleRef}
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="12" cy="12" r="9" />
@@ -669,9 +821,11 @@ export const ComposeBox = ({
               type="button"
               className={`icon-button compose-icon-button${cwEnabled ? " is-active" : ""}`}
               aria-label="콘텐츠 경고 입력"
+              title="콘텐츠 경고 입력 (Ctrl+Shift+W)"
               aria-pressed={cwEnabled}
               onClick={toggleCw}
               disabled={isSubmitting}
+              ref={cwToggleRef}
             >
               CW
             </button>
@@ -679,6 +833,7 @@ export const ComposeBox = ({
               type="submit"
               className="icon-button compose-icon-button compose-submit-button"
               aria-label="게시"
+              title="전송 (Ctrl+Enter)"
               disabled={isSubmitting}
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -951,4 +1106,3 @@ export const ComposeBox = ({
     </section>
   );
 };
-
