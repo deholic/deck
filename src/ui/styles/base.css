@@ -10,7 +10,7 @@
   --color-text-strong: #1f1b16;
   --color-text-muted: #6b5c4f;
   --color-text-subtle: #8a6b58;
-  --color-text-faint: #7c6152;
+  --color-text-faint: var(--color-sidebar-description);
   --color-link: #3b5fa8;
   --color-link-muted: #7c6152;
   --color-link-accent: #6b5c4f;
