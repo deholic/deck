@@ -240,6 +240,7 @@ const shortcutSections: Array<{
       { keys: "A", description: "계정 선택 열기" },
       { keys: "T", description: "타임라인 메뉴 열기" },
       { keys: "M", description: "컬럼 메뉴 열기" },
+      { keys: "N", description: "알림 열기" },
       { keys: "↑ / ↓", description: "열린 메뉴에서 항목 이동" },
       { keys: "ESC", description: "열린 메뉴 닫기" }
     ]
@@ -476,7 +477,7 @@ const TimelineSection = ({
     [timelineOptions]
   );
   const timelineButtonLabel = `타임라인 선택: ${getTimelineLabel(timelineType)}`;
-  const timelineShortcutLabel = `타임라인 단축키: A 계정 · T 타임라인 · M 메뉴 · B 알림 · ESC 닫기`;
+  const timelineShortcutLabel = `타임라인 단축키: A 계정 · T 타임라인 · M 메뉴 · N 알림 · ESC 닫기`;
   const hasNotificationBadge = notificationCount > 0;
   const instanceOriginUrl = useMemo(() => {
     if (!account) {
@@ -993,6 +994,17 @@ const TimelineSection = ({
         setNotificationsOpen(false);
         return true;
       }
+      if (key === "n") {
+        if (!account) {
+          onError("계정을 선택해주세요.");
+          return true;
+        }
+        event.preventDefault();
+        setNotificationsOpen((current) => !current);
+        setTimelineMenuOpen(false);
+        setMenuOpen(false);
+        return true;
+      }
       if (key === "m") {
         event.preventDefault();
         setMenuOpen(true);
@@ -1130,7 +1142,7 @@ const TimelineSection = ({
               disabled={!account}
               aria-label={notificationBadgeLabel}
               aria-pressed={notificationsOpen}
-              title="알림 열기 (B)"
+              title="알림 열기 (N)"
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 7h18s-3 0-3-7" />
