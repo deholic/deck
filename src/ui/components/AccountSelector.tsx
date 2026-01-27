@@ -59,6 +59,9 @@ export const AccountSelector = ({
       if (!dropdownOpen) {
         return;
       }
+      if (document.querySelector('[data-emoji-picker-open="true"]')) {
+        return;
+      }
       if (!detailsRef.current?.contains(document.activeElement)) {
         return;
       }
