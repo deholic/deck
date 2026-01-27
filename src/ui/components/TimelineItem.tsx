@@ -25,23 +25,35 @@ const normalizeMentionUrl = (url: string): string | null => {
   }
 };
 
+let activeFloatingVideoId: string | null = null;
+
 const MediaVideo = ({
+  id,
   src,
   poster,
   label
 }: {
+  id: string;
   src: string;
   poster?: string | null;
   label: string;
 }) => {
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isVisible, setIsVisible] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isFloating, setIsFloating] = useState(false);
+  const [placeholderHeight, setPlaceholderHeight] = useState<number | null>(null);
+  const [floatingWidth, setFloatingWidth] = useState<number | null>(null);
+  const [floatingHeight, setFloatingHeight] = useState<number | null>(null);
+  const [isDismissed, setIsDismissed] = useState(false);
+  const isFloatingRef = useRef(false);
 
   useEffect(() => {
     if (!("IntersectionObserver" in window)) {
       return;
     }
-    const element = videoRef.current;
+    const element = wrapperRef.current;
     if (!element) {
       return;
     }
@@ -60,53 +72,186 @@ const MediaVideo = ({
     if (!element) {
       return;
     }
-    if (!document.pictureInPictureEnabled || typeof element.requestPictureInPicture !== "function") {
-      return;
-    }
-    const isPlaying = !element.paused && !element.ended && element.readyState >= 2;
-    if (!isPlaying) {
-      return;
-    }
-    if (!isVisible) {
-      if (document.pictureInPictureElement !== element) {
-        element.requestPictureInPicture().catch(() => undefined);
-      }
-      return;
-    }
-    if (document.pictureInPictureElement === element) {
-      document.exitPictureInPicture?.().catch(() => undefined);
-    }
-  }, [isVisible]);
-
-  useEffect(() => {
-    const element = videoRef.current;
-    if (!element) {
-      return;
-    }
-    const handlePause = () => {
-      if (document.pictureInPictureElement === element) {
-        document.exitPictureInPicture?.().catch(() => undefined);
-      }
+    const handlePlay = () => {
+      activeFloatingVideoId = id;
+      setIsPlaying(true);
+      setIsDismissed(false);
     };
+    const handlePause = () => {
+      setIsPlaying(false);
+    };
+    element.addEventListener("play", handlePlay);
     element.addEventListener("pause", handlePause);
     element.addEventListener("ended", handlePause);
     return () => {
+      element.removeEventListener("play", handlePlay);
       element.removeEventListener("pause", handlePause);
       element.removeEventListener("ended", handlePause);
     };
+  }, [id]);
+
+  useEffect(() => {
+    const shouldFloat = !isVisible && activeFloatingVideoId === id && !isDismissed;
+    if (!shouldFloat) {
+      if (isFloating) {
+        setIsFloating(false);
+        setPlaceholderHeight(null);
+      }
+      if (isVisible && isDismissed) {
+        setIsDismissed(false);
+      }
+      return;
+    }
+    if (!isFloating) {
+      const height = wrapperRef.current?.getBoundingClientRect().height ?? null;
+      const width = wrapperRef.current?.getBoundingClientRect().width ?? null;
+      const currentHeight = videoRef.current?.getBoundingClientRect().height ?? null;
+      setPlaceholderHeight(height);
+      setFloatingWidth(width);
+      setFloatingHeight(currentHeight);
+      setIsFloating(true);
+    }
+  }, [id, isPlaying, isVisible, isFloating]);
+
+  useEffect(() => {
+    isFloatingRef.current = isFloating;
+  }, [isFloating]);
+
+  useEffect(() => {
+    const element = videoRef.current;
+    if (!element || !("ResizeObserver" in window)) {
+      return;
+    }
+    const observer = new ResizeObserver(() => {
+      if (!isFloatingRef.current) {
+        return;
+      }
+      const rect = element.getBoundingClientRect();
+      setFloatingHeight(rect.height);
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
   }, []);
 
+  const startResize = useCallback(
+    (
+      event: React.PointerEvent<HTMLElement>,
+      options: { horizontalFactor: -1 | 0 | 1; verticalFactor: -1 | 0 | 1 }
+    ) => {
+      if (!isFloatingRef.current) {
+        return;
+      }
+      const element = videoRef.current;
+      if (!element) {
+        return;
+      }
+      event.preventDefault();
+      const rect = element.getBoundingClientRect();
+      const startWidth = rect.width;
+      const startHeight = rect.height;
+      const startX = event.clientX;
+      const startY = event.clientY;
+      const ratio = startWidth / Math.max(1, startHeight);
+      const minWidth = 220;
+      const maxWidth = Math.min(window.innerWidth - 24, 720);
+
+      const handlePointerMove = (moveEvent: PointerEvent) => {
+        const deltaX = moveEvent.clientX - startX;
+        const deltaY = moveEvent.clientY - startY;
+        const isHorizontalResize = options.horizontalFactor !== 0;
+        const isVerticalResize = options.verticalFactor !== 0;
+        const widthFromHorizontal = startWidth + deltaX * options.horizontalFactor;
+        const heightFromVertical = startHeight + deltaY * options.verticalFactor;
+        const widthFromVertical = heightFromVertical * ratio;
+        const nextWidthRaw = isHorizontalResize
+          ? widthFromHorizontal
+          : isVerticalResize
+            ? widthFromVertical
+            : startWidth;
+        const nextWidth = Math.max(minWidth, Math.min(maxWidth, nextWidthRaw));
+        setFloatingWidth(nextWidth);
+      };
+      const handlePointerUp = () => {
+        window.removeEventListener("pointermove", handlePointerMove);
+        window.removeEventListener("pointerup", handlePointerUp);
+      };
+      window.addEventListener("pointermove", handlePointerMove);
+      window.addEventListener("pointerup", handlePointerUp);
+    },
+    []
+  );
+
   return (
-    <video
-      ref={videoRef}
-      controls
-      preload="metadata"
-      playsInline
-      poster={poster ?? undefined}
-      aria-label={label}
+    <div
+      ref={wrapperRef}
+      className={`status-media-video${isFloating ? " is-floating" : ""}`}
+      style={placeholderHeight ? { height: `${placeholderHeight}px` } : undefined}
     >
-      <source src={src} />
-    </video>
+      <video
+        ref={videoRef}
+        controls
+        preload="metadata"
+        playsInline
+        poster={poster ?? undefined}
+        aria-label={label}
+        className={isFloating ? "is-floating" : undefined}
+        style={isFloating && floatingWidth ? { width: `${floatingWidth}px` } : undefined}
+      >
+        <source src={src} />
+      </video>
+      {isFloating && floatingWidth && floatingHeight ? (
+        <div
+          className="status-media-resize-overlay"
+          style={{ width: `${floatingWidth}px`, height: `${floatingHeight}px` }}
+          aria-hidden="true"
+        >
+          <button
+            type="button"
+            className="status-media-floating-close"
+            aria-label="고정 플레이어 닫기"
+            onClick={() => {
+              setIsFloating(false);
+              setPlaceholderHeight(null);
+              setIsDismissed(true);
+            }}
+          >
+            닫기
+          </button>
+          <span
+            className="status-media-resize-edge edge-top"
+            onPointerDown={(event) => startResize(event, { horizontalFactor: 0, verticalFactor: -1 })}
+          />
+          <span
+            className="status-media-resize-corner corner-top-left"
+            onPointerDown={(event) => startResize(event, { horizontalFactor: -1, verticalFactor: -1 })}
+          />
+          <span
+            className="status-media-resize-edge edge-right"
+            onPointerDown={(event) => startResize(event, { horizontalFactor: 1, verticalFactor: 0 })}
+          />
+          <span
+            className="status-media-resize-corner corner-top-right"
+            onPointerDown={(event) => startResize(event, { horizontalFactor: 1, verticalFactor: -1 })}
+          />
+          <span
+            className="status-media-resize-edge edge-bottom"
+            onPointerDown={(event) => startResize(event, { horizontalFactor: 0, verticalFactor: 1 })}
+          />
+          <span
+            className="status-media-resize-corner corner-bottom-right"
+            onPointerDown={(event) => startResize(event, { horizontalFactor: 1, verticalFactor: 1 })}
+          />
+          <span
+            className="status-media-resize-edge edge-left"
+            onPointerDown={(event) => startResize(event, { horizontalFactor: -1, verticalFactor: 0 })}
+          />
+          <span
+            className="status-media-resize-corner corner-bottom-left"
+            onPointerDown={(event) => startResize(event, { horizontalFactor: -1, verticalFactor: 1 })}
+          />
+        </div>
+      ) : null}
+    </div>
   );
 };
 
@@ -887,6 +1032,7 @@ export const TimelineItem = ({
     return (
       <div key={item.id} className="status-media-item">
         <MediaVideo
+          id={item.id}
           src={item.url}
           poster={item.previewUrl}
           label={item.description ?? "첨부 동영상"}
@@ -1378,8 +1524,3 @@ export const TimelineItem = ({
     </article>
   );
 };
-
-
-
-
-

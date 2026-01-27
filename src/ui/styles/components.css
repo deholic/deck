@@ -1920,6 +1920,122 @@ button.ghost {
   width: 100%;
 }
 
+.status-media-video {
+  width: 100%;
+}
+
+.status-media-video video {
+  width: 100%;
+  max-width: 100%;
+  border-radius: 12px;
+  background: var(--color-attachment-thumb-bg);
+  display: block;
+}
+
+.status-media-video video.is-floating {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  width: min(320px, 70vw);
+  height: auto;
+  z-index: 60;
+  box-shadow: var(--shadow-section-menu);
+  border: 1px solid var(--color-attachment-thumb-border);
+}
+
+.status-media-resize-overlay {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 61;
+  pointer-events: none;
+}
+
+.status-media-floating-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.status-media-resize-edge {
+  position: absolute;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.status-media-resize-corner {
+  position: absolute;
+  pointer-events: auto;
+  touch-action: none;
+  width: 16px;
+  height: 16px;
+}
+
+.status-media-resize-edge.edge-top {
+  top: -6px;
+  left: 0;
+  right: 0;
+  height: 12px;
+  cursor: ns-resize;
+}
+
+.status-media-resize-edge.edge-right {
+  top: 0;
+  right: -6px;
+  bottom: 0;
+  width: 12px;
+  cursor: ew-resize;
+}
+
+.status-media-resize-edge.edge-bottom {
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  height: 12px;
+  cursor: ns-resize;
+}
+
+.status-media-resize-edge.edge-left {
+  top: 0;
+  left: -6px;
+  bottom: 0;
+  width: 12px;
+  cursor: ew-resize;
+}
+
+.status-media-resize-corner.corner-top-left {
+  top: -8px;
+  left: -8px;
+  cursor: nwse-resize;
+}
+
+.status-media-resize-corner.corner-top-right {
+  top: -8px;
+  right: -8px;
+  cursor: nesw-resize;
+}
+
+.status-media-resize-corner.corner-bottom-right {
+  right: -8px;
+  bottom: -8px;
+  cursor: nwse-resize;
+}
+
+.status-media-resize-corner.corner-bottom-left {
+  left: -8px;
+  bottom: -8px;
+  cursor: nesw-resize;
+}
+
 .status-media-item video,
 .status-media-item audio {
   width: 100%;
