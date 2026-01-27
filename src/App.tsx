@@ -499,6 +499,9 @@ export const App = () => {
       if (event.defaultPrevented) {
         return;
       }
+      if (document.querySelector('[data-emoji-picker-open="true"]')) {
+        return;
+      }
       const hasOverlayBackdrop = document.querySelector(
         ".overlay-backdrop, .image-modal, .confirm-modal, .profile-modal, .status-modal, .settings-modal, .info-modal"
       );

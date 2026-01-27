@@ -42,6 +42,8 @@ export const ReactionPicker = ({
     searchEmojis
   } = useEmojiManager(account, api, false);
 
+  const lastEmojiStatusRef = useRef<typeof emojiStatus>(emojiStatus);
+
   useEffect(() => {
     if (emojiStatus !== "error") {
       lastEmojiErrorRef.current = null;
@@ -61,6 +63,11 @@ export const ReactionPicker = ({
     }
     return searchEmojis(emojiSearchQuery);
   }, [emojiSearchQuery, searchEmojis]);
+
+  const emojiById = useMemo(
+    () => new Map(emojis.map((emoji) => [emoji.id, emoji])),
+    [emojis]
+  );
 
   const hasEmojiSearch = emojiSearchQuery.trim().length > 0;
 
@@ -152,6 +159,200 @@ export const ReactionPicker = ({
     [onSelect, addToRecent]
   );
 
+  const setCategoryExpanded = useCallback(
+    (categoryId: string, expanded: boolean) => {
+      if (categoryId === "recent") {
+        setRecentOpen((current) => (current === expanded ? current : expanded));
+        return;
+      }
+      const isExpanded = expandedCategories.has(categoryId);
+      if (isExpanded !== expanded) {
+        toggleCategory(categoryId);
+      }
+    },
+    [expandedCategories, toggleCategory]
+  );
+
+  const getEmojiNavItems = useCallback(() => {
+    const panel = panelRef.current;
+    if (!panel) {
+      return [] as HTMLElement[];
+    }
+    return Array.from(panel.querySelectorAll<HTMLElement>("[data-emoji-nav]"));
+  }, []);
+
+  useEffect(() => {
+    if (!open) {
+      lastEmojiStatusRef.current = emojiStatus;
+      return;
+    }
+    if (emojiStatus === "loaded" && lastEmojiStatusRef.current !== "loaded") {
+      const items = getEmojiNavItems();
+      const focusTarget = items[0] ?? panelRef.current;
+      if (focusTarget) {
+        requestAnimationFrame(() => {
+          focusTarget.focus();
+        });
+      }
+    }
+    lastEmojiStatusRef.current = emojiStatus;
+  }, [open, emojiStatus, getEmojiNavItems]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const panel = panelRef.current;
+    if (!panel) {
+      return;
+    }
+    const activeElement = document.activeElement;
+    if (activeElement instanceof HTMLElement && panel.contains(activeElement)) {
+      return;
+    }
+    const items = getEmojiNavItems();
+    const focusTarget = items[0] ?? panel;
+    requestAnimationFrame(() => {
+      focusTarget.focus();
+    });
+  }, [open, emojiCategories.length, customEmojiCategories.length, standardEmojiCategories.length, emojiSearchResults.length, getEmojiNavItems]);
+
+  const handleEmojiPanelKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      event.stopPropagation();
+      const target = event.target;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        (target instanceof HTMLElement && target.isContentEditable)
+      ) {
+        return;
+      }
+
+      const key = event.key;
+      if (key === "Escape") {
+        event.preventDefault();
+        setOpen(false);
+        buttonRef.current?.focus();
+        return;
+      }
+
+      const items = getEmojiNavItems();
+      if (items.length === 0) {
+        return;
+      }
+
+      const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      const currentIndex = activeElement ? items.indexOf(activeElement) : -1;
+      const currentItem = currentIndex >= 0 ? items[currentIndex] : null;
+      const navType = currentItem?.dataset.emojiNav;
+      const categoryId = currentItem?.dataset.emojiCategoryId;
+
+      const focusItem = (index: number) => {
+        const nextIndex = Math.min(items.length - 1, Math.max(0, index));
+        items[nextIndex]?.focus();
+      };
+
+      const findEmojiByDirection = (direction: "down" | "up"): HTMLElement | null => {
+        if (!currentItem) {
+          return null;
+        }
+        const currentRect = currentItem.getBoundingClientRect();
+        const currentCenterX = currentRect.left + currentRect.width / 2;
+        const currentCenterY = currentRect.top + currentRect.height / 2;
+        const emojiItems = items.filter((item) => item.dataset.emojiNav === "emoji");
+        let bestItem: HTMLElement | null = null;
+        let bestDy = Number.POSITIVE_INFINITY;
+        let bestDx = Number.POSITIVE_INFINITY;
+        emojiItems.forEach((item) => {
+          if (item === currentItem) {
+            return;
+          }
+          const rect = item.getBoundingClientRect();
+          const centerY = rect.top + rect.height / 2;
+          const centerX = rect.left + rect.width / 2;
+          const dy = centerY - currentCenterY;
+          if (direction === "down" && dy <= 0) {
+            return;
+          }
+          if (direction === "up" && dy >= 0) {
+            return;
+          }
+          const absDy = Math.abs(dy);
+          const dx = Math.abs(centerX - currentCenterX);
+          if (absDy < bestDy || (absDy === bestDy && dx < bestDx)) {
+            bestItem = item;
+            bestDy = absDy;
+            bestDx = dx;
+          }
+        });
+        return bestItem;
+      };
+
+      if (key === "Enter") {
+        if (navType === "emoji") {
+          event.preventDefault();
+          const emojiId = currentItem?.dataset.emojiId;
+          const emoji = emojiId ? emojiById.get(emojiId) : null;
+          if (emoji) {
+            handleSelect(emoji);
+          }
+        }
+        return;
+      }
+
+      if (key === "ArrowLeft" || key === "ArrowRight") {
+        if (navType === "category" && categoryId) {
+          event.preventDefault();
+          setCategoryExpanded(categoryId, key === "ArrowRight");
+          return;
+        }
+        event.preventDefault();
+        const direction = key === "ArrowRight" ? 1 : -1;
+        const nextIndex =
+          currentIndex >= 0 ? currentIndex + direction : key === "ArrowRight" ? 0 : items.length - 1;
+        focusItem(nextIndex);
+        return;
+      }
+
+      if (key === "ArrowDown" || key === "ArrowUp") {
+        event.preventDefault();
+        if (navType === "emoji") {
+          const targetEmoji = findEmojiByDirection(key === "ArrowDown" ? "down" : "up");
+          if (targetEmoji) {
+            targetEmoji.focus();
+            return;
+          }
+          if (key === "ArrowDown") {
+            const nextCategory = items
+              .slice(currentIndex + 1)
+              .find((item) => item.dataset.emojiNav === "category");
+            if (nextCategory) {
+              nextCategory.focus();
+              return;
+            }
+          }
+          if (key === "ArrowUp") {
+            const previousCategory = items
+              .slice(0, Math.max(0, currentIndex))
+              .reverse()
+              .find((item) => item.dataset.emojiNav === "category");
+            if (previousCategory) {
+              previousCategory.focus();
+              return;
+            }
+          }
+          return;
+        }
+        const direction = key === "ArrowDown" ? 1 : -1;
+        const nextIndex =
+          currentIndex >= 0 ? currentIndex + direction : key === "ArrowDown" ? 0 : items.length - 1;
+        focusItem(nextIndex);
+      }
+    },
+    [emojiById, getEmojiNavItems, handleSelect, setCategoryExpanded]
+  );
+
   const handleToggleCategory = (categoryId: string) => {
     if (categoryId === "recent") {
       setRecentOpen((current) => !current);
@@ -161,7 +362,20 @@ export const ReactionPicker = ({
   };
 
   return (
-    <div className="reaction-picker">
+    <div
+      className="reaction-picker"
+      onKeyDown={(event) => {
+        if (open) {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            setOpen(false);
+            buttonRef.current?.focus();
+            return;
+          }
+          event.stopPropagation();
+        }
+      }}
+    >
       <button
         type="button"
         className={open ? "is-active" : undefined}
@@ -185,6 +399,9 @@ export const ReactionPicker = ({
             aria-label="리액션 선택"
             ref={panelRef}
             style={panelStyle}
+            onKeyDown={handleEmojiPanelKeyDown}
+            data-emoji-picker-open="true"
+            tabIndex={-1}
           >
             <div className="compose-emoji-panel reaction-emoji-panel">
               {!account ? <p className="compose-emoji-empty">계정을 선택해주세요.</p> : null}
@@ -232,6 +449,8 @@ export const ReactionPicker = ({
                               onClick={() => handleSelect(emoji)}
                               aria-label={`이모지 ${emoji.label}`}
                               title={emoji.shortcode ? `:${emoji.shortcode}:` : undefined}
+                              data-emoji-nav="emoji"
+                              data-emoji-id={emoji.id}
                             >
                               {emoji.unicode ? (
                                 <span className="compose-emoji-text" aria-hidden="true">
@@ -260,6 +479,8 @@ export const ReactionPicker = ({
                           className="compose-emoji-category-toggle"
                           onClick={() => handleToggleCategory(recentCategory.id)}
                           aria-expanded={!isCollapsed}
+                          data-emoji-nav="category"
+                          data-emoji-category-id={recentCategory.id}
                         >
                           <span>{recentCategory.label}</span>
                           <span className="compose-emoji-count">{recentCategory.emojis.length}</span>
@@ -274,6 +495,8 @@ export const ReactionPicker = ({
                                 onClick={() => handleSelect(emoji)}
                                 aria-label={`이모지 ${emoji.label}`}
                                 title={emoji.shortcode ? `:${emoji.shortcode}:` : undefined}
+                                data-emoji-nav="emoji"
+                                data-emoji-id={emoji.id}
                               >
                                 {emoji.unicode ? (
                                   <span className="compose-emoji-text" aria-hidden="true">
@@ -299,6 +522,8 @@ export const ReactionPicker = ({
                           className="compose-emoji-category-toggle"
                           onClick={() => handleToggleCategory(category.id)}
                           aria-expanded={!isCollapsed}
+                          data-emoji-nav="category"
+                          data-emoji-category-id={category.id}
                         >
                           <span>{category.label}</span>
                           <span className="compose-emoji-count">{category.emojis.length}</span>
@@ -313,6 +538,8 @@ export const ReactionPicker = ({
                                 onClick={() => handleSelect(emoji)}
                                 aria-label={`이모지 ${emoji.label}`}
                                 title={emoji.shortcode ? `:${emoji.shortcode}:` : undefined}
+                                data-emoji-nav="emoji"
+                                data-emoji-id={emoji.id}
                               >
                                 {emoji.unicode ? (
                                   <span className="compose-emoji-text" aria-hidden="true">
@@ -347,6 +574,8 @@ export const ReactionPicker = ({
                           className="compose-emoji-category-toggle"
                           onClick={() => handleToggleCategory(category.id)}
                           aria-expanded={!isCollapsed}
+                          data-emoji-nav="category"
+                          data-emoji-category-id={category.id}
                         >
                           <span>{category.label}</span>
                           <span className="compose-emoji-count">{category.emojis.length}</span>
@@ -361,6 +590,8 @@ export const ReactionPicker = ({
                                 onClick={() => handleSelect(emoji)}
                                 aria-label={`이모지 ${emoji.label}`}
                                 title={emoji.shortcode ? `:${emoji.shortcode}:` : undefined}
+                                data-emoji-nav="emoji"
+                                data-emoji-id={emoji.id}
                               >
                                 {emoji.unicode ? (
                                   <span className="compose-emoji-text" aria-hidden="true">

@@ -56,6 +56,16 @@ export const shortcutSections: Array<{
     ]
   },
   {
+    title: "이모지 패널/리액션",
+    note: "이모지 선택 팝오버가 열려 있을 때만 동작합니다.",
+    items: [
+      { keys: "↑ / ↓", description: "이모지/카테고리 이동" },
+      { keys: "← / →", description: "카테고리 접기/펼치기" },
+      { keys: "Enter", description: "선택된 이모지 입력/리액션" },
+      { keys: "ESC", description: "이모지 선택 닫기" }
+    ]
+  },
+  {
     title: "이미지 뷰어",
     items: [
       { keys: "← / →", description: "이미지 이동" },
