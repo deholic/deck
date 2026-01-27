@@ -505,6 +505,9 @@ export const App = () => {
       const hasOverlayBackdrop = document.querySelector(
         ".overlay-backdrop, .image-modal, .confirm-modal, .profile-modal, .status-modal, .settings-modal, .info-modal"
       );
+      if (hasOverlayBackdrop) {
+        return;
+      }
       if (selectedStatus || settingsOpen || infoModal || mobileMenuOpen || mobileComposeOpen) {
         return;
       }
