@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Account, CustomEmoji, Mention, ReactionInput, Status } from "../../domain/types";
+import type { Account, CustomEmoji, MediaAttachment, Mention, ReactionInput, Status } from "../../domain/types";
 import type { MastodonApi } from "../../services/MastodonApi";
 import { sanitizeHtml } from "../utils/htmlSanitizer";
 import { renderTextWithLinks, type MentionLink } from "../utils/linkify";
@@ -23,6 +23,91 @@ const normalizeMentionUrl = (url: string): string | null => {
   } catch {
     return null;
   }
+};
+
+const MediaVideo = ({
+  src,
+  poster,
+  label
+}: {
+  src: string;
+  poster?: string | null;
+  label: string;
+}) => {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    if (!("IntersectionObserver" in window)) {
+      return;
+    }
+    const element = videoRef.current;
+    if (!element) {
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.25 }
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const element = videoRef.current;
+    if (!element) {
+      return;
+    }
+    if (!document.pictureInPictureEnabled || typeof element.requestPictureInPicture !== "function") {
+      return;
+    }
+    const isPlaying = !element.paused && !element.ended && element.readyState >= 2;
+    if (!isPlaying) {
+      return;
+    }
+    if (!isVisible) {
+      if (document.pictureInPictureElement !== element) {
+        element.requestPictureInPicture().catch(() => undefined);
+      }
+      return;
+    }
+    if (document.pictureInPictureElement === element) {
+      document.exitPictureInPicture?.().catch(() => undefined);
+    }
+  }, [isVisible]);
+
+  useEffect(() => {
+    const element = videoRef.current;
+    if (!element) {
+      return;
+    }
+    const handlePause = () => {
+      if (document.pictureInPictureElement === element) {
+        document.exitPictureInPicture?.().catch(() => undefined);
+      }
+    };
+    element.addEventListener("pause", handlePause);
+    element.addEventListener("ended", handlePause);
+    return () => {
+      element.removeEventListener("pause", handlePause);
+      element.removeEventListener("ended", handlePause);
+    };
+  }, []);
+
+  return (
+    <video
+      ref={videoRef}
+      controls
+      preload="metadata"
+      playsInline
+      poster={poster ?? undefined}
+      aria-label={label}
+    >
+      <source src={src} />
+    </video>
+  );
 };
 
 export const TimelineItem = ({
@@ -133,21 +218,29 @@ export const TimelineItem = ({
     reset: resetImageZoom
   } = useImageZoom(imageContainerRef, imageRef);
   const attachments = displayStatus.mediaAttachments;
-  const activeImageUrl = activeImageIndex !== null ? attachments[activeImageIndex]?.url ?? null : null;
+  const imageAttachments = useMemo(
+    () => attachments.filter((item) => item.kind === "image"),
+    [attachments]
+  );
+  const mediaAttachments = useMemo(
+    () => attachments.filter((item) => item.kind !== "image"),
+    [attachments]
+  );
+  const activeImageUrl = activeImageIndex !== null ? imageAttachments[activeImageIndex]?.url ?? null : null;
 
   const goToPrevImage = useCallback(() => {
-    if (activeImageIndex === null || attachments.length <= 1) return;
-    const prevIndex = activeImageIndex === 0 ? attachments.length - 1 : activeImageIndex - 1;
+    if (activeImageIndex === null || imageAttachments.length <= 1) return;
+    const prevIndex = activeImageIndex === 0 ? imageAttachments.length - 1 : activeImageIndex - 1;
     setActiveImageIndex(prevIndex);
     resetImageZoom();
-  }, [activeImageIndex, attachments.length, resetImageZoom]);
+  }, [activeImageIndex, imageAttachments.length, resetImageZoom]);
 
   const goToNextImage = useCallback(() => {
-    if (activeImageIndex === null || attachments.length <= 1) return;
-    const nextIndex = activeImageIndex === attachments.length - 1 ? 0 : activeImageIndex + 1;
+    if (activeImageIndex === null || imageAttachments.length <= 1) return;
+    const nextIndex = activeImageIndex === imageAttachments.length - 1 ? 0 : activeImageIndex + 1;
     setActiveImageIndex(nextIndex);
     resetImageZoom();
-  }, [activeImageIndex, attachments.length, resetImageZoom]);
+  }, [activeImageIndex, imageAttachments.length, resetImageZoom]);
 
   useEffect(() => {
     if (activeImageIndex === null) return;
@@ -769,8 +862,38 @@ export const TimelineItem = ({
     actionsEnabled &&
     showReactions &&
     account?.platform === "misskey";
-  const hasAttachmentButtons = showContent && attachments.length > 0;
+  const hasAttachmentButtons = showContent && imageAttachments.length > 0;
   const shouldRenderFooter = actionsEnabled || hasAttachmentButtons;
+  const renderMediaItem = useCallback((item: MediaAttachment) => {
+    const label = item.description ?? "첨부 미디어";
+    if (item.kind === "audio") {
+      return (
+        <div key={item.id} className="status-media-item">
+          <audio controls preload="metadata" aria-label={label}>
+            <source src={item.url} />
+          </audio>
+        </div>
+      );
+    }
+    if (item.kind === "unknown") {
+      return (
+        <div key={item.id} className="status-media-item">
+          <a className="status-media-link" href={item.url} target="_blank" rel="noreferrer">
+            첨부 파일 열기
+          </a>
+        </div>
+      );
+    }
+    return (
+      <div key={item.id} className="status-media-item">
+        <MediaVideo
+          src={item.url}
+          poster={item.previewUrl}
+          label={item.description ?? "첨부 동영상"}
+        />
+      </div>
+    );
+  }, []);
 
   useEffect(() => {
     setShowContent(displayStatus.spoilerText.length === 0);
@@ -1006,6 +1129,11 @@ export const TimelineItem = ({
               </div>
             </a>
           ) : null}
+          {mediaAttachments.length > 0 ? (
+            <div className="status-media" data-interactive="true">
+              {mediaAttachments.map((item) => renderMediaItem(item))}
+            </div>
+          ) : null}
         </>
       ) : null}
       <div
@@ -1102,7 +1230,7 @@ export const TimelineItem = ({
               </>
             ) : null}
             {showContent
-              ? attachments.map((item, index) => (
+              ? imageAttachments.map((item, index) => (
                   <button
                     key={item.id}
                     type="button"
@@ -1114,7 +1242,7 @@ export const TimelineItem = ({
                     data-action={index === 0 ? "open-image" : undefined}
                     aria-label={item.description ? `이미지 보기: ${item.description}` : "이미지 보기"}
                   >
-                    <img src={item.url} alt={item.description ?? "첨부 이미지"} loading="lazy" />
+                    <img src={item.previewUrl ?? item.url} alt={item.description ?? "첨부 이미지"} loading="lazy" />
                   </button>
                 ))
               : null}
@@ -1202,7 +1330,7 @@ export const TimelineItem = ({
             >
               닫기
             </button>
-            {attachments.length > 1 ? (
+            {imageAttachments.length > 1 ? (
               <button
                 type="button"
                 className="image-modal-nav image-modal-nav-prev"
@@ -1214,7 +1342,7 @@ export const TimelineItem = ({
                 </svg>
               </button>
             ) : null}
-            {attachments.length > 1 ? (
+            {imageAttachments.length > 1 ? (
               <button
                 type="button"
                 className="image-modal-nav image-modal-nav-next"
@@ -1239,9 +1367,9 @@ export const TimelineItem = ({
               onLoad={handleImageLoad}
               onPointerDown={handlePointerDown}
             />
-            {attachments.length > 1 ? (
+            {imageAttachments.length > 1 ? (
               <div className="image-modal-counter">
-                {(activeImageIndex ?? 0) + 1} / {attachments.length}
+                {(activeImageIndex ?? 0) + 1} / {imageAttachments.length}
               </div>
             ) : null}
           </div>
@@ -1250,10 +1378,6 @@ export const TimelineItem = ({
     </article>
   );
 };
-
-
-
-
 
 
 

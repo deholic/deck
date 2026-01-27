@@ -1910,6 +1910,39 @@ button.ghost {
   display: block;
 }
 
+.status-media {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.status-media-item {
+  width: 100%;
+}
+
+.status-media-item video,
+.status-media-item audio {
+  width: 100%;
+  max-width: 100%;
+  border-radius: 12px;
+  background: var(--color-attachment-thumb-bg);
+  display: block;
+}
+
+.status-media-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--color-attachment-thumb-bg);
+  border: 1px solid var(--color-attachment-thumb-border);
+  color: inherit;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+}
+
 .image-modal {
   position: fixed;
   inset: 0;
