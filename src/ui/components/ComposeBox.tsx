@@ -401,6 +401,9 @@ export const ComposeBox = ({
 
     const handleKeyDown = (event: KeyboardEvent) => {
       const key = event.key.toLowerCase();
+      if (document.querySelector("details.account-selector[open]")) {
+        return;
+      }
       if (emojiPanelOpen) {
         if (event.ctrlKey && event.shiftKey && !event.metaKey && key === "e") {
           if (emojiToggleRef.current && !emojiToggleRef.current.disabled) {
