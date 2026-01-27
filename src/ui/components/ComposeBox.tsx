@@ -401,7 +401,11 @@ export const ComposeBox = ({
 
     const handleKeyDown = (event: KeyboardEvent) => {
       const key = event.key.toLowerCase();
-      if (document.querySelector("details.account-selector[open]")) {
+      if (
+        document.querySelector(
+          ".overlay-backdrop, .image-modal, .confirm-modal, .profile-modal, .status-modal, .settings-modal, .info-modal"
+        )
+      ) {
         return;
       }
       if (emojiPanelOpen) {
