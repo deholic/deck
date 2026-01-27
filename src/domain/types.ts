@@ -17,10 +17,14 @@ export type Account = {
   emojis: CustomEmoji[];
 };
 
+export type MediaAttachmentKind = "image" | "video" | "gifv" | "audio" | "unknown";
+
 export type MediaAttachment = {
   id: string;
   url: string;
+  previewUrl: string | null;
   description: string | null;
+  kind: MediaAttachmentKind;
 };
 
 export type Mention = {

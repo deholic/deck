@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Account, CustomEmoji, Mention, ReactionInput, Status } from "../../domain/types";
+import type { Account, CustomEmoji, MediaAttachment, Mention, ReactionInput, Status } from "../../domain/types";
 import type { MastodonApi } from "../../services/MastodonApi";
 import { sanitizeHtml } from "../utils/htmlSanitizer";
 import { renderTextWithLinks, type MentionLink } from "../utils/linkify";
@@ -23,6 +23,236 @@ const normalizeMentionUrl = (url: string): string | null => {
   } catch {
     return null;
   }
+};
+
+let activeFloatingVideoId: string | null = null;
+
+const MediaVideo = ({
+  id,
+  src,
+  poster,
+  label
+}: {
+  id: string;
+  src: string;
+  poster?: string | null;
+  label: string;
+}) => {
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [isVisible, setIsVisible] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isFloating, setIsFloating] = useState(false);
+  const [placeholderHeight, setPlaceholderHeight] = useState<number | null>(null);
+  const [floatingWidth, setFloatingWidth] = useState<number | null>(null);
+  const [floatingHeight, setFloatingHeight] = useState<number | null>(null);
+  const [isDismissed, setIsDismissed] = useState(false);
+  const isFloatingRef = useRef(false);
+
+  useEffect(() => {
+    if (!("IntersectionObserver" in window)) {
+      return;
+    }
+    const element = wrapperRef.current;
+    if (!element) {
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.25 }
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const element = videoRef.current;
+    if (!element) {
+      return;
+    }
+    const handlePlay = () => {
+      activeFloatingVideoId = id;
+      setIsPlaying(true);
+      setIsDismissed(false);
+    };
+    const handlePause = () => {
+      setIsPlaying(false);
+    };
+    element.addEventListener("play", handlePlay);
+    element.addEventListener("pause", handlePause);
+    element.addEventListener("ended", handlePause);
+    return () => {
+      element.removeEventListener("play", handlePlay);
+      element.removeEventListener("pause", handlePause);
+      element.removeEventListener("ended", handlePause);
+    };
+  }, [id]);
+
+  useEffect(() => {
+    const shouldFloat = !isVisible && activeFloatingVideoId === id && !isDismissed;
+    if (!shouldFloat) {
+      if (isFloating) {
+        setIsFloating(false);
+        setPlaceholderHeight(null);
+      }
+      if (isVisible && isDismissed) {
+        setIsDismissed(false);
+      }
+      return;
+    }
+    if (!isFloating) {
+      const height = wrapperRef.current?.getBoundingClientRect().height ?? null;
+      const width = wrapperRef.current?.getBoundingClientRect().width ?? null;
+      const currentHeight = videoRef.current?.getBoundingClientRect().height ?? null;
+      setPlaceholderHeight(height);
+      setFloatingWidth(width);
+      setFloatingHeight(currentHeight);
+      setIsFloating(true);
+    }
+  }, [id, isPlaying, isVisible, isFloating]);
+
+  useEffect(() => {
+    isFloatingRef.current = isFloating;
+  }, [isFloating]);
+
+  useEffect(() => {
+    const element = videoRef.current;
+    if (!element || !("ResizeObserver" in window)) {
+      return;
+    }
+    const observer = new ResizeObserver(() => {
+      if (!isFloatingRef.current) {
+        return;
+      }
+      const rect = element.getBoundingClientRect();
+      setFloatingHeight(rect.height);
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  const startResize = useCallback(
+    (
+      event: React.PointerEvent<HTMLElement>,
+      options: { horizontalFactor: -1 | 0 | 1; verticalFactor: -1 | 0 | 1 }
+    ) => {
+      if (!isFloatingRef.current) {
+        return;
+      }
+      const element = videoRef.current;
+      if (!element) {
+        return;
+      }
+      event.preventDefault();
+      const rect = element.getBoundingClientRect();
+      const startWidth = rect.width;
+      const startHeight = rect.height;
+      const startX = event.clientX;
+      const startY = event.clientY;
+      const ratio = startWidth / Math.max(1, startHeight);
+      const minWidth = 220;
+      const maxWidth = Math.min(window.innerWidth - 24, 720);
+
+      const handlePointerMove = (moveEvent: PointerEvent) => {
+        const deltaX = moveEvent.clientX - startX;
+        const deltaY = moveEvent.clientY - startY;
+        const isHorizontalResize = options.horizontalFactor !== 0;
+        const isVerticalResize = options.verticalFactor !== 0;
+        const widthFromHorizontal = startWidth + deltaX * options.horizontalFactor;
+        const heightFromVertical = startHeight + deltaY * options.verticalFactor;
+        const widthFromVertical = heightFromVertical * ratio;
+        const nextWidthRaw = isHorizontalResize
+          ? widthFromHorizontal
+          : isVerticalResize
+            ? widthFromVertical
+            : startWidth;
+        const nextWidth = Math.max(minWidth, Math.min(maxWidth, nextWidthRaw));
+        setFloatingWidth(nextWidth);
+      };
+      const handlePointerUp = () => {
+        window.removeEventListener("pointermove", handlePointerMove);
+        window.removeEventListener("pointerup", handlePointerUp);
+      };
+      window.addEventListener("pointermove", handlePointerMove);
+      window.addEventListener("pointerup", handlePointerUp);
+    },
+    []
+  );
+
+  return (
+    <div
+      ref={wrapperRef}
+      className={`status-media-video${isFloating ? " is-floating" : ""}`}
+      style={placeholderHeight ? { height: `${placeholderHeight}px` } : undefined}
+    >
+      <video
+        ref={videoRef}
+        controls
+        preload="metadata"
+        playsInline
+        poster={poster ?? undefined}
+        aria-label={label}
+        className={isFloating ? "is-floating" : undefined}
+        style={isFloating && floatingWidth ? { width: `${floatingWidth}px` } : undefined}
+      >
+        <source src={src} />
+      </video>
+      {isFloating && floatingWidth && floatingHeight ? (
+        <div
+          className="status-media-resize-overlay"
+          style={{ width: `${floatingWidth}px`, height: `${floatingHeight}px` }}
+          aria-hidden="true"
+        >
+          <button
+            type="button"
+            className="status-media-floating-close"
+            aria-label="고정 플레이어 닫기"
+            onClick={() => {
+              setIsFloating(false);
+              setPlaceholderHeight(null);
+              setIsDismissed(true);
+            }}
+          >
+            닫기
+          </button>
+          <span
+            className="status-media-resize-edge edge-top"
+            onPointerDown={(event) => startResize(event, { horizontalFactor: 0, verticalFactor: -1 })}
+          />
+          <span
+            className="status-media-resize-corner corner-top-left"
+            onPointerDown={(event) => startResize(event, { horizontalFactor: -1, verticalFactor: -1 })}
+          />
+          <span
+            className="status-media-resize-edge edge-right"
+            onPointerDown={(event) => startResize(event, { horizontalFactor: 1, verticalFactor: 0 })}
+          />
+          <span
+            className="status-media-resize-corner corner-top-right"
+            onPointerDown={(event) => startResize(event, { horizontalFactor: 1, verticalFactor: -1 })}
+          />
+          <span
+            className="status-media-resize-edge edge-bottom"
+            onPointerDown={(event) => startResize(event, { horizontalFactor: 0, verticalFactor: 1 })}
+          />
+          <span
+            className="status-media-resize-corner corner-bottom-right"
+            onPointerDown={(event) => startResize(event, { horizontalFactor: 1, verticalFactor: 1 })}
+          />
+          <span
+            className="status-media-resize-edge edge-left"
+            onPointerDown={(event) => startResize(event, { horizontalFactor: -1, verticalFactor: 0 })}
+          />
+          <span
+            className="status-media-resize-corner corner-bottom-left"
+            onPointerDown={(event) => startResize(event, { horizontalFactor: -1, verticalFactor: 1 })}
+          />
+        </div>
+      ) : null}
+    </div>
+  );
 };
 
 export const TimelineItem = ({
@@ -133,21 +363,29 @@ export const TimelineItem = ({
     reset: resetImageZoom
   } = useImageZoom(imageContainerRef, imageRef);
   const attachments = displayStatus.mediaAttachments;
-  const activeImageUrl = activeImageIndex !== null ? attachments[activeImageIndex]?.url ?? null : null;
+  const imageAttachments = useMemo(
+    () => attachments.filter((item) => item.kind === "image"),
+    [attachments]
+  );
+  const mediaAttachments = useMemo(
+    () => attachments.filter((item) => item.kind !== "image"),
+    [attachments]
+  );
+  const activeImageUrl = activeImageIndex !== null ? imageAttachments[activeImageIndex]?.url ?? null : null;
 
   const goToPrevImage = useCallback(() => {
-    if (activeImageIndex === null || attachments.length <= 1) return;
-    const prevIndex = activeImageIndex === 0 ? attachments.length - 1 : activeImageIndex - 1;
+    if (activeImageIndex === null || imageAttachments.length <= 1) return;
+    const prevIndex = activeImageIndex === 0 ? imageAttachments.length - 1 : activeImageIndex - 1;
     setActiveImageIndex(prevIndex);
     resetImageZoom();
-  }, [activeImageIndex, attachments.length, resetImageZoom]);
+  }, [activeImageIndex, imageAttachments.length, resetImageZoom]);
 
   const goToNextImage = useCallback(() => {
-    if (activeImageIndex === null || attachments.length <= 1) return;
-    const nextIndex = activeImageIndex === attachments.length - 1 ? 0 : activeImageIndex + 1;
+    if (activeImageIndex === null || imageAttachments.length <= 1) return;
+    const nextIndex = activeImageIndex === imageAttachments.length - 1 ? 0 : activeImageIndex + 1;
     setActiveImageIndex(nextIndex);
     resetImageZoom();
-  }, [activeImageIndex, attachments.length, resetImageZoom]);
+  }, [activeImageIndex, imageAttachments.length, resetImageZoom]);
 
   useEffect(() => {
     if (activeImageIndex === null) return;
@@ -769,8 +1007,39 @@ export const TimelineItem = ({
     actionsEnabled &&
     showReactions &&
     account?.platform === "misskey";
-  const hasAttachmentButtons = showContent && attachments.length > 0;
+  const hasAttachmentButtons = showContent && imageAttachments.length > 0;
   const shouldRenderFooter = actionsEnabled || hasAttachmentButtons;
+  const renderMediaItem = useCallback((item: MediaAttachment) => {
+    const label = item.description ?? "첨부 미디어";
+    if (item.kind === "audio") {
+      return (
+        <div key={item.id} className="status-media-item">
+          <audio controls preload="metadata" aria-label={label}>
+            <source src={item.url} />
+          </audio>
+        </div>
+      );
+    }
+    if (item.kind === "unknown") {
+      return (
+        <div key={item.id} className="status-media-item">
+          <a className="status-media-link" href={item.url} target="_blank" rel="noreferrer">
+            첨부 파일 열기
+          </a>
+        </div>
+      );
+    }
+    return (
+      <div key={item.id} className="status-media-item">
+        <MediaVideo
+          id={item.id}
+          src={item.url}
+          poster={item.previewUrl}
+          label={item.description ?? "첨부 동영상"}
+        />
+      </div>
+    );
+  }, []);
 
   useEffect(() => {
     setShowContent(displayStatus.spoilerText.length === 0);
@@ -1006,6 +1275,11 @@ export const TimelineItem = ({
               </div>
             </a>
           ) : null}
+          {mediaAttachments.length > 0 ? (
+            <div className="status-media" data-interactive="true">
+              {mediaAttachments.map((item) => renderMediaItem(item))}
+            </div>
+          ) : null}
         </>
       ) : null}
       <div
@@ -1102,7 +1376,7 @@ export const TimelineItem = ({
               </>
             ) : null}
             {showContent
-              ? attachments.map((item, index) => (
+              ? imageAttachments.map((item, index) => (
                   <button
                     key={item.id}
                     type="button"
@@ -1114,7 +1388,7 @@ export const TimelineItem = ({
                     data-action={index === 0 ? "open-image" : undefined}
                     aria-label={item.description ? `이미지 보기: ${item.description}` : "이미지 보기"}
                   >
-                    <img src={item.url} alt={item.description ?? "첨부 이미지"} loading="lazy" />
+                    <img src={item.previewUrl ?? item.url} alt={item.description ?? "첨부 이미지"} loading="lazy" />
                   </button>
                 ))
               : null}
@@ -1202,7 +1476,7 @@ export const TimelineItem = ({
             >
               닫기
             </button>
-            {attachments.length > 1 ? (
+            {imageAttachments.length > 1 ? (
               <button
                 type="button"
                 className="image-modal-nav image-modal-nav-prev"
@@ -1214,7 +1488,7 @@ export const TimelineItem = ({
                 </svg>
               </button>
             ) : null}
-            {attachments.length > 1 ? (
+            {imageAttachments.length > 1 ? (
               <button
                 type="button"
                 className="image-modal-nav image-modal-nav-next"
@@ -1239,9 +1513,9 @@ export const TimelineItem = ({
               onLoad={handleImageLoad}
               onPointerDown={handlePointerDown}
             />
-            {attachments.length > 1 ? (
+            {imageAttachments.length > 1 ? (
               <div className="image-modal-counter">
-                {(activeImageIndex ?? 0) + 1} / {attachments.length}
+                {(activeImageIndex ?? 0) + 1} / {imageAttachments.length}
               </div>
             ) : null}
           </div>
@@ -1250,12 +1524,3 @@ export const TimelineItem = ({
     </article>
   );
 };
-
-
-
-
-
-
-
-
-

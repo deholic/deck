@@ -16,6 +16,20 @@ const htmlToText = (html: string): string => {
   return text.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
 };
 
+const inferKindFromUrl = (value: string): MediaAttachment["kind"] => {
+  const lower = value.toLowerCase();
+  if (/(\.|\/)(mp4|webm|mov|m4v|ogv)(\?|#|$)/.test(lower)) {
+    return "video";
+  }
+  if (/(\.|\/)(mp3|wav|ogg|m4a|flac)(\?|#|$)/.test(lower)) {
+    return "audio";
+  }
+  if (/(\.|\/)(gif|jpg|jpeg|png|webp)(\?|#|$)/.test(lower)) {
+    return "image";
+  }
+  return "unknown";
+};
+
 const mapMediaAttachments = (attachments: unknown): MediaAttachment[] => {
   if (!Array.isArray(attachments)) {
     return [];
@@ -27,12 +41,29 @@ const mapMediaAttachments = (attachments: unknown): MediaAttachment[] => {
       }
       const typed = item as Record<string, unknown>;
       const id = String(typed.id ?? "");
-      const url = typeof typed.url === "string" ? typed.url : "";
+      const url =
+        typeof typed.url === "string"
+          ? typed.url
+          : typeof typed.remote_url === "string"
+            ? typed.remote_url
+            : "";
       const description = typeof typed.description === "string" ? typed.description : null;
+      const previewUrl = typeof typed.preview_url === "string" ? typed.preview_url : null;
+      const rawType = typeof typed.type === "string" ? typed.type : "";
+      const normalizedType = rawType.toLowerCase();
+      const kind: MediaAttachment["kind"] =
+        normalizedType === "image" ||
+        normalizedType === "video" ||
+        normalizedType === "gifv" ||
+        normalizedType === "audio"
+          ? (normalizedType as MediaAttachment["kind"])
+          : url
+            ? inferKindFromUrl(url)
+            : "unknown";
       if (!id || !url) {
         return null;
       }
-      return { id, url, description };
+      return { id, url, previewUrl, description, kind };
     })
     .filter((item): item is MediaAttachment => item !== null);
 };
