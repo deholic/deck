@@ -868,24 +868,25 @@ export const App = () => {
         setActionError("리액션은 미스키 계정에서만 사용할 수 있습니다.");
         return;
       }
-      if (status.myReaction && status.myReaction !== reaction.name) {
+      const target = status.reblog ?? status;
+      if (target.myReaction && target.myReaction !== reaction.name) {
         setActionError("이미 리액션을 남겼습니다. 먼저 취소해주세요.");
         return;
       }
       setActionError(null);
-      const isRemoving = status.myReaction === reaction.name;
-      const optimistic = buildOptimisticReactionStatus(status, reaction, isRemoving);
+      const isRemoving = target.myReaction === reaction.name;
+      const optimistic = buildOptimisticReactionStatus(target, reaction, isRemoving);
       updateStatusEverywhere(account.id, optimistic);
       try {
-      const updated = isRemoving
-          ? await services.api.deleteReaction(account, status.id)
-          : await services.api.createReaction(account, status.id, reaction.name);
+        const updated = isRemoving
+          ? await services.api.deleteReaction(account, target.id)
+          : await services.api.createReaction(account, target.id, reaction.name);
         if (!hasSameReactions(updated, optimistic)) {
           updateStatusEverywhere(account.id, updated);
         }
       } catch (err) {
         setActionError(err instanceof Error ? err.message : "리액션 처리에 실패했습니다.");
-        updateStatusEverywhere(account.id, status);
+        updateStatusEverywhere(account.id, target);
       }
     },
     [services.api, updateStatusEverywhere]
