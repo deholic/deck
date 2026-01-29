@@ -836,8 +836,33 @@ export const TimelineItem = ({
         const normalizedHandle = normalizeMentionHandle(text);
         mention = normalizedHandle ? mentionMap.get(normalizedHandle) ?? null : null;
       }
+      if (!mention) {
+        const text = anchor.textContent ?? "";
+        const normalizedHandle = normalizeMentionHandle(text);
+        let derivedHandle = normalizedHandle;
+        try {
+          const parsed = new URL(href);
+          const match = parsed.pathname.replace(/\/$/, "").match(/^\/@([^/]+)$/);
+          if (match?.[1]) {
+            const username = match[1];
+            derivedHandle = derivedHandle?.includes("@") ? derivedHandle : `${username}@${parsed.hostname}`;
+          }
+        } catch {
+          /* noop */
+        }
+        if (derivedHandle) {
+          mention = {
+            id: `mention-${displayStatus.id}-${derivedHandle}`,
+            displayName: derivedHandle,
+            handle: derivedHandle,
+            url: href
+          };
+        }
+      }
       if (!mention?.id) {
-        return;
+        if (!mention) {
+          return;
+        }
       }
       event.preventDefault();
       onProfileClick(buildMentionStatus(mention));
