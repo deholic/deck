@@ -883,9 +883,9 @@ export const TimelineSection = ({
                     {notificationItems.length > 0 ? (
                       <div className="timeline">
                         {notificationItems.map((status, statusIndex) => (
-                          <TimelineItem
-                            key={status.id}
-                            status={status}
+                <TimelineItem
+                  key={status.id}
+                  status={status}
                             onReply={(item) => onReply(item, account)}
                             onStatusClick={(currentStatus) => onStatusClick(currentStatus, account)}
                             onToggleFavourite={handleToggleFavourite}
@@ -1034,9 +1034,10 @@ export const TimelineSection = ({
                 status={status}
                 onReply={(item) => onReply(item, account)}
                 onStatusClick={(currentStatus) => onStatusClick(currentStatus, account)}
-                onSelect={(statusId) => onSelectStatus(section.id, statusId)}
-                isSelected={selectedStatusId === status.id}
-                onToggleFavourite={handleToggleFavourite}
+                  onSelect={(statusId) => onSelectStatus(section.id, statusId)}
+                  isSelected={selectedStatusId === status.id}
+                  onUpdateStatus={timeline.updateItem}
+                  onToggleFavourite={handleToggleFavourite}
                 onToggleReblog={handleToggleReblog}
                 onToggleBookmark={handleToggleBookmark}
                 onDelete={handleDeleteStatus}

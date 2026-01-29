@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Account, CustomEmoji, MediaAttachment, Mention, ReactionInput, Status } from "../../domain/types";
+import type { Account, CustomEmoji, LinkCard, MediaAttachment, Mention, ReactionInput, Status } from "../../domain/types";
 import type { MastodonApi } from "../../services/MastodonApi";
 import { sanitizeHtml } from "../utils/htmlSanitizer";
 import { renderMarkdown } from "../utils/markdown";
@@ -27,6 +27,31 @@ const normalizeMentionUrl = (url: string): string | null => {
 };
 
 let activeFloatingVideoId: string | null = null;
+const previewCache = new Map<string, LinkCard | null>();
+const isPreviewEnabled = () => {
+  if (!import.meta.env.PROD) {
+    return false;
+  }
+  if (typeof window === "undefined") {
+    return false;
+  }
+  return !window.location.hostname.endsWith("github.io");
+};
+
+const extractFirstUrl = (text: string): string | null => {
+  if (!text) {
+    return null;
+  }
+  const match = text.match(/(https?:\/\/[^\s)\]]+|www\.[^\s)\]]+)/i);
+  if (!match) {
+    return null;
+  }
+  const value = match[0];
+  if (value.startsWith("http://") || value.startsWith("https://")) {
+    return value;
+  }
+  return `https://${value}`;
+};
 
 const MediaVideo = ({
   id,
@@ -267,6 +292,7 @@ export const TimelineItem = ({
   onProfileClick,
   onStatusClick,
   onSelect,
+  onUpdateStatus,
   isSelected = false,
   account,
   api,
@@ -289,6 +315,7 @@ export const TimelineItem = ({
   onProfileClick?: (status: Status) => void;
   onStatusClick?: (status: Status) => void;
   onSelect?: (statusId: string) => void;
+  onUpdateStatus?: (status: Status) => void;
   isSelected?: boolean;
   account: Account | null;
   api: MastodonApi;
@@ -308,6 +335,7 @@ export const TimelineItem = ({
   const [showContent, setShowContent] = useState(() => displayStatus.spoilerText.length === 0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [favouriteState, setFavouriteState] = useState<boolean | null>(false);
+  const [previewCard, setPreviewCard] = useState<LinkCard | null>(displayStatus.card ?? null);
   const imageContainerRef = useRef<HTMLDivElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -408,7 +436,9 @@ export const TimelineItem = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [activeImageIndex, goToPrevImage, goToNextImage]);
 
-  const previewCard = displayStatus.card;
+  useEffect(() => {
+    setPreviewCard(displayStatus.card ?? null);
+  }, [displayStatus.card, displayStatus.id]);
   const displayHandle = useMemo(() => {
     if (displayStatus.accountHandle.includes("@")) {
       return displayStatus.accountHandle;
@@ -1143,6 +1173,80 @@ export const TimelineItem = ({
       document.body.style.overflow = previous;
     };
   }, [activeImageUrl]);
+
+  const previewCandidate = useMemo(
+    () => (displayStatus.card ? null : extractFirstUrl(displayStatus.content)),
+    [displayStatus.card, displayStatus.content]
+  );
+
+  useEffect(() => {
+    if (!isPreviewEnabled() || previewCard || !previewCandidate || account?.platform !== "misskey") {
+      return;
+    }
+    if (previewCache.has(previewCandidate)) {
+      const cached = previewCache.get(previewCandidate) ?? null;
+      if (cached) {
+        setPreviewCard(cached);
+      }
+      return;
+    }
+
+    let cancelled = false;
+    const controller = new AbortController();
+
+    const fetchPreview = async () => {
+      try {
+        const response = await fetch(`/api/preview?url=${encodeURIComponent(previewCandidate)}`, {
+          signal: controller.signal
+        });
+        if (!response.ok) {
+          previewCache.set(previewCandidate, null);
+          return;
+        }
+        const data = (await response.json()) as
+          | { url?: string; title?: string; description?: string | null; image?: string | null; error?: string }
+          | undefined;
+        if (!data || data.error || !data.title || !data.url) {
+          previewCache.set(previewCandidate, null);
+          return;
+        }
+        const card: LinkCard = {
+          url: data.url,
+          title: data.title,
+          description: data.description ?? null,
+          image: data.image ?? null
+        };
+        previewCache.set(previewCandidate, card);
+        if (cancelled) {
+          return;
+        }
+        setPreviewCard(card);
+        const updateTarget = (() => {
+          if (displayStatus.id === status.id) {
+            return { ...status, card };
+          }
+          if (status.reblog && status.reblog.id === displayStatus.id) {
+            return { ...status, reblog: { ...status.reblog, card } };
+          }
+          return null;
+        })();
+        if (updateTarget && onUpdateStatus) {
+          onUpdateStatus(updateTarget);
+        }
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
+        previewCache.set(previewCandidate, null);
+      }
+    };
+
+    fetchPreview();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [account?.platform, displayStatus.id, displayStatus.card, displayStatus.content, onUpdateStatus, previewCandidate, previewCard, status]);
 
 
   const handleReactionSelect = useCallback(
