@@ -545,7 +545,7 @@ export const PomodoroTimer = ({
       event.preventDefault();
       selectTodo(displayedTodos[nextIndex].id);
     },
-    [displayedTodos, selectTodo, selectedTodoId]
+    [displayedTodos, handleRemoveTodo, handleToggleTodo, onRequestSelectTimelineAtY, selectTodo, selectedTodoId]
   );
 
   const handleTodoInputKeyDown = useCallback(

@@ -25,6 +25,9 @@ const mapVisibility = (visibility: string): Visibility => {
 
 const inferKindFromUrl = (value: string): MediaAttachment["kind"] => {
   const lower = value.toLowerCase();
+  if (/(\.|\/)(gifv)(\?|#|$)/.test(lower)) {
+    return "gifv";
+  }
   if (/(\.|\/)(mp4|webm|mov|m4v|ogv)(\?|#|$)/.test(lower)) {
     return "video";
   }
