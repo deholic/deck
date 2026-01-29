@@ -59,4 +59,14 @@ describe("renderMarkdown", () => {
       '<p><a href="https://example.com" target="_blank" rel="noreferrer">link</a> <a href="https://example.com" target="_blank" rel="noreferrer">https://example.com</a></p>'
     );
   });
+
+  it("renders emojis inside markdown link labels", () => {
+    const input = "[go :wave:](https://example.com)";
+    const emojiMap = new Map([["wave", "https://example.com/wave.png"]]);
+    const output = renderMarkdown(input, emojiMap);
+
+    expect(output).toBe(
+      '<p><a href="https://example.com" target="_blank" rel="noreferrer">go <img src="https://example.com/wave.png" alt=":wave:" class="custom-emoji" loading="lazy" /></a></p>'
+    );
+  });
 });
