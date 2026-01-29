@@ -35,6 +35,16 @@ const renderEmojiTag = (shortcode: string, url: string): string => {
   return `<img src="${safeUrl}" alt="${safeAlt}" class="custom-emoji" loading="lazy" />`;
 };
 
+const linkifyBareUrls = (text: string): string => {
+  return text.replace(/https?:\/\/[^\s<]+[^\s<\])"'.,;:!?]/g, (match) => {
+    if (!isSafeUrl(match)) {
+      return match;
+    }
+    const safeUrl = escapeAttr(match);
+    return `<a href="${safeUrl}" target="_blank" rel="noreferrer">${match}</a>`;
+  });
+};
+
 const formatInline = (text: string, emojiMap?: Map<string, string>): string => {
   const codeSpans: string[] = [];
   let tokenized = text.replace(/`([^`]+)`/g, (_match, code) => {
@@ -47,6 +57,13 @@ const formatInline = (text: string, emojiMap?: Map<string, string>): string => {
     const imageTag = renderImageTag(alt, url);
     images.push(imageTag);
     return `\u0000${images.length - 1}\u0000`;
+  });
+  const links: string[] = [];
+  tokenized = tokenized.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_match, label, url) => {
+    const safeLabel = escapeHtml(label);
+    const safeUrl = escapeAttr(url);
+    links.push(`<a href="${safeUrl}" target="_blank" rel="noreferrer">${safeLabel}</a>`);
+    return `\u0003${links.length - 1}\u0003`;
   });
   const emojis: string[] = [];
   if (emojiMap && emojiMap.size > 0) {
@@ -63,13 +80,11 @@ const formatInline = (text: string, emojiMap?: Map<string, string>): string => {
   let out = escapeHtml(tokenized);
   out = out.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
   out = out.replace(/\*([^*]+)\*/g, "<em>$1</em>");
-  out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_match, label, url) => {
-    const safeUrl = escapeAttr(url);
-    return `<a href=\"${safeUrl}\" target=\"_blank\" rel=\"noreferrer\">${label}</a>`;
-  });
+  out = linkifyBareUrls(out);
   out = out.replace(/\u0000(\d+)\u0000/g, (_match, index) => images[Number(index)] ?? "");
   out = out.replace(/\u0002(\d+)\u0002/g, (_match, index) => emojis[Number(index)] ?? "");
   out = out.replace(/\u0001(\d+)\u0001/g, (_match, index) => codeSpans[Number(index)] ?? "");
+  out = out.replace(/\u0003(\d+)\u0003/g, (_match, index) => links[Number(index)] ?? "");
   return out;
 };
 
