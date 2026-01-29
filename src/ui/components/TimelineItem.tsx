@@ -789,6 +789,28 @@ export const TimelineItem = ({
     },
     [mentionMap]
   );
+  const resolveMentionUrl = useCallback(
+    (handle: string) => {
+      const normalizedHandle = normalizeMentionHandle(handle);
+      if (!normalizedHandle) {
+        return null;
+      }
+      const mention = mentionMap.get(normalizedHandle) ?? null;
+      if (mention?.url) {
+        return mention.url;
+      }
+      if (!normalizedHandle.includes("@")) {
+        return null;
+      }
+      const [username, ...rest] = normalizedHandle.split("@");
+      const host = rest.join("@");
+      if (!username || !host) {
+        return null;
+      }
+      return `https://${host}/@${username}`;
+    },
+    [mentionMap]
+  );
   const normalizedActiveMentionHandle = useMemo(() => {
     const base = normalizeMentionHandle(activeAccountHandle);
     if (!base) {
@@ -932,7 +954,7 @@ export const TimelineItem = ({
         showCustomEmojis && displayStatus.customEmojis.length > 0
           ? buildEmojiMap(displayStatus.customEmojis)
           : undefined;
-      const markdownHtml = renderMarkdown(displayStatus.content, emojiMap);
+      const markdownHtml = renderMarkdown(displayStatus.content, emojiMap, { mentionResolver: resolveMentionUrl });
       return (
         <div
           dangerouslySetInnerHTML={{ __html: sanitizeHtml(markdownHtml) }}
@@ -981,6 +1003,7 @@ export const TimelineItem = ({
     displayStatus.customEmojis,
     displayStatus.htmlContent,
     displayStatus.hasRichContent,
+    resolveMentionUrl,
     showCustomEmojis,
     tokenizeWithEmojis
   ]);
