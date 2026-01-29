@@ -14,6 +14,9 @@ type PomodoroTimerProps = {
   longBreakMinutes?: number;
   onSessionTypeChange?: (type: SessionType) => void;
   onRunningChange?: (isRunning: boolean) => void;
+  isTimelineItemSelected?: boolean;
+  onRequestClearTimelineSelection?: () => void;
+  onRequestSelectTimelineAtY?: (targetCenterY: number) => void;
 };
 
 // TOTAL_SESSIONS을 targetCycles에 따라 동적으로 계산
@@ -41,6 +44,9 @@ export const PomodoroTimer = ({
   longBreakMinutes = 30,
   onSessionTypeChange,
   onRunningChange,
+  isTimelineItemSelected = false,
+  onRequestClearTimelineSelection,
+  onRequestSelectTimelineAtY,
 }: PomodoroTimerProps) => {
   const targetCycles = 4; // 고정된 4사이클
   const focusDuration = focusMinutes * 60;
@@ -123,6 +129,9 @@ export const PomodoroTimer = ({
       return [];
     }
   });
+  const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null);
+  const todoListRef = useRef<HTMLDivElement | null>(null);
+  const todoInputRef = useRef<HTMLInputElement | null>(null);
 
   const sessionInfo = useMemo(() => getSessionInfo(session), [session, getSessionInfo]);
 
@@ -157,6 +166,25 @@ export const PomodoroTimer = ({
   useEffect(() => {
     localStorage.setItem("textodon.pomodoro.todos", JSON.stringify(todoItems));
   }, [todoItems]);
+
+  useEffect(() => {
+    if (!selectedTodoId) {
+      return;
+    }
+    if (!todoItems.some((item) => item.id === selectedTodoId)) {
+      setSelectedTodoId(null);
+    }
+  }, [selectedTodoId, todoItems]);
+
+  useEffect(() => {
+    if (!isTimelineItemSelected) {
+      return;
+    }
+    if (selectedTodoId) {
+      setSelectedTodoId(null);
+    }
+  }, [isTimelineItemSelected, selectedTodoId]);
+
 
   const playNotificationSound = useCallback(() => {
     try {
@@ -212,6 +240,80 @@ export const PomodoroTimer = ({
       intervalRef.current = null;
     }
   }, [focusDuration]);
+
+  useEffect(() => {
+    const isEditableElement = (element: Element | null) => {
+      if (!element) {
+        return false;
+      }
+      return (
+        element instanceof HTMLInputElement ||
+        element instanceof HTMLTextAreaElement ||
+        (element as HTMLElement).isContentEditable
+      );
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) {
+        return;
+      }
+      if (document.querySelector('[data-emoji-picker-open="true"]')) {
+        return;
+      }
+      const hasOverlayBackdrop = document.querySelector(
+        ".overlay-backdrop, .image-modal, .confirm-modal, .profile-modal, .status-modal, .settings-modal, .info-modal"
+      );
+      if (hasOverlayBackdrop) {
+        return;
+      }
+      if (isEditableElement(document.activeElement)) {
+        return;
+      }
+
+      const key = event.key.toLowerCase();
+      if (
+        key === "s" &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.shiftKey &&
+        !event.altKey
+      ) {
+        event.preventDefault();
+        handleStart();
+        return;
+      }
+
+      if (
+        key === "x" &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.shiftKey &&
+        !event.altKey
+      ) {
+        event.preventDefault();
+        handleReset();
+        return;
+      }
+
+      if (
+        key === "f" &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.shiftKey &&
+        !event.altKey
+      ) {
+        const input = todoInputRef.current;
+        if (!input || input.disabled) {
+          return;
+        }
+        event.preventDefault();
+        input.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleReset, handleStart]);
 
   // 설정이 변경되면 현재 세션 시간 업데이트
   useEffect(() => {
@@ -340,11 +442,135 @@ export const PomodoroTimer = ({
     );
   }, []);
 
-  const handleRemoveTodo = useCallback((id: string) => {
-    setTodoItems((prev) => prev.filter((item) => item.id !== id));
-  }, []);
+  const handleRemoveTodo = useCallback(
+    (id: string) => {
+      setTodoItems((prev) => {
+        const index = prev.findIndex((item) => item.id === id);
+        if (index === -1) {
+          return prev;
+        }
+        if (selectedTodoId === id) {
+          const nextId = prev[index + 1]?.id ?? prev[index - 1]?.id ?? null;
+          setSelectedTodoId(nextId);
+        }
+        return prev.filter((item) => item.id !== id);
+      });
+    },
+    [selectedTodoId]
+  );
 
   const displayedTodos = useMemo(() => todoItems, [todoItems]);
+
+  const selectTodo = useCallback(
+    (id: string) => {
+      setSelectedTodoId(id);
+      onRequestClearTimelineSelection?.();
+    },
+    [onRequestClearTimelineSelection]
+  );
+
+  const handleTodoKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      const target = event.target;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        (target instanceof HTMLElement && target.isContentEditable)
+      ) {
+        return;
+      }
+
+      const { key } = event;
+      const lowerKey = key.length === 1 ? key.toLowerCase() : key;
+      if (key === "Escape") {
+        if (selectedTodoId) {
+          event.preventDefault();
+          setSelectedTodoId(null);
+        }
+        return;
+      }
+
+      if (key === " " || key === "Spacebar") {
+        if (!selectedTodoId) {
+          return;
+        }
+        event.preventDefault();
+        handleToggleTodo(selectedTodoId);
+        return;
+      }
+
+      if (lowerKey === "d") {
+        if (!selectedTodoId) {
+          return;
+        }
+        event.preventDefault();
+        handleRemoveTodo(selectedTodoId);
+        return;
+      }
+
+      if (key === "ArrowRight") {
+        if (!selectedTodoId || !onRequestSelectTimelineAtY) {
+          return;
+        }
+        const currentItem = todoListRef.current?.querySelector<HTMLElement>(
+          `[data-todo-id="${selectedTodoId}"]`
+        );
+        if (!currentItem) {
+          return;
+        }
+        const targetY = currentItem.getBoundingClientRect().top + currentItem.getBoundingClientRect().height / 2;
+        event.preventDefault();
+        onRequestSelectTimelineAtY(targetY);
+        return;
+      }
+      if (key !== "ArrowUp" && key !== "ArrowDown") {
+        return;
+      }
+      if (!selectedTodoId) {
+        return;
+      }
+      const currentIndex = displayedTodos.findIndex((item) => item.id === selectedTodoId);
+      if (currentIndex === -1) {
+        return;
+      }
+      const nextIndex = key === "ArrowUp" ? currentIndex - 1 : currentIndex + 1;
+      if (key === "ArrowDown" && nextIndex >= displayedTodos.length) {
+        event.preventDefault();
+        todoInputRef.current?.focus();
+        return;
+      }
+      if (nextIndex < 0 || nextIndex >= displayedTodos.length) {
+        return;
+      }
+      event.preventDefault();
+      selectTodo(displayedTodos[nextIndex].id);
+    },
+    [displayedTodos, handleRemoveTodo, handleToggleTodo, onRequestSelectTimelineAtY, selectTodo, selectedTodoId]
+  );
+
+  const handleTodoInputKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        todoInputRef.current?.blur();
+        return;
+      }
+      if (event.key !== "ArrowUp") {
+        return;
+      }
+      if (displayedTodos.length === 0) {
+        return;
+      }
+      event.preventDefault();
+      const lastTodo = displayedTodos[displayedTodos.length - 1];
+      if (!lastTodo) {
+        return;
+      }
+      selectTodo(lastTodo.id);
+      todoListRef.current?.focus();
+    },
+    [displayedTodos, selectTodo]
+  );
 
   return (
     <section
@@ -375,6 +601,7 @@ export const PomodoroTimer = ({
             type="button"
             className="pomodoro-button pomodoro-start"
             onClick={handleStart}
+            title="시작/정지 (S)"
           >
             {isRunning ? "정지" : "시작"}
           </button>
@@ -382,6 +609,7 @@ export const PomodoroTimer = ({
             type="button"
             className="pomodoro-button pomodoro-reset"
             onClick={handleReset}
+            title="리셋 (X)"
           >
             리셋
           </button>
@@ -390,11 +618,23 @@ export const PomodoroTimer = ({
       <div className="compose-emoji-divider pomodoro-divider" />
       <div className="pomodoro-todos" aria-label="뽀모도로 투두">
         {displayedTodos.length > 0 ? (
-          <div className="pomodoro-todo-list">
+          <div
+            className="pomodoro-todo-list"
+            ref={todoListRef}
+            tabIndex={displayedTodos.length > 0 ? 0 : -1}
+            onKeyDownCapture={handleTodoKeyDown}
+            title="↑/↓ 이동 · Space 완료 · D 삭제 · → 타임라인 이동 · ESC 선택 해제"
+          >
             {displayedTodos.map((item) => (
               <div
                 key={item.id}
-                className={`pomodoro-todo-item${item.completed ? " is-completed" : ""}`}
+                data-todo-id={item.id}
+                className={`pomodoro-todo-item${item.completed ? " is-completed" : ""}${selectedTodoId === item.id ? " is-selected" : ""}`}
+                aria-selected={selectedTodoId === item.id}
+                onClick={() => {
+                  selectTodo(item.id);
+                  todoListRef.current?.focus();
+                }}
               >
                 <input
                   type="checkbox"
@@ -428,10 +668,14 @@ export const PomodoroTimer = ({
         >
           <input
             type="text"
+            ref={todoInputRef}
             value={todoInput}
             onChange={(event) => setTodoInput(event.target.value)}
+            onKeyDown={handleTodoInputKeyDown}
+            onFocus={() => setSelectedTodoId(null)}
             placeholder="할 일 추가"
             aria-label="뽀모도로 투두 입력"
+            title="할 일 추가 (F) · ↑ 목록 이동 · ESC 포커스 해제"
           />
           <button type="submit" aria-label="투두 추가">
             추가

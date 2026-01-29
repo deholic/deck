@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Account, CustomEmoji, Mention, ReactionInput, Status } from "../../domain/types";
+import type { Account, CustomEmoji, LinkCard, MediaAttachment, Mention, ReactionInput, Status } from "../../domain/types";
 import type { MastodonApi } from "../../services/MastodonApi";
 import { sanitizeHtml } from "../utils/htmlSanitizer";
+import { renderMarkdown } from "../utils/markdown";
 import { renderTextWithLinks, type MentionLink } from "../utils/linkify";
 import BoostIcon from "../assets/boost-icon.svg?react";
 import ReplyIcon from "../assets/reply-icon.svg?react";
@@ -25,6 +26,261 @@ const normalizeMentionUrl = (url: string): string | null => {
   }
 };
 
+let activeFloatingVideoId: string | null = null;
+const previewCache = new Map<string, LinkCard | null>();
+const isPreviewEnabled = () => {
+  if (!import.meta.env.PROD) {
+    return false;
+  }
+  if (typeof window === "undefined") {
+    return false;
+  }
+  return !window.location.hostname.endsWith("github.io");
+};
+
+const extractFirstUrl = (text: string): string | null => {
+  if (!text) {
+    return null;
+  }
+  const match = text.match(/(https?:\/\/[^\s)\]]+|www\.[^\s)\]]+)/i);
+  if (!match) {
+    return null;
+  }
+  const value = match[0];
+  if (value.startsWith("http://") || value.startsWith("https://")) {
+    return value;
+  }
+  return `https://${value}`;
+};
+
+const MediaVideo = ({
+  id,
+  src,
+  poster,
+  label
+}: {
+  id: string;
+  src: string;
+  poster?: string | null;
+  label: string;
+}) => {
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [isVisible, setIsVisible] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isFloating, setIsFloating] = useState(false);
+  const [placeholderHeight, setPlaceholderHeight] = useState<number | null>(null);
+  const [floatingWidth, setFloatingWidth] = useState<number | null>(null);
+  const [floatingHeight, setFloatingHeight] = useState<number | null>(null);
+  const [isDismissed, setIsDismissed] = useState(false);
+  const isFloatingRef = useRef(false);
+
+  useEffect(() => {
+    if (!("IntersectionObserver" in window)) {
+      return;
+    }
+    const element = wrapperRef.current;
+    if (!element) {
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.25 }
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const element = videoRef.current;
+    if (!element) {
+      return;
+    }
+    const handlePlay = () => {
+      activeFloatingVideoId = id;
+      setIsPlaying(true);
+      setIsDismissed(false);
+    };
+    const handlePause = () => {
+      setIsPlaying(false);
+    };
+    element.addEventListener("play", handlePlay);
+    element.addEventListener("pause", handlePause);
+    element.addEventListener("ended", handlePause);
+    return () => {
+      element.removeEventListener("play", handlePlay);
+      element.removeEventListener("pause", handlePause);
+      element.removeEventListener("ended", handlePause);
+    };
+  }, [id]);
+
+  useEffect(() => {
+    const shouldFloat = !isVisible && activeFloatingVideoId === id && !isDismissed;
+    if (!shouldFloat) {
+      if (isFloating) {
+        setIsFloating(false);
+        setPlaceholderHeight(null);
+      }
+      if (isVisible && isDismissed) {
+        setIsDismissed(false);
+      }
+      return;
+    }
+    if (!isFloating) {
+      const height = wrapperRef.current?.getBoundingClientRect().height ?? null;
+      const width = wrapperRef.current?.getBoundingClientRect().width ?? null;
+      const currentHeight = videoRef.current?.getBoundingClientRect().height ?? null;
+      setPlaceholderHeight(height);
+      setFloatingWidth(width);
+      setFloatingHeight(currentHeight);
+      setIsFloating(true);
+    }
+  }, [id, isDismissed, isPlaying, isVisible, isFloating]);
+
+  useEffect(() => {
+    isFloatingRef.current = isFloating;
+  }, [isFloating]);
+
+  useEffect(() => {
+    const element = videoRef.current;
+    if (!element || !("ResizeObserver" in window)) {
+      return;
+    }
+    const observer = new ResizeObserver(() => {
+      if (!isFloatingRef.current) {
+        return;
+      }
+      const rect = element.getBoundingClientRect();
+      setFloatingHeight(rect.height);
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  const startResize = useCallback(
+    (
+      event: React.PointerEvent<HTMLElement>,
+      options: { horizontalFactor: -1 | 0 | 1; verticalFactor: -1 | 0 | 1 }
+    ) => {
+      if (!isFloatingRef.current) {
+        return;
+      }
+      const element = videoRef.current;
+      if (!element) {
+        return;
+      }
+      event.preventDefault();
+      const rect = element.getBoundingClientRect();
+      const startWidth = rect.width;
+      const startHeight = rect.height;
+      const startX = event.clientX;
+      const startY = event.clientY;
+      const ratio = startWidth / Math.max(1, startHeight);
+      const minWidth = 220;
+      const maxWidth = Math.min(window.innerWidth - 24, 720);
+
+      const handlePointerMove = (moveEvent: PointerEvent) => {
+        const deltaX = moveEvent.clientX - startX;
+        const deltaY = moveEvent.clientY - startY;
+        const isHorizontalResize = options.horizontalFactor !== 0;
+        const isVerticalResize = options.verticalFactor !== 0;
+        const widthFromHorizontal = startWidth + deltaX * options.horizontalFactor;
+        const heightFromVertical = startHeight + deltaY * options.verticalFactor;
+        const widthFromVertical = heightFromVertical * ratio;
+        const nextWidthRaw = isHorizontalResize
+          ? widthFromHorizontal
+          : isVerticalResize
+            ? widthFromVertical
+            : startWidth;
+        const nextWidth = Math.max(minWidth, Math.min(maxWidth, nextWidthRaw));
+        setFloatingWidth(nextWidth);
+      };
+      const handlePointerUp = () => {
+        window.removeEventListener("pointermove", handlePointerMove);
+        window.removeEventListener("pointerup", handlePointerUp);
+      };
+      window.addEventListener("pointermove", handlePointerMove);
+      window.addEventListener("pointerup", handlePointerUp);
+    },
+    []
+  );
+
+  return (
+    <div
+      ref={wrapperRef}
+      className={`status-media-video${isFloating ? " is-floating" : ""}`}
+      style={placeholderHeight ? { height: `${placeholderHeight}px` } : undefined}
+    >
+      <video
+        ref={videoRef}
+        controls
+        preload="metadata"
+        playsInline
+        poster={poster ?? undefined}
+        aria-label={label}
+        className={isFloating ? "is-floating" : undefined}
+        style={isFloating && floatingWidth ? { width: `${floatingWidth}px` } : undefined}
+      >
+        <source src={src} />
+      </video>
+      {isFloating && floatingWidth && floatingHeight ? (
+        <div
+          className="status-media-resize-overlay"
+          style={{ width: `${floatingWidth}px`, height: `${floatingHeight}px` }}
+          aria-hidden="true"
+        >
+          <button
+            type="button"
+            className="status-media-floating-close"
+            aria-label="고정 플레이어 닫기"
+            onClick={() => {
+              setIsFloating(false);
+              setPlaceholderHeight(null);
+              setIsDismissed(true);
+            }}
+          >
+            닫기
+          </button>
+          <span
+            className="status-media-resize-edge edge-top"
+            onPointerDown={(event) => startResize(event, { horizontalFactor: 0, verticalFactor: -1 })}
+          />
+          <span
+            className="status-media-resize-corner corner-top-left"
+            onPointerDown={(event) => startResize(event, { horizontalFactor: -1, verticalFactor: -1 })}
+          />
+          <span
+            className="status-media-resize-edge edge-right"
+            onPointerDown={(event) => startResize(event, { horizontalFactor: 1, verticalFactor: 0 })}
+          />
+          <span
+            className="status-media-resize-corner corner-top-right"
+            onPointerDown={(event) => startResize(event, { horizontalFactor: 1, verticalFactor: -1 })}
+          />
+          <span
+            className="status-media-resize-edge edge-bottom"
+            onPointerDown={(event) => startResize(event, { horizontalFactor: 0, verticalFactor: 1 })}
+          />
+          <span
+            className="status-media-resize-corner corner-bottom-right"
+            onPointerDown={(event) => startResize(event, { horizontalFactor: 1, verticalFactor: 1 })}
+          />
+          <span
+            className="status-media-resize-edge edge-left"
+            onPointerDown={(event) => startResize(event, { horizontalFactor: -1, verticalFactor: 0 })}
+          />
+          <span
+            className="status-media-resize-corner corner-bottom-left"
+            onPointerDown={(event) => startResize(event, { horizontalFactor: -1, verticalFactor: 1 })}
+          />
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
 export const TimelineItem = ({
   status,
   onReply,
@@ -36,6 +292,7 @@ export const TimelineItem = ({
   onProfileClick,
   onStatusClick,
   onSelect,
+  onUpdateStatus,
   isSelected = false,
   account,
   api,
@@ -58,6 +315,7 @@ export const TimelineItem = ({
   onProfileClick?: (status: Status) => void;
   onStatusClick?: (status: Status) => void;
   onSelect?: (statusId: string) => void;
+  onUpdateStatus?: (status: Status) => void;
   isSelected?: boolean;
   account: Account | null;
   api: MastodonApi;
@@ -77,6 +335,7 @@ export const TimelineItem = ({
   const [showContent, setShowContent] = useState(() => displayStatus.spoilerText.length === 0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [favouriteState, setFavouriteState] = useState<boolean | null>(false);
+  const [previewCard, setPreviewCard] = useState<LinkCard | null>(displayStatus.card ?? null);
   const imageContainerRef = useRef<HTMLDivElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -133,21 +392,29 @@ export const TimelineItem = ({
     reset: resetImageZoom
   } = useImageZoom(imageContainerRef, imageRef);
   const attachments = displayStatus.mediaAttachments;
-  const activeImageUrl = activeImageIndex !== null ? attachments[activeImageIndex]?.url ?? null : null;
+  const imageAttachments = useMemo(
+    () => attachments.filter((item) => item.kind === "image"),
+    [attachments]
+  );
+  const mediaAttachments = useMemo(
+    () => attachments.filter((item) => item.kind !== "image"),
+    [attachments]
+  );
+  const activeImageUrl = activeImageIndex !== null ? imageAttachments[activeImageIndex]?.url ?? null : null;
 
   const goToPrevImage = useCallback(() => {
-    if (activeImageIndex === null || attachments.length <= 1) return;
-    const prevIndex = activeImageIndex === 0 ? attachments.length - 1 : activeImageIndex - 1;
+    if (activeImageIndex === null || imageAttachments.length <= 1) return;
+    const prevIndex = activeImageIndex === 0 ? imageAttachments.length - 1 : activeImageIndex - 1;
     setActiveImageIndex(prevIndex);
     resetImageZoom();
-  }, [activeImageIndex, attachments.length, resetImageZoom]);
+  }, [activeImageIndex, imageAttachments.length, resetImageZoom]);
 
   const goToNextImage = useCallback(() => {
-    if (activeImageIndex === null || attachments.length <= 1) return;
-    const nextIndex = activeImageIndex === attachments.length - 1 ? 0 : activeImageIndex + 1;
+    if (activeImageIndex === null || imageAttachments.length <= 1) return;
+    const nextIndex = activeImageIndex === imageAttachments.length - 1 ? 0 : activeImageIndex + 1;
     setActiveImageIndex(nextIndex);
     resetImageZoom();
-  }, [activeImageIndex, attachments.length, resetImageZoom]);
+  }, [activeImageIndex, imageAttachments.length, resetImageZoom]);
 
   useEffect(() => {
     if (activeImageIndex === null) return;
@@ -169,7 +436,9 @@ export const TimelineItem = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [activeImageIndex, goToPrevImage, goToNextImage]);
 
-  const previewCard = displayStatus.card;
+  useEffect(() => {
+    setPreviewCard(displayStatus.card ?? null);
+  }, [displayStatus.card, displayStatus.id]);
   const displayHandle = useMemo(() => {
     if (displayStatus.accountHandle.includes("@")) {
       return displayStatus.accountHandle;
@@ -550,6 +819,46 @@ export const TimelineItem = ({
     },
     [mentionMap]
   );
+  const resolveMentionUrl = useCallback(
+    (handle: string) => {
+      const normalizedHandle = normalizeMentionHandle(handle);
+      if (!normalizedHandle) {
+        return null;
+      }
+      const mention = mentionMap.get(normalizedHandle) ?? null;
+      if (mention?.url) {
+        return mention.url;
+      }
+      if (!normalizedHandle.includes("@")) {
+        return null;
+      }
+      const [username, ...rest] = normalizedHandle.split("@");
+      const host = rest.join("@");
+      if (!username || !host) {
+        return null;
+      }
+      return `https://${host}/@${username}`;
+    },
+    [mentionMap]
+  );
+  const normalizedActiveMentionHandle = useMemo(() => {
+    const base = normalizeMentionHandle(activeAccountHandle);
+    if (!base) {
+      return "";
+    }
+    if (base.includes("@")) {
+      return base;
+    }
+    if (!activeAccountUrl) {
+      return base;
+    }
+    try {
+      const host = new URL(activeAccountUrl).hostname;
+      return host ? `${base}@${host}` : base;
+    } catch {
+      return base;
+    }
+  }, [activeAccountHandle, activeAccountUrl]);
   const handleRichContentClick = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
       if (!onProfileClick || !(event.target instanceof Element)) {
@@ -575,13 +884,43 @@ export const TimelineItem = ({
         const normalizedHandle = normalizeMentionHandle(text);
         mention = normalizedHandle ? mentionMap.get(normalizedHandle) ?? null : null;
       }
+      if (!mention) {
+        const text = anchor.textContent ?? "";
+        const normalizedHandle = normalizeMentionHandle(text);
+        let derivedHandle = normalizedHandle;
+        try {
+          const parsed = new URL(href);
+          const match = parsed.pathname.replace(/\/$/, "").match(/^\/@([^/]+)$/);
+          if (match?.[1]) {
+            const username = match[1];
+            derivedHandle = derivedHandle?.includes("@") ? derivedHandle : `${username}@${parsed.hostname}`;
+          }
+        } catch {
+          /* noop */
+        }
+        if (derivedHandle) {
+          mention = {
+            id: `mention-${displayStatus.id}-${derivedHandle}`,
+            displayName: derivedHandle,
+            handle: derivedHandle,
+            url: href
+          };
+        }
+      }
       if (!mention?.id) {
+        if (!mention) {
+          return;
+        }
+      }
+      const normalizedMentionHandle = normalizeMentionHandle(mention.handle);
+      if (normalizedMentionHandle && normalizedMentionHandle === normalizedActiveMentionHandle) {
+        event.preventDefault();
         return;
       }
       event.preventDefault();
       onProfileClick(buildMentionStatus(mention));
     },
-    [buildMentionStatus, mentionMap, mentionUrlMap, onProfileClick]
+    [buildMentionStatus, mentionMap, mentionUrlMap, normalizedActiveMentionHandle, onProfileClick]
   );
 
   const tokenizeWithEmojis = useCallback((text: string, emojiMap: Map<string, string>) => {
@@ -640,6 +979,21 @@ export const TimelineItem = ({
       );
     }
     
+    if (account?.platform === "misskey") {
+      const emojiMap =
+        showCustomEmojis && displayStatus.customEmojis.length > 0
+          ? buildEmojiMap(displayStatus.customEmojis)
+          : undefined;
+      const markdownHtml = renderMarkdown(displayStatus.content, emojiMap, { mentionResolver: resolveMentionUrl });
+      return (
+        <div
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(markdownHtml) }}
+          className="rich-content"
+          onClick={handleRichContentClick}
+        />
+      );
+    }
+
     // Fallback to plain text with link detection
     const text = displayStatus.content;
     if (!showCustomEmojis || displayStatus.customEmojis.length === 0) {
@@ -674,10 +1028,15 @@ export const TimelineItem = ({
     return parts;
   }, [
     buildEmojiMap,
+    account?.platform,
     displayStatus.content,
     displayStatus.customEmojis,
-    displayStatus.htmlContent,
     displayStatus.hasRichContent,
+    displayStatus.htmlContent,
+    handleMentionClick,
+    handleRichContentClick,
+    resolveMention,
+    resolveMentionUrl,
     showCustomEmojis,
     tokenizeWithEmojis
   ]);
@@ -769,8 +1128,39 @@ export const TimelineItem = ({
     actionsEnabled &&
     showReactions &&
     account?.platform === "misskey";
-  const hasAttachmentButtons = showContent && attachments.length > 0;
+  const hasAttachmentButtons = showContent && imageAttachments.length > 0;
   const shouldRenderFooter = actionsEnabled || hasAttachmentButtons;
+  const renderMediaItem = useCallback((item: MediaAttachment) => {
+    const label = item.description ?? "첨부 미디어";
+    if (item.kind === "audio") {
+      return (
+        <div key={item.id} className="status-media-item">
+          <audio controls preload="metadata" aria-label={label}>
+            <source src={item.url} />
+          </audio>
+        </div>
+      );
+    }
+    if (item.kind === "unknown") {
+      return (
+        <div key={item.id} className="status-media-item">
+          <a className="status-media-link" href={item.url} target="_blank" rel="noreferrer">
+            첨부 파일 열기
+          </a>
+        </div>
+      );
+    }
+    return (
+      <div key={item.id} className="status-media-item">
+        <MediaVideo
+          id={item.id}
+          src={item.url}
+          poster={item.previewUrl}
+          label={item.description ?? "첨부 동영상"}
+        />
+      </div>
+    );
+  }, []);
 
   useEffect(() => {
     setShowContent(displayStatus.spoilerText.length === 0);
@@ -786,6 +1176,80 @@ export const TimelineItem = ({
       document.body.style.overflow = previous;
     };
   }, [activeImageUrl]);
+
+  const previewCandidate = useMemo(
+    () => (displayStatus.card ? null : extractFirstUrl(displayStatus.content)),
+    [displayStatus.card, displayStatus.content]
+  );
+
+  useEffect(() => {
+    if (!isPreviewEnabled() || previewCard || !previewCandidate || account?.platform !== "misskey") {
+      return;
+    }
+    if (previewCache.has(previewCandidate)) {
+      const cached = previewCache.get(previewCandidate) ?? null;
+      if (cached) {
+        setPreviewCard(cached);
+      }
+      return;
+    }
+
+    let cancelled = false;
+    const controller = new AbortController();
+
+    const fetchPreview = async () => {
+      try {
+        const response = await fetch(`/api/preview?url=${encodeURIComponent(previewCandidate)}`, {
+          signal: controller.signal
+        });
+        if (!response.ok) {
+          previewCache.set(previewCandidate, null);
+          return;
+        }
+        const data = (await response.json()) as
+          | { url?: string; title?: string; description?: string | null; image?: string | null; error?: string }
+          | undefined;
+        if (!data || data.error || !data.title || !data.url) {
+          previewCache.set(previewCandidate, null);
+          return;
+        }
+        const card: LinkCard = {
+          url: data.url,
+          title: data.title,
+          description: data.description ?? null,
+          image: data.image ?? null
+        };
+        previewCache.set(previewCandidate, card);
+        if (cancelled) {
+          return;
+        }
+        setPreviewCard(card);
+        const updateTarget = (() => {
+          if (displayStatus.id === status.id) {
+            return { ...status, card };
+          }
+          if (status.reblog && status.reblog.id === displayStatus.id) {
+            return { ...status, reblog: { ...status.reblog, card } };
+          }
+          return null;
+        })();
+        if (updateTarget && onUpdateStatus) {
+          onUpdateStatus(updateTarget);
+        }
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
+        previewCache.set(previewCandidate, null);
+      }
+    };
+
+    fetchPreview();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [account?.platform, displayStatus.id, displayStatus.card, displayStatus.content, onUpdateStatus, previewCandidate, previewCard, status]);
 
 
   const handleReactionSelect = useCallback(
@@ -995,6 +1459,11 @@ export const TimelineItem = ({
               </div>
             </a>
           ) : null}
+          {mediaAttachments.length > 0 ? (
+            <div className="status-media" data-interactive="true">
+              {mediaAttachments.map((item) => renderMediaItem(item))}
+            </div>
+          ) : null}
         </>
       ) : null}
       <div
@@ -1091,7 +1560,7 @@ export const TimelineItem = ({
               </>
             ) : null}
             {showContent
-              ? attachments.map((item, index) => (
+              ? imageAttachments.map((item, index) => (
                   <button
                     key={item.id}
                     type="button"
@@ -1103,7 +1572,7 @@ export const TimelineItem = ({
                     data-action={index === 0 ? "open-image" : undefined}
                     aria-label={item.description ? `이미지 보기: ${item.description}` : "이미지 보기"}
                   >
-                    <img src={item.url} alt={item.description ?? "첨부 이미지"} loading="lazy" />
+                    <img src={item.previewUrl ?? item.url} alt={item.description ?? "첨부 이미지"} loading="lazy" />
                   </button>
                 ))
               : null}
@@ -1191,7 +1660,7 @@ export const TimelineItem = ({
             >
               닫기
             </button>
-            {attachments.length > 1 ? (
+            {imageAttachments.length > 1 ? (
               <button
                 type="button"
                 className="image-modal-nav image-modal-nav-prev"
@@ -1203,7 +1672,7 @@ export const TimelineItem = ({
                 </svg>
               </button>
             ) : null}
-            {attachments.length > 1 ? (
+            {imageAttachments.length > 1 ? (
               <button
                 type="button"
                 className="image-modal-nav image-modal-nav-next"
@@ -1228,9 +1697,9 @@ export const TimelineItem = ({
               onLoad={handleImageLoad}
               onPointerDown={handlePointerDown}
             />
-            {attachments.length > 1 ? (
+            {imageAttachments.length > 1 ? (
               <div className="image-modal-counter">
-                {(activeImageIndex ?? 0) + 1} / {attachments.length}
+                {(activeImageIndex ?? 0) + 1} / {imageAttachments.length}
               </div>
             ) : null}
           </div>
@@ -1239,10 +1708,3 @@ export const TimelineItem = ({
     </article>
   );
 };
-
-
-
-
-
-
-

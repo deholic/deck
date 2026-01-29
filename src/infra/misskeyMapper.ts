@@ -23,6 +23,23 @@ const mapVisibility = (visibility: string): Visibility => {
   }
 };
 
+const inferKindFromUrl = (value: string): MediaAttachment["kind"] => {
+  const lower = value.toLowerCase();
+  if (/(\.|\/)(gifv)(\?|#|$)/.test(lower)) {
+    return "gifv";
+  }
+  if (/(\.|\/)(mp4|webm|mov|m4v|ogv)(\?|#|$)/.test(lower)) {
+    return "video";
+  }
+  if (/(\.|\/)(mp3|wav|ogg|m4a|flac)(\?|#|$)/.test(lower)) {
+    return "audio";
+  }
+  if (/(\.|\/)(gif|jpg|jpeg|png|webp)(\?|#|$)/.test(lower)) {
+    return "image";
+  }
+  return "unknown";
+};
+
 const mapMediaAttachments = (files: unknown): MediaAttachment[] => {
   if (!Array.isArray(files)) {
     return [];
@@ -36,10 +53,28 @@ const mapMediaAttachments = (files: unknown): MediaAttachment[] => {
       const id = String(typed.id ?? "");
       const url = typeof typed.url === "string" ? typed.url : "";
       const description = typeof typed.comment === "string" ? typed.comment : null;
+      const previewUrl =
+        typeof typed.thumbnailUrl === "string"
+          ? typed.thumbnailUrl
+          : typeof typed.previewUrl === "string"
+            ? typed.previewUrl
+            : null;
+      const rawType = typeof typed.type === "string" ? typed.type : "";
+      const normalizedType = rawType.toLowerCase();
+      const kind: MediaAttachment["kind"] =
+        normalizedType.startsWith("image/") || normalizedType === "image"
+          ? "image"
+          : normalizedType.startsWith("video/") || normalizedType === "video"
+            ? "video"
+            : normalizedType.startsWith("audio/") || normalizedType === "audio"
+              ? "audio"
+              : url
+                ? inferKindFromUrl(url)
+                : "unknown";
       if (!id || !url) {
         return null;
       }
-      return { id, url, description };
+      return { id, url, previewUrl, description, kind };
     })
     .filter((file): file is MediaAttachment => file !== null);
 };
@@ -425,6 +460,7 @@ export const mapMisskeyStatusWithInstance = (raw: unknown, instanceUrl?: string)
     reactions,
     reblogged,
     favourited,
+    bookmarked: false,
     inReplyToId: value.replyId ? String(value.replyId) : null,
     mentions,
     mediaAttachments,
@@ -776,6 +812,7 @@ export const mapMisskeyNotification = (raw: unknown, instanceUrl?: string): Stat
     accountUrl: normalizedAccountUrl,
     accountAvatarUrl: normalizedAccountAvatarUrl,
     content,
+    hasRichContent: false,
     url: target?.url ?? null,
     visibility: target?.visibility ?? "public",
     spoilerText: "",
@@ -787,6 +824,7 @@ export const mapMisskeyNotification = (raw: unknown, instanceUrl?: string): Stat
     reactions: [],
     reblogged: false,
     favourited: false,
+    bookmarked: false,
     inReplyToId: target?.inReplyToId ?? null,
     mentions: [],
     mediaAttachments: target?.mediaAttachments ?? [],

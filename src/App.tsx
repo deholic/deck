@@ -135,6 +135,7 @@ export const App = () => {
   );
   const [replyTarget, setReplyTarget] = useState<Status | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<Status | null>(null);
+  const [selectedStatusThreadAccount, setSelectedStatusThreadAccount] = useState<Account | null>(null);
   const [selectedTimelineStatus, setSelectedTimelineStatus] = useState<SelectedTimelineStatus | null>(null);
   const [profileTargets, setProfileTargets] = useState<ProfileTarget[]>([]);
   const [statusModalZIndex, setStatusModalZIndex] = useState<number | null>(null);
@@ -494,14 +495,79 @@ export const App = () => {
     );
   }, []);
 
+  const selectLeftmostTimelineAtY = useCallback(
+    (targetCenterY: number) => {
+      const board = timelineBoardRef.current;
+      if (!board) {
+        return;
+      }
+      const boardRect = board.getBoundingClientRect();
+      let leftmostSectionId: string | null = null;
+      let leftmostPosition = Number.POSITIVE_INFINITY;
+      sections.forEach((section) => {
+        const element = sectionRefs.current.get(section.id);
+        if (!element) {
+          return;
+        }
+        const rect = element.getBoundingClientRect();
+        if (rect.right <= boardRect.left || rect.left >= boardRect.right) {
+          return;
+        }
+        if (rect.left < leftmostPosition) {
+          leftmostPosition = rect.left;
+          leftmostSectionId = section.id;
+        }
+      });
+      if (!leftmostSectionId) {
+        return;
+      }
+      const items = sectionItemsRef.current.get(leftmostSectionId) ?? [];
+      if (items.length === 0) {
+        return;
+      }
+      const sectionElement = sectionRefs.current.get(leftmostSectionId);
+      const statusElements = sectionElement?.querySelectorAll<HTMLElement>("[data-status-id]");
+      let nextStatusId = items[0]?.id ?? null;
+      if (statusElements && statusElements.length > 0) {
+        let closestMatch: { id: string; distance: number } | null = null;
+        for (const element of Array.from(statusElements)) {
+          const statusId = element.dataset.statusId;
+          if (!statusId) {
+            continue;
+          }
+          const rect = element.getBoundingClientRect();
+          const centerY = rect.top + rect.height / 2;
+          const distance = Math.abs(centerY - targetCenterY);
+          if (!closestMatch || distance < closestMatch.distance) {
+            closestMatch = { id: statusId, distance };
+          }
+        }
+        if (closestMatch) {
+          nextStatusId = closestMatch.id;
+        }
+      }
+      if (!nextStatusId) {
+        return;
+      }
+      setSelectedTimelineStatus({ sectionId: leftmostSectionId, statusId: nextStatusId });
+    },
+    [sections]
+  );
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented) {
         return;
       }
+      if (document.querySelector('[data-emoji-picker-open="true"]')) {
+        return;
+      }
       const hasOverlayBackdrop = document.querySelector(
         ".overlay-backdrop, .image-modal, .confirm-modal, .profile-modal, .status-modal, .settings-modal, .info-modal"
       );
+      if (hasOverlayBackdrop) {
+        return;
+      }
       if (selectedStatus || settingsOpen || infoModal || mobileMenuOpen || mobileComposeOpen) {
         return;
       }
@@ -826,8 +892,7 @@ export const App = () => {
   const handleStatusClick = (status: Status, columnAccount: Account | null) => {
     setSelectedStatus(status);
     setStatusModalZIndex(nextModalZIndexRef.current++);
-    // Status에 columnAccount 정보를 임시 저장
-    (status as any).__columnAccount = columnAccount;
+    setSelectedStatusThreadAccount(columnAccount);
   };
 
   const handleProfileOpen = useCallback((target: Status, columnAccount: Account | null) => {
@@ -850,6 +915,7 @@ export const App = () => {
   const handleCloseStatusModal = () => {
     setSelectedStatus(null);
     setStatusModalZIndex(null);
+    setSelectedStatusThreadAccount(null);
   };
 
   const handleReaction = useCallback(
@@ -862,24 +928,25 @@ export const App = () => {
         setActionError("리액션은 미스키 계정에서만 사용할 수 있습니다.");
         return;
       }
-      if (status.myReaction && status.myReaction !== reaction.name) {
+      const target = status.reblog ?? status;
+      if (target.myReaction && target.myReaction !== reaction.name) {
         setActionError("이미 리액션을 남겼습니다. 먼저 취소해주세요.");
         return;
       }
       setActionError(null);
-      const isRemoving = status.myReaction === reaction.name;
-      const optimistic = buildOptimisticReactionStatus(status, reaction, isRemoving);
+      const isRemoving = target.myReaction === reaction.name;
+      const optimistic = buildOptimisticReactionStatus(target, reaction, isRemoving);
       updateStatusEverywhere(account.id, optimistic);
       try {
-      const updated = isRemoving
-          ? await services.api.deleteReaction(account, status.id)
-          : await services.api.createReaction(account, status.id, reaction.name);
+        const updated = isRemoving
+          ? await services.api.deleteReaction(account, target.id)
+          : await services.api.createReaction(account, target.id, reaction.name);
         if (!hasSameReactions(updated, optimistic)) {
           updateStatusEverywhere(account.id, updated);
         }
       } catch (err) {
         setActionError(err instanceof Error ? err.message : "리액션 처리에 실패했습니다.");
-        updateStatusEverywhere(account.id, status);
+        updateStatusEverywhere(account.id, target);
       }
     },
     [services.api, updateStatusEverywhere]
@@ -986,7 +1053,7 @@ export const App = () => {
     <div className="app">
       <header className="app-header">
         <a href="#/" className="app-logo" aria-label="Deck 홈">
-          <img src={logoUrl} alt="Deck logo" />
+          <img src={logoUrl} alt="Deck 로고" />
         </a>
         <div className="app-header-actions">
           <button
@@ -1048,12 +1115,15 @@ export const App = () => {
               longBreakMinutes={pomodoroLongBreak}
               onSessionTypeChange={setPomodoroSessionType}
               onRunningChange={setPomodoroIsRunning}
+              isTimelineItemSelected={!!selectedTimelineStatus}
+              onRequestClearTimelineSelection={() => setSelectedTimelineStatus(null)}
+              onRequestSelectTimelineAtY={selectLeftmostTimelineAtY}
             />
           ) : null}
           {route === "home" ? (
             <section className="panel sidebar-panel">
               <div className="brand">
-                <img src={logoUrl} alt="Deck logo" />
+                <img src={logoUrl} alt="Deck 로고" />
                 <div className="brand-text">
                   <h1>Deck</h1>
                   <p>오픈소스 페디버스 웹 클라이언트</p>
@@ -1301,10 +1371,11 @@ export const App = () => {
         <StatusModal
           status={selectedStatus}
           account={composeAccount}
-          threadAccount={(selectedStatus as any).__columnAccount || null}
+          threadAccount={selectedStatusThreadAccount}
           api={services.api}
           zIndex={statusModalZIndex ?? undefined}
           onClose={handleCloseStatusModal}
+          onUpdateStatus={setSelectedStatus}
           onProfileClick={handleProfileOpen}
           onReply={(status) => {
             if (composeAccount) {

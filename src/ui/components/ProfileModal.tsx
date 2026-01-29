@@ -976,26 +976,27 @@ export const ProfileModal = ({
           {items.length > 0 ? (
             <div className="timeline">
               {items.map((item) => (
-                <TimelineItem
-                  key={item.id}
-                  status={item}
-                  onReply={(target) => onReply(target, account)}
-                   onToggleFavourite={handleToggleFavourite}
-                   onToggleReblog={handleToggleReblog}
-                   onToggleBookmark={handleToggleBookmark}
-                   onDelete={handleDeleteStatus}
-                  onReact={handleReact}
-                  onStatusClick={onStatusClick}
-                  onProfileClick={(target) => onProfileClick(target, account)}
-                  activeHandle={activeHandle}
-                  activeAccountHandle={account?.handle ?? ""}
-                  activeAccountUrl={account?.url ?? null}
-                  account={account}
-                  api={api}
-                  showProfileImage={showProfileImage}
-                  showCustomEmojis={showCustomEmojis}
-                  showReactions={showReactions}
-                />
+                  <TimelineItem
+                    key={item.id}
+                    status={item}
+                    onReply={(target) => onReply(target, account)}
+                    onToggleFavourite={handleToggleFavourite}
+                    onToggleReblog={handleToggleReblog}
+                    onToggleBookmark={handleToggleBookmark}
+                    onDelete={handleDeleteStatus}
+                    onReact={handleReact}
+                    onStatusClick={onStatusClick}
+                    onProfileClick={(target) => onProfileClick(target, account)}
+                    onUpdateStatus={updateItem}
+                    activeHandle={activeHandle}
+                    activeAccountHandle={account?.handle ?? ""}
+                    activeAccountUrl={account?.url ?? null}
+                    account={account}
+                    api={api}
+                    showProfileImage={showProfileImage}
+                    showCustomEmojis={showCustomEmojis}
+                    showReactions={showReactions}
+                  />
               ))}
             </div>
           ) : null}

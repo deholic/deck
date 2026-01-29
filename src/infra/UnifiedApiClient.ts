@@ -31,8 +31,7 @@ export class UnifiedApiClient implements MastodonApi {
   }
 
   fetchInstanceInfo(account: Account): Promise<InstanceInfo> {
-    const client = this.getClient(account) as any;
-    return client.fetchInstanceInfo(account);
+    return this.getClient(account).fetchInstanceInfo(account);
   }
 
   fetchAccountProfile(account: Account, accountId: string) {
@@ -124,14 +123,6 @@ export class UnifiedApiClient implements MastodonApi {
   }
 
   async fetchThreadContext(account: Account, statusId: string): Promise<ThreadContext> {
-    if (account.platform === "misskey") {
-      // MisskeyHttpClient에는 fetchConversation 메서드가 있음
-      const misskeyClient = this.getClient(account) as any;
-      return misskeyClient.fetchConversation(account, statusId);
-    } else {
-      // MastodonHttpClient에는 fetchContext 메서드가 있음
-      const mastodonClient = this.getClient(account) as any;
-      return mastodonClient.fetchContext(account, statusId);
-    }
+    return this.getClient(account).fetchThreadContext(account, statusId);
   }
 }
