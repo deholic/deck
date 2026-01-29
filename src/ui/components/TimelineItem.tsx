@@ -366,11 +366,11 @@ export const TimelineItem = ({
   const handleMenuToggle = useCallback(async () => {
     const willOpen = !menuOpen;
     setMenuOpen(willOpen);
-    
+
     if (willOpen && account && api && account.platform === "misskey") {
       // 초기 상태를 null로 설정하여 비활성화 상태로 표시
       setFavouriteState(null);
-      
+
       try {
         const state = await api.fetchNoteState(account, displayStatus.id);
         setFavouriteState(state.isFavourited);
@@ -1375,32 +1375,24 @@ export const TimelineItem = ({
             <>
               <div className="overlay-backdrop" aria-hidden="true" />
               <div ref={menuRef} className="section-menu-panel status-menu-panel" role="menu">
-                {/* 미스키: 즐겨찾기만 사용 */}
                 {account?.platform === "misskey" && (
-                  <button 
+                  <button
                     type="button"
                     disabled={favouriteState === null}
                     onClick={() => {
-                      // 메뉴 즉시 닫기
                       setMenuOpen(false);
-                      
-                      // 즐겨찾기 처리 비동기 실행
-                      (async () => {
+
+                      void (async () => {
                         try {
-                          // 현재 상태에 따라 적절한 API 호출
-                          let updatedStatus: Status;
                           if (favouriteState) {
-                            updatedStatus = await api.unfavourite(account!, displayStatus.id);
+                            await api.unfavourite(account, displayStatus.id);
                           } else {
-                            updatedStatus = await api.favourite(account!, displayStatus.id);
+                            await api.favourite(account, displayStatus.id);
                           }
-                          
-                          // API 호출 후 최신 상태 다시 확인
-                          const state = await api.fetchNoteState(account!, displayStatus.id);
+
+                          const state = await api.fetchNoteState(account, displayStatus.id);
                           const newFavouriteState = state.isFavourited;
                           setFavouriteState(newFavouriteState);
-                          
-                          // 토스트 메시지 표시
                           showToast(
                             newFavouriteState ? "즐겨찾기에 추가했습니다." : "즐겨찾기에서 해제했습니다.",
                             { tone: "success" }
@@ -1412,14 +1404,12 @@ export const TimelineItem = ({
                       })();
                     }}
                   >
-                    {favouriteState === null ? "로딩..." : (favouriteState ? "즐겨찾기 취소" : "즐겨찾기")}
+                    {favouriteState === null ? "로딩..." : favouriteState ? "즐겨찾기 취소" : "즐겨찾기"}
                   </button>
                 )}
-                
-                {/* 마스토돈: 북마크만 사용 */}
                 {account?.platform === "mastodon" && (
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => {
                       onToggleBookmark(displayStatus);
                       setMenuOpen(false);
@@ -1428,7 +1418,6 @@ export const TimelineItem = ({
                     {displayStatus.bookmarked ? "북마크 취소" : "북마크"}
                   </button>
                 )}
-                
                 <button type="button" onClick={handleOpenOrigin} disabled={!originUrl}>
                   원본 서버에서 보기
                 </button>
