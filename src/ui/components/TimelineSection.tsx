@@ -740,6 +740,20 @@ export const TimelineSection = ({
   );
 
   useEffect(() => {
+    if (!timelineMenuOpen && !notificationsOpen && !menuOpen) {
+      return;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      const handled = handleTimelineShortcuts(event);
+      if (handled) {
+        event.stopPropagation();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown, { capture: true });
+    return () => window.removeEventListener("keydown", onKeyDown, { capture: true });
+  }, [handleTimelineShortcuts, menuOpen, notificationsOpen, timelineMenuOpen]);
+
+  useEffect(() => {
     registerTimelineShortcutHandler(section.id, handleTimelineShortcuts);
     return () => registerTimelineShortcutHandler(section.id, null);
   }, [handleTimelineShortcuts, registerTimelineShortcutHandler, section.id]);
