@@ -1375,6 +1375,7 @@ export const App = () => {
           api={services.api}
           zIndex={statusModalZIndex ?? undefined}
           onClose={handleCloseStatusModal}
+          onUpdateStatus={setSelectedStatus}
           onProfileClick={handleProfileOpen}
           onReply={(status) => {
             if (composeAccount) {

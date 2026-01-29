@@ -18,6 +18,7 @@ export const StatusModal = ({
   onToggleBookmark,
   onDelete,
   onProfileClick,
+  onUpdateStatus,
   activeHandle,
   activeAccountHandle,
   activeAccountUrl,
@@ -37,6 +38,7 @@ export const StatusModal = ({
   onToggleBookmark: (status: Status) => void;
   onDelete?: (status: Status) => void;
   onProfileClick?: (status: Status, account: Account | null) => void;
+  onUpdateStatus?: (status: Status) => void;
   activeHandle: string;
   activeAccountHandle: string;
   activeAccountUrl: string | null;
@@ -235,6 +237,7 @@ export const StatusModal = ({
             onToggleBookmark={onToggleBookmark}
             onDelete={onDelete || (() => {})}
             onProfileClick={handleProfileClick}
+            onUpdateStatus={onUpdateStatus}
             activeHandle={activeHandle}
             activeAccountHandle={activeAccountHandle}
             activeAccountUrl={activeAccountUrl}
