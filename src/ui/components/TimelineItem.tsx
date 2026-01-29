@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { Account, CustomEmoji, MediaAttachment, Mention, ReactionInput, Status } from "../../domain/types";
 import type { MastodonApi } from "../../services/MastodonApi";
 import { sanitizeHtml } from "../utils/htmlSanitizer";
+import { renderMarkdown } from "../utils/markdown";
 import { renderTextWithLinks, type MentionLink } from "../utils/linkify";
 import BoostIcon from "../assets/boost-icon.svg?react";
 import ReplyIcon from "../assets/reply-icon.svg?react";
@@ -878,6 +879,21 @@ export const TimelineItem = ({
       );
     }
     
+    if (account?.platform === "misskey") {
+      const emojiMap =
+        showCustomEmojis && displayStatus.customEmojis.length > 0
+          ? buildEmojiMap(displayStatus.customEmojis)
+          : undefined;
+      const markdownHtml = renderMarkdown(displayStatus.content, emojiMap);
+      return (
+        <div
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(markdownHtml) }}
+          className="rich-content"
+          onClick={handleRichContentClick}
+        />
+      );
+    }
+
     // Fallback to plain text with link detection
     const text = displayStatus.content;
     if (!showCustomEmojis || displayStatus.customEmojis.length === 0) {
@@ -912,6 +928,7 @@ export const TimelineItem = ({
     return parts;
   }, [
     buildEmojiMap,
+    account?.platform,
     displayStatus.content,
     displayStatus.customEmojis,
     displayStatus.htmlContent,
