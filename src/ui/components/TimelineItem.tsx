@@ -137,7 +137,7 @@ const MediaVideo = ({
       setFloatingHeight(currentHeight);
       setIsFloating(true);
     }
-  }, [id, isPlaying, isVisible, isFloating]);
+  }, [id, isDismissed, isPlaying, isVisible, isFloating]);
 
   useEffect(() => {
     isFloatingRef.current = isFloating;
@@ -1031,8 +1031,11 @@ export const TimelineItem = ({
     account?.platform,
     displayStatus.content,
     displayStatus.customEmojis,
-    displayStatus.htmlContent,
     displayStatus.hasRichContent,
+    displayStatus.htmlContent,
+    handleMentionClick,
+    handleRichContentClick,
+    resolveMention,
     resolveMentionUrl,
     showCustomEmojis,
     tokenizeWithEmojis
