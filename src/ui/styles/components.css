@@ -3100,6 +3100,10 @@ button.ghost {
   gap: 8px;
 }
 
+.pomodoro-todo-list:focus {
+  outline: none;
+}
+
 .pomodoro-todo-item {
   display: flex;
   align-items: center;
@@ -3111,6 +3115,11 @@ button.ghost {
   border: 1px solid var(--color-panel-border);
   color: var(--color-text);
   font-size: 13px;
+}
+
+.pomodoro-todo-item.is-selected {
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--color-action-active-bg) inset;
 }
 
 .pomodoro-todo-item.is-completed .pomodoro-todo-text {

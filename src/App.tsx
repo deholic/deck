@@ -494,6 +494,65 @@ export const App = () => {
     );
   }, []);
 
+  const selectLeftmostTimelineAtY = useCallback(
+    (targetCenterY: number) => {
+      const board = timelineBoardRef.current;
+      if (!board) {
+        return;
+      }
+      const boardRect = board.getBoundingClientRect();
+      let leftmostSectionId: string | null = null;
+      let leftmostPosition = Number.POSITIVE_INFINITY;
+      sections.forEach((section) => {
+        const element = sectionRefs.current.get(section.id);
+        if (!element) {
+          return;
+        }
+        const rect = element.getBoundingClientRect();
+        if (rect.right <= boardRect.left || rect.left >= boardRect.right) {
+          return;
+        }
+        if (rect.left < leftmostPosition) {
+          leftmostPosition = rect.left;
+          leftmostSectionId = section.id;
+        }
+      });
+      if (!leftmostSectionId) {
+        return;
+      }
+      const items = sectionItemsRef.current.get(leftmostSectionId) ?? [];
+      if (items.length === 0) {
+        return;
+      }
+      const sectionElement = sectionRefs.current.get(leftmostSectionId);
+      const statusElements = sectionElement?.querySelectorAll<HTMLElement>("[data-status-id]");
+      let nextStatusId = items[0]?.id ?? null;
+      if (statusElements && statusElements.length > 0) {
+        let closestMatch: { id: string; distance: number } | null = null;
+        for (const element of Array.from(statusElements)) {
+          const statusId = element.dataset.statusId;
+          if (!statusId) {
+            continue;
+          }
+          const rect = element.getBoundingClientRect();
+          const centerY = rect.top + rect.height / 2;
+          const distance = Math.abs(centerY - targetCenterY);
+          if (!closestMatch || distance < closestMatch.distance) {
+            closestMatch = { id: statusId, distance };
+          }
+        }
+        if (closestMatch) {
+          nextStatusId = closestMatch.id;
+        }
+      }
+      if (!nextStatusId) {
+        return;
+      }
+      setSelectedTimelineStatus({ sectionId: leftmostSectionId, statusId: nextStatusId });
+    },
+    [sections]
+  );
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented) {
@@ -1055,6 +1114,9 @@ export const App = () => {
               longBreakMinutes={pomodoroLongBreak}
               onSessionTypeChange={setPomodoroSessionType}
               onRunningChange={setPomodoroIsRunning}
+              isTimelineItemSelected={!!selectedTimelineStatus}
+              onRequestClearTimelineSelection={() => setSelectedTimelineStatus(null)}
+              onRequestSelectTimelineAtY={selectLeftmostTimelineAtY}
             />
           ) : null}
           {route === "home" ? (
