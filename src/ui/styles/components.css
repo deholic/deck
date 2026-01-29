@@ -921,6 +921,8 @@
 }
 
 .compose-emoji-panel {
+  position: relative;
+  z-index: 20;
   margin-top: 12px;
   border: 1px solid var(--color-emoji-panel-border);
   border-radius: 12px;
