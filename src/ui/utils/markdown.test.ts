@@ -69,4 +69,15 @@ describe("renderMarkdown", () => {
       '<p><a href="https://example.com" target="_blank" rel="noreferrer">go <img src="https://example.com/wave.png" alt=":wave:" class="custom-emoji" loading="lazy" /></a></p>'
     );
   });
+
+  it("renders mention links using resolver", () => {
+    const input = "hello @user@example.com";
+    const output = renderMarkdown(input, undefined, {
+      mentionResolver: (handle) => (handle === "user@example.com" ? "https://example.com/@user" : null)
+    });
+
+    expect(output).toBe(
+      '<p>hello <a href="https://example.com/@user" class="mention" target="_blank" rel="noreferrer">@user@example.com</a></p>'
+    );
+  });
 });
