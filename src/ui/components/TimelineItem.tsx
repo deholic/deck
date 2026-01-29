@@ -789,6 +789,24 @@ export const TimelineItem = ({
     },
     [mentionMap]
   );
+  const normalizedActiveMentionHandle = useMemo(() => {
+    const base = normalizeMentionHandle(activeAccountHandle);
+    if (!base) {
+      return "";
+    }
+    if (base.includes("@")) {
+      return base;
+    }
+    if (!activeAccountUrl) {
+      return base;
+    }
+    try {
+      const host = new URL(activeAccountUrl).hostname;
+      return host ? `${base}@${host}` : base;
+    } catch {
+      return base;
+    }
+  }, [activeAccountHandle, activeAccountUrl]);
   const handleRichContentClick = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
       if (!onProfileClick || !(event.target instanceof Element)) {
@@ -814,13 +832,43 @@ export const TimelineItem = ({
         const normalizedHandle = normalizeMentionHandle(text);
         mention = normalizedHandle ? mentionMap.get(normalizedHandle) ?? null : null;
       }
+      if (!mention) {
+        const text = anchor.textContent ?? "";
+        const normalizedHandle = normalizeMentionHandle(text);
+        let derivedHandle = normalizedHandle;
+        try {
+          const parsed = new URL(href);
+          const match = parsed.pathname.replace(/\/$/, "").match(/^\/@([^/]+)$/);
+          if (match?.[1]) {
+            const username = match[1];
+            derivedHandle = derivedHandle?.includes("@") ? derivedHandle : `${username}@${parsed.hostname}`;
+          }
+        } catch {
+          /* noop */
+        }
+        if (derivedHandle) {
+          mention = {
+            id: `mention-${displayStatus.id}-${derivedHandle}`,
+            displayName: derivedHandle,
+            handle: derivedHandle,
+            url: href
+          };
+        }
+      }
       if (!mention?.id) {
+        if (!mention) {
+          return;
+        }
+      }
+      const normalizedMentionHandle = normalizeMentionHandle(mention.handle);
+      if (normalizedMentionHandle && normalizedMentionHandle === normalizedActiveMentionHandle) {
+        event.preventDefault();
         return;
       }
       event.preventDefault();
       onProfileClick(buildMentionStatus(mention));
     },
-    [buildMentionStatus, mentionMap, mentionUrlMap, onProfileClick]
+    [buildMentionStatus, mentionMap, mentionUrlMap, normalizedActiveMentionHandle, onProfileClick]
   );
 
   const tokenizeWithEmojis = useCallback((text: string, emojiMap: Map<string, string>) => {
