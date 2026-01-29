@@ -135,6 +135,7 @@ export const App = () => {
   );
   const [replyTarget, setReplyTarget] = useState<Status | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<Status | null>(null);
+  const [selectedStatusThreadAccount, setSelectedStatusThreadAccount] = useState<Account | null>(null);
   const [selectedTimelineStatus, setSelectedTimelineStatus] = useState<SelectedTimelineStatus | null>(null);
   const [profileTargets, setProfileTargets] = useState<ProfileTarget[]>([]);
   const [statusModalZIndex, setStatusModalZIndex] = useState<number | null>(null);
@@ -891,8 +892,7 @@ export const App = () => {
   const handleStatusClick = (status: Status, columnAccount: Account | null) => {
     setSelectedStatus(status);
     setStatusModalZIndex(nextModalZIndexRef.current++);
-    // Status에 columnAccount 정보를 임시 저장
-    (status as any).__columnAccount = columnAccount;
+    setSelectedStatusThreadAccount(columnAccount);
   };
 
   const handleProfileOpen = useCallback((target: Status, columnAccount: Account | null) => {
@@ -915,6 +915,7 @@ export const App = () => {
   const handleCloseStatusModal = () => {
     setSelectedStatus(null);
     setStatusModalZIndex(null);
+    setSelectedStatusThreadAccount(null);
   };
 
   const handleReaction = useCallback(
@@ -1052,7 +1053,7 @@ export const App = () => {
     <div className="app">
       <header className="app-header">
         <a href="#/" className="app-logo" aria-label="Deck 홈">
-          <img src={logoUrl} alt="Deck logo" />
+          <img src={logoUrl} alt="Deck 로고" />
         </a>
         <div className="app-header-actions">
           <button
@@ -1122,7 +1123,7 @@ export const App = () => {
           {route === "home" ? (
             <section className="panel sidebar-panel">
               <div className="brand">
-                <img src={logoUrl} alt="Deck logo" />
+                <img src={logoUrl} alt="Deck 로고" />
                 <div className="brand-text">
                   <h1>Deck</h1>
                   <p>오픈소스 페디버스 웹 클라이언트</p>
@@ -1370,7 +1371,7 @@ export const App = () => {
         <StatusModal
           status={selectedStatus}
           account={composeAccount}
-          threadAccount={(selectedStatus as any).__columnAccount || null}
+          threadAccount={selectedStatusThreadAccount}
           api={services.api}
           zIndex={statusModalZIndex ?? undefined}
           onClose={handleCloseStatusModal}
