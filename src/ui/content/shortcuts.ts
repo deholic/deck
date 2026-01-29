@@ -66,6 +66,14 @@ export const shortcutSections: Array<{
     ]
   },
   {
+    title: "뽀모도로 타이머",
+    items: [
+      { keys: "S", description: "뽀모도로 타이머 시작/정지" },
+      { keys: "X", description: "뽀모도로 타이머 리셋" },
+      { keys: "F", description: "할 일 추가 입력으로 이동" }
+    ]
+  },
+  {
     title: "이미지 뷰어",
     items: [
       { keys: "← / →", description: "이미지 이동" },
