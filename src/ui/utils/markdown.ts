@@ -35,6 +35,7 @@ const renderEmojiTag = (shortcode: string, url: string): string => {
   return `<img src="${safeUrl}" alt="${safeAlt}" class="custom-emoji" loading="lazy" />`;
 };
 
+// Linkify plain URLs while excluding trailing punctuation.
 const linkifyBareUrls = (text: string): string => {
   return text.replace(/https?:\/\/[^\s<]+[^\s<\])"'.,;:!?]/g, (match) => {
     if (!isSafeUrl(match)) {
@@ -45,6 +46,7 @@ const linkifyBareUrls = (text: string): string => {
   });
 };
 
+// Tokenize inline elements first, then escape/format once to avoid double parsing.
 const formatInline = (
   text: string,
   emojiMap?: Map<string, string>,
@@ -65,6 +67,7 @@ const formatInline = (
   const links: string[] = [];
   if (options.parseLinks !== false) {
     tokenized = tokenized.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_match, label, url) => {
+      // Parse link labels once; avoid nested markdown/link parsing and linkify here.
       const safeLabel = formatInline(label, emojiMap, { linkify: false, parseLinks: false });
       const safeUrl = escapeAttr(url);
       links.push(`<a href="${safeUrl}" target="_blank" rel="noreferrer">${safeLabel}</a>`);
