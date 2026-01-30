@@ -136,33 +136,57 @@ const fetchYouTubeOEmbed = async (targetUrl: string): Promise<{ title: string; i
   }
 };
 
+const extractTwitterOEmbedText = (html: string | undefined): string | null => {
+  if (!html) {
+    return null;
+  }
+  const match = html.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
+  if (!match) {
+    return null;
+  }
+  const stripped = match[1].replace(/<[^>]+>/g, "").trim();
+  const decoded = decodeHtmlEntities(stripped);
+  return decoded || null;
+};
+
 const fetchTwitterOEmbed = async (
   targetUrl: string
 ): Promise<{ title?: string; authorName?: string; image: string | null } | null> => {
-  try {
-    const oembedUrl = new URL("https://publish.twitter.com/oembed");
-    oembedUrl.searchParams.set("url", targetUrl);
-    oembedUrl.searchParams.set("omit_script", "true");
-    const response = await fetch(oembedUrl.toString(), {
-      headers: {
-        Accept: "application/json"
+  const candidates = ["https://publish.twitter.com/oembed", "https://publish.x.com/oembed"];
+  for (const baseUrl of candidates) {
+    try {
+      const oembedUrl = new URL(baseUrl);
+      oembedUrl.searchParams.set("url", targetUrl);
+      oembedUrl.searchParams.set("omit_script", "true");
+      const response = await fetch(oembedUrl.toString(), {
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "DeckLinkPreview/1.0"
+        }
+      });
+      if (!response.ok) {
+        continue;
       }
-    });
-    if (!response.ok) {
-      return null;
+      const data = (await response.json()) as {
+        title?: string;
+        author_name?: string;
+        thumbnail_url?: string;
+        html?: string;
+      };
+      const title = data.title ?? extractTwitterOEmbedText(data.html) ?? undefined;
+      if (!title && !data.author_name) {
+        continue;
+      }
+      return {
+        title,
+        authorName: data.author_name,
+        image: data.thumbnail_url ?? null
+      };
+    } catch {
+      continue;
     }
-    const data = (await response.json()) as { title?: string; author_name?: string; thumbnail_url?: string };
-    if (!data.title && !data.author_name) {
-      return null;
-    }
-    return {
-      title: data.title,
-      authorName: data.author_name,
-      image: data.thumbnail_url ?? null
-    };
-  } catch {
-    return null;
   }
+  return null;
 };
 
 const buildTwitterTitle = (title: string | undefined, authorName: string | undefined): string | null => {
