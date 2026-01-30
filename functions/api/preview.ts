@@ -13,6 +13,15 @@ const decodeHtmlEntities = (value: string): string =>
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'");
 
+const normalizeInlineText = (value: string | null | undefined): string | null => {
+  if (!value) {
+    return null;
+  }
+  const decoded = decodeHtmlEntities(value);
+  const normalized = decoded.replace(/\s+/g, " ").trim();
+  return normalized || null;
+};
+
 const extractMetaTagContent = (html: string, attribute: "property" | "name", key: string): string | null => {
   const tagRegex = new RegExp(`<meta[^>]+${attribute}=["']${key}["'][^>]*>`, "i");
   const match = html.match(tagRegex);
@@ -105,10 +114,6 @@ const isYouTubeHost = (hostname: string): boolean => {
   return lower === "youtu.be" || lower.endsWith("youtube.com");
 };
 
-const isTwitterHost = (hostname: string): boolean => {
-  const lower = hostname.toLowerCase();
-  return lower === "twitter.com" || lower.endsWith(".twitter.com") || lower === "x.com" || lower.endsWith(".x.com");
-};
 
 const fetchYouTubeOEmbed = async (targetUrl: string): Promise<{ title: string; image: string | null } | null> => {
   try {
@@ -136,68 +141,6 @@ const fetchYouTubeOEmbed = async (targetUrl: string): Promise<{ title: string; i
   }
 };
 
-const extractTwitterOEmbedText = (html: string | undefined): string | null => {
-  if (!html) {
-    return null;
-  }
-  const match = html.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
-  if (!match) {
-    return null;
-  }
-  const stripped = match[1].replace(/<[^>]+>/g, "").trim();
-  const decoded = decodeHtmlEntities(stripped);
-  return decoded || null;
-};
-
-const fetchTwitterOEmbed = async (
-  targetUrl: string
-): Promise<{ title?: string; authorName?: string; image: string | null } | null> => {
-  const candidates = ["https://publish.twitter.com/oembed", "https://publish.x.com/oembed"];
-  for (const baseUrl of candidates) {
-    try {
-      const oembedUrl = new URL(baseUrl);
-      oembedUrl.searchParams.set("url", targetUrl);
-      oembedUrl.searchParams.set("omit_script", "true");
-      const response = await fetch(oembedUrl.toString(), {
-        headers: {
-          Accept: "application/json",
-          "User-Agent": "DeckLinkPreview/1.0"
-        }
-      });
-      if (!response.ok) {
-        continue;
-      }
-      const data = (await response.json()) as {
-        title?: string;
-        author_name?: string;
-        thumbnail_url?: string;
-        html?: string;
-      };
-      const title = data.title ?? extractTwitterOEmbedText(data.html) ?? undefined;
-      if (!title && !data.author_name) {
-        continue;
-      }
-      return {
-        title,
-        authorName: data.author_name,
-        image: data.thumbnail_url ?? null
-      };
-    } catch {
-      continue;
-    }
-  }
-  return null;
-};
-
-const buildTwitterTitle = (title: string | undefined, authorName: string | undefined): string | null => {
-  if (title && title.trim()) {
-    return title.trim();
-  }
-  if (authorName && authorName.trim()) {
-    return `${authorName.trim()}님의 게시물`;
-  }
-  return null;
-};
 
 const readResponseText = async (response: Response): Promise<string> => {
   if (!response.body) {
@@ -296,14 +239,6 @@ export const onRequestGet = async (context: { request: Request } & { env?: Env }
       }
     }
 
-    const shouldFetchTwitter = !title || title.trim() === "Twitter" || title.trim() === "X";
-    if (shouldFetchTwitter && isTwitterHost(targetUrl.hostname)) {
-      const oembed = await fetchTwitterOEmbed(targetUrl.toString());
-      if (oembed) {
-        title = title || buildTwitterTitle(oembed.title, oembed.authorName);
-        image = image || oembed.image;
-      }
-    }
 
     if (!title) {
       return buildResponse({ error: "missing_title" }, 200, 300);
