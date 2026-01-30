@@ -885,7 +885,7 @@ export const App = () => {
     setComposeAccountId(account.id);
     setReplyTarget(status);
     const formattedHandle = formatReplyHandle(status.accountHandle, status.accountUrl, account.instanceUrl);
-    setMentionSeed(`@${formattedHandle}`);
+    setMentionSeed(`@${formattedHandle} `);
     setSelectedStatus(null);
   };
 
