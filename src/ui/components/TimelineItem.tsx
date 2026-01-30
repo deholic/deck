@@ -53,6 +53,24 @@ const extractFirstUrl = (text: string): string | null => {
   return `https://${value}`;
 };
 
+const decodeHtmlEntities = (value: string): string => {
+  if (typeof document === "undefined") {
+    return value;
+  }
+  const textarea = document.createElement("textarea");
+  textarea.innerHTML = value;
+  return textarea.value;
+};
+
+const normalizePreviewText = (value: string | null | undefined): string | null => {
+  if (!value) {
+    return null;
+  }
+  const decoded = decodeHtmlEntities(value);
+  const normalized = decoded.replace(/\s+/g, " ").trim();
+  return normalized || null;
+};
+
 const MediaVideo = ({
   id,
   src,
@@ -1209,14 +1227,16 @@ export const TimelineItem = ({
         const data = (await response.json()) as
           | { url?: string; title?: string; description?: string | null; image?: string | null; error?: string }
           | undefined;
-        if (!data || data.error || !data.title || !data.url) {
+        const title = normalizePreviewText(data?.title);
+        const description = normalizePreviewText(data?.description);
+        if (!data || data.error || !title || !data.url) {
           previewCache.set(previewCandidate, null);
           return;
         }
         const card: LinkCard = {
           url: data.url,
-          title: data.title,
-          description: data.description ?? null,
+          title,
+          description,
           image: data.image ?? null
         };
         previewCache.set(previewCandidate, card);
