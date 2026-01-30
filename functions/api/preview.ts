@@ -105,6 +105,11 @@ const isYouTubeHost = (hostname: string): boolean => {
   return lower === "youtu.be" || lower.endsWith("youtube.com");
 };
 
+const isTwitterHost = (hostname: string): boolean => {
+  const lower = hostname.toLowerCase();
+  return lower === "twitter.com" || lower.endsWith(".twitter.com") || lower === "x.com" || lower.endsWith(".x.com");
+};
+
 const fetchYouTubeOEmbed = async (targetUrl: string): Promise<{ title: string; image: string | null } | null> => {
   try {
     const oembedUrl = new URL("https://www.youtube.com/oembed");
@@ -129,6 +134,45 @@ const fetchYouTubeOEmbed = async (targetUrl: string): Promise<{ title: string; i
   } catch {
     return null;
   }
+};
+
+const fetchTwitterOEmbed = async (
+  targetUrl: string
+): Promise<{ title?: string; authorName?: string; image: string | null } | null> => {
+  try {
+    const oembedUrl = new URL("https://publish.twitter.com/oembed");
+    oembedUrl.searchParams.set("url", targetUrl);
+    oembedUrl.searchParams.set("omit_script", "true");
+    const response = await fetch(oembedUrl.toString(), {
+      headers: {
+        Accept: "application/json"
+      }
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const data = (await response.json()) as { title?: string; author_name?: string; thumbnail_url?: string };
+    if (!data.title && !data.author_name) {
+      return null;
+    }
+    return {
+      title: data.title,
+      authorName: data.author_name,
+      image: data.thumbnail_url ?? null
+    };
+  } catch {
+    return null;
+  }
+};
+
+const buildTwitterTitle = (title: string | undefined, authorName: string | undefined): string | null => {
+  if (title && title.trim()) {
+    return title.trim();
+  }
+  if (authorName && authorName.trim()) {
+    return `${authorName.trim()}님의 게시물`;
+  }
+  return null;
 };
 
 const readResponseText = async (response: Response): Promise<string> => {
@@ -224,6 +268,15 @@ export const onRequestGet = async (context: { request: Request } & { env?: Env }
       const oembed = await fetchYouTubeOEmbed(targetUrl.toString());
       if (oembed) {
         title = title || oembed.title;
+        image = image || oembed.image;
+      }
+    }
+
+    const shouldFetchTwitter = !title || title.trim() === "Twitter" || title.trim() === "X";
+    if (shouldFetchTwitter && isTwitterHost(targetUrl.hostname)) {
+      const oembed = await fetchTwitterOEmbed(targetUrl.toString());
+      if (oembed) {
+        title = title || buildTwitterTitle(oembed.title, oembed.authorName);
         image = image || oembed.image;
       }
     }
