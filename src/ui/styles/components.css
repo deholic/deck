@@ -1746,6 +1746,7 @@ button.ghost {
   gap: 6px;
   font-size: 13px;
   color: var(--color-link-preview-text);
+  min-width: 0;
 }
 
 .link-preview-body strong {
@@ -1755,6 +1756,7 @@ button.ghost {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .link-preview-description {
@@ -1770,6 +1772,7 @@ button.ghost {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .status footer {
