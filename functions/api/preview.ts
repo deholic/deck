@@ -100,6 +100,37 @@ const isBlockedHostname = (hostname: string): boolean => {
   return false;
 };
 
+const isYouTubeHost = (hostname: string): boolean => {
+  const lower = hostname.toLowerCase();
+  return lower === "youtu.be" || lower.endsWith("youtube.com");
+};
+
+const fetchYouTubeOEmbed = async (targetUrl: string): Promise<{ title: string; image: string | null } | null> => {
+  try {
+    const oembedUrl = new URL("https://www.youtube.com/oembed");
+    oembedUrl.searchParams.set("url", targetUrl);
+    oembedUrl.searchParams.set("format", "json");
+    const response = await fetch(oembedUrl.toString(), {
+      headers: {
+        Accept: "application/json"
+      }
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const data = (await response.json()) as { title?: string; thumbnail_url?: string };
+    if (!data.title) {
+      return null;
+    }
+    return {
+      title: data.title,
+      image: data.thumbnail_url ?? null
+    };
+  } catch {
+    return null;
+  }
+};
+
 const readResponseText = async (response: Response): Promise<string> => {
   if (!response.body) {
     return response.text();
@@ -183,10 +214,19 @@ export const onRequestGet = async (context: { request: Request } & { env?: Env }
     const ogImageRaw = extractMetaTagContent(html, "property", "og:image");
     const ogUrl = extractMetaTagContent(html, "property", "og:url");
     const metaDescription = extractMetaTagContent(html, "name", "description");
-    const title = ogTitle || extractTitle(html);
+    let title = ogTitle || extractTitle(html);
     const description = ogDescription || metaDescription;
-    const image = toAbsoluteUrl(ogImageRaw, targetUrl.toString());
+    let image = toAbsoluteUrl(ogImageRaw, targetUrl.toString());
     const canonicalUrl = toAbsoluteUrl(ogUrl, targetUrl.toString()) ?? targetUrl.toString();
+
+    const shouldFetchYouTube = !title || title.trim() === "YouTube";
+    if (shouldFetchYouTube && isYouTubeHost(targetUrl.hostname)) {
+      const oembed = await fetchYouTubeOEmbed(targetUrl.toString());
+      if (oembed) {
+        title = title || oembed.title;
+        image = image || oembed.image;
+      }
+    }
 
     if (!title) {
       return buildResponse({ error: "missing_title" }, 200, 300);
