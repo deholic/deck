@@ -1219,20 +1219,20 @@ button.ghost {
   max-width: var(--timeline-column-max-width);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--height-timeline-column-gap);
   position: relative;
   background: var(--color-timeline-column-bg);
   border: 1px solid var(--color-timeline-column-border);
   border-radius: 14px;
-  padding: 12px;
-  min-height: 90vh;
+  padding: var(--height-timeline-column-paddingY) 12px;
+  min-height: var(--height-timeline-column);
   box-shadow: var(--shadow-timeline-column);
   scroll-snap-align: start;
 }
 
 .timeline-column-header {
   display: flex;
-  gap: 12px;
+  gap: var(--height-timeline-column-gap);
   align-items: center;
 }
 
@@ -1456,7 +1456,7 @@ button.ghost {
 
 .timeline-column-body {
   overflow-y: auto;
-  max-height: 85vh;
+  max-height: var(--height-timeline-column-body);
   padding-right: 6px;
 }
 
@@ -2531,8 +2531,6 @@ button.ghost {
   font-size: 11px;
   white-space: nowrap;
 }
-
-
 
 .status-modal-body {
   padding: 16px;
