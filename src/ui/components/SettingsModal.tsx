@@ -16,14 +16,6 @@ type SettingsModalProps = {
   onThemeChange: (value: string) => void;
   colorScheme: ColorScheme;
   onColorSchemeChange: (value: string) => void;
-  showProfileImages: boolean;
-  onToggleProfileImages: (value: boolean) => void;
-  showCustomEmojis: boolean;
-  onToggleCustomEmojis: (value: boolean) => void;
-  showMisskeyReactions: boolean;
-  onToggleMisskeyReactions: (value: boolean) => void;
-  sectionSize: "small" | "medium" | "large";
-  onSectionSizeChange: (value: "small" | "medium" | "large") => void;
   showPomodoro: boolean;
   onTogglePomodoro: (value: boolean) => void;
   pomodoroFocus: number;
@@ -48,14 +40,6 @@ export const SettingsModal = ({
   onThemeChange,
   colorScheme,
   onColorSchemeChange,
-  showProfileImages,
-  onToggleProfileImages,
-  showCustomEmojis,
-  onToggleCustomEmojis,
-  showMisskeyReactions,
-  onToggleMisskeyReactions,
-  sectionSize,
-  onSectionSizeChange,
   showPomodoro,
   onTogglePomodoro,
   pomodoroFocus,
@@ -151,64 +135,6 @@ export const SettingsModal = ({
               <option value="system">시스템</option>
               <option value="light">라이트</option>
               <option value="dark">다크</option>
-            </select>
-          </div>
-          <div className="settings-item">
-            <div>
-              <strong>프로필 이미지 표시</strong>
-              <p>피드에서 사용자 프로필 이미지를 보여줍니다.</p>
-            </div>
-            <label className="switch">
-              <input
-                type="checkbox"
-                checked={showProfileImages}
-                onChange={(event) => onToggleProfileImages(event.target.checked)}
-              />
-              <span className="slider" aria-hidden="true" />
-            </label>
-          </div>
-          <div className="settings-item">
-            <div>
-              <strong>커스텀 이모지 표시</strong>
-              <p>사용자 이름과 본문에 커스텀 이모지를 표시합니다.</p>
-            </div>
-            <label className="switch">
-              <input
-                type="checkbox"
-                checked={showCustomEmojis}
-                onChange={(event) => onToggleCustomEmojis(event.target.checked)}
-              />
-              <span className="slider" aria-hidden="true" />
-            </label>
-          </div>
-          <div className="settings-item">
-            <div>
-              <strong>리액션 표시</strong>
-              <p>리액션 정보를 지원하는 서버에서 받은 리액션을 보여줍니다.</p>
-            </div>
-            <label className="switch">
-              <input
-                type="checkbox"
-                checked={showMisskeyReactions}
-                onChange={(event) => onToggleMisskeyReactions(event.target.checked)}
-              />
-              <span className="slider" aria-hidden="true" />
-            </label>
-          </div>
-          <div className="settings-item">
-            <div>
-              <strong>섹션 폭</strong>
-              <p>타임라인 섹션의 가로 폭을 조절합니다.</p>
-            </div>
-            <select
-              value={sectionSize}
-              onChange={(event) =>
-                onSectionSizeChange(event.target.value as "small" | "medium" | "large")
-              }
-            >
-              <option value="small">소</option>
-              <option value="medium">중</option>
-              <option value="large">대</option>
             </select>
           </div>
           <div className="settings-item">

@@ -15,6 +15,7 @@ import { renderMarkdown } from "../utils/markdown";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { useToast } from "../state/ToastContext";
 import { TimelineItem } from "./TimelineItem";
+import type { SectionDisplaySettings } from "../types/section";
 
 const PAGE_SIZE = 20;
 
@@ -146,7 +147,8 @@ export const ProfileModal = ({
   onProfileClick,
   showProfileImage,
   showCustomEmojis,
-  showReactions
+  showReactions,
+  sectionSettings
 }: {
   status: Status;
   account: Account | null;
@@ -155,11 +157,12 @@ export const ProfileModal = ({
   isTopmost: boolean;
   onClose: () => void;
   onReply: (status: Status, account: Account | null) => void;
-  onStatusClick: (status: Status) => void;
-  onProfileClick: (status: Status, account: Account | null) => void;
+  onStatusClick: (status: Status, account: Account | null, settings: SectionDisplaySettings) => void;
+  onProfileClick: (status: Status, account: Account | null, settings: SectionDisplaySettings) => void;
   showProfileImage: boolean;
   showCustomEmojis: boolean;
   showReactions: boolean;
+  sectionSettings: SectionDisplaySettings;
 }) => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -985,8 +988,8 @@ export const ProfileModal = ({
                     onToggleBookmark={handleToggleBookmark}
                     onDelete={handleDeleteStatus}
                     onReact={handleReact}
-                    onStatusClick={onStatusClick}
-                    onProfileClick={(target) => onProfileClick(target, account)}
+                    onStatusClick={(target) => onStatusClick(target, account, sectionSettings)}
+                    onProfileClick={(target) => onProfileClick(target, account, sectionSettings)}
                     onUpdateStatus={updateItem}
                     activeHandle={activeHandle}
                     activeAccountHandle={account?.handle ?? ""}
