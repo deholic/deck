@@ -183,6 +183,7 @@ export const TimelineSection = ({
   const [highlightedSectionMenuIndex, setHighlightedSectionMenuIndex] = useState<number | null>(null);
   const [highlightedNotificationIndex, setHighlightedNotificationIndex] = useState<number | null>(null);
   const { showProfileImages, showCustomEmojis, showReactions, sectionSize } = section.settings;
+  const settingsIdPrefix = `section-settings-${section.id}`;
   const columnStyle = useMemo(() => {
     const sizeConfig = SECTION_SIZE_MAP[sectionSize];
     return {
@@ -760,6 +761,7 @@ export const TimelineSection = ({
       onStatusClick,
       onTimelineChange,
       section.id,
+      section.settings,
       settingsOpen,
       selectedStatusId,
       showReactions,
@@ -1127,13 +1129,15 @@ export const TimelineSection = ({
                 >
                   <div className="section-settings-item">
                     <div className="section-settings-text">
-                      <strong>프로필 이미지 표시</strong>
-                      <p>이 섹션에서만 프로필 이미지를 보여줍니다.</p>
+                      <strong id={`${settingsIdPrefix}-profile-label`}>프로필 이미지 표시</strong>
+                      <p id={`${settingsIdPrefix}-profile-hint`}>이 섹션에서만 프로필 이미지를 보여줍니다.</p>
                     </div>
                     <label className="switch">
                       <input
                         type="checkbox"
                         checked={showProfileImages}
+                        aria-labelledby={`${settingsIdPrefix}-profile-label`}
+                        aria-describedby={`${settingsIdPrefix}-profile-hint`}
                         onChange={(event) =>
                           onUpdateSectionSettings(section.id, { showProfileImages: event.target.checked })
                         }
@@ -1143,13 +1147,15 @@ export const TimelineSection = ({
                   </div>
                   <div className="section-settings-item">
                     <div className="section-settings-text">
-                      <strong>커스텀 이모지 표시</strong>
-                      <p>사용자 이름과 본문에 커스텀 이모지를 표시합니다.</p>
+                      <strong id={`${settingsIdPrefix}-emoji-label`}>커스텀 이모지 표시</strong>
+                      <p id={`${settingsIdPrefix}-emoji-hint`}>사용자 이름과 본문에 커스텀 이모지를 표시합니다.</p>
                     </div>
                     <label className="switch">
                       <input
                         type="checkbox"
                         checked={showCustomEmojis}
+                        aria-labelledby={`${settingsIdPrefix}-emoji-label`}
+                        aria-describedby={`${settingsIdPrefix}-emoji-hint`}
                         onChange={(event) =>
                           onUpdateSectionSettings(section.id, { showCustomEmojis: event.target.checked })
                         }
@@ -1159,13 +1165,15 @@ export const TimelineSection = ({
                   </div>
                   <div className="section-settings-item">
                     <div className="section-settings-text">
-                      <strong>리액션 표시</strong>
-                      <p>리액션을 지원하는 서버에서 받은 리액션을 보여줍니다.</p>
+                      <strong id={`${settingsIdPrefix}-reaction-label`}>리액션 표시</strong>
+                      <p id={`${settingsIdPrefix}-reaction-hint`}>리액션을 지원하는 서버에서 받은 리액션을 보여줍니다.</p>
                     </div>
                     <label className="switch">
                       <input
                         type="checkbox"
                         checked={showReactions}
+                        aria-labelledby={`${settingsIdPrefix}-reaction-label`}
+                        aria-describedby={`${settingsIdPrefix}-reaction-hint`}
                         onChange={(event) =>
                           onUpdateSectionSettings(section.id, { showReactions: event.target.checked })
                         }

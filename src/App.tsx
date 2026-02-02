@@ -1274,7 +1274,6 @@ export const App = () => {
                           section.accountId
                             ? accountsState.accounts.find((account) => account.id === section.accountId) ?? null
                             : null;
-                        const shouldShowReactions = section.settings.showReactions;
                         const selectedStatusId =
                           selectedTimelineStatus?.sectionId === section.id
                             ? selectedTimelineStatus.statusId
