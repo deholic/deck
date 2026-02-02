@@ -241,7 +241,8 @@ export const TimelineSection = ({
     api: services.api,
     streaming: services.streaming,
     timelineType,
-    onNotification: handleNotification
+    onNotification: handleNotification,
+    pauseUpdates: !isAtTop
   });
   const actionsDisabled = timelineType === "notifications" || timelineType === "bookmarks";
   const emptyMessage = timelineType === "notifications"
@@ -249,6 +250,9 @@ export const TimelineSection = ({
     : timelineType === "bookmarks"
       ? "북마크한 글이 없습니다."
       : "표시할 글이 없습니다.";
+  const pendingCount = timeline.pendingCount ?? 0;
+  const pendingCountLabel = pendingCount >= 99 ? "99+" : String(pendingCount);
+  const hasPendingUpdates = pendingCount > 0 && !isAtTop;
 
   useEffect(() => {
     onTimelineItemsChange(section.id, timeline.items);
@@ -484,6 +488,11 @@ export const TimelineSection = ({
     if (scrollRef.current) {
       scrollRef.current.scrollTo({ top: 0, behavior: "smooth" });
     }
+  };
+
+  const handleShowPending = () => {
+    timeline.flushPending();
+    scrollToTop();
   };
 
   const handleOpenInstanceOrigin = useCallback(() => {
@@ -1208,6 +1217,18 @@ export const TimelineSection = ({
         </div>
       </div>
       <div className="timeline-column-body" ref={scrollRef}>
+        {hasPendingUpdates ? (
+          <button
+            type="button"
+            className="timeline-pending-banner"
+            onClick={handleShowPending}
+            aria-label={`새 글 ${pendingCountLabel}개 표시`}
+            title="새 글 표시"
+          >
+            <span>새 글 {pendingCountLabel}개</span>
+            <span className="timeline-pending-action">보기</span>
+          </button>
+        ) : null}
         {!account ? <p className="empty">계정을 선택하면 타임라인을 불러옵니다.</p> : null}
         {account && timeline.items.length === 0 && !timeline.loading ? (
           <p className="empty">{emptyMessage}</p>
