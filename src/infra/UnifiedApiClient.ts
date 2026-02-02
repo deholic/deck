@@ -125,4 +125,11 @@ export class UnifiedApiClient implements MastodonApi {
   async fetchThreadContext(account: Account, statusId: string): Promise<ThreadContext> {
     return this.getClient(account).fetchThreadContext(account, statusId);
   }
+
+  fetchNoteState(
+    account: Account,
+    noteId: string
+  ): Promise<{ isFavourited: boolean; isReblogged: boolean; bookmarked: boolean }> {
+    return this.getClient(account).fetchNoteState(account, noteId);
+  }
 }

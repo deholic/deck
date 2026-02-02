@@ -316,6 +316,30 @@ export class MisskeyHttpClient implements MastodonApi {
     return data.map((item) => mapMisskeyStatusWithInstance(item, account.instanceUrl));
   }
 
+  async fetchBookmarks(account: Account, limit: number = 20, maxId?: string): Promise<Status[]> {
+    const response = await fetch(`${normalizeInstanceUrl(account.instanceUrl)}/api/i/favorites`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(
+        buildBody(account, {
+          limit,
+          untilId: maxId
+        })
+      )
+    });
+    if (!response.ok) {
+      throw new Error("북마크를 불러오지 못했습니다.");
+    }
+    const data = (await response.json()) as unknown[];
+    return data.map((item) => {
+      const typed = item && typeof item === "object" ? (item as Record<string, unknown>) : null;
+      const note = typed && typed.note ? typed.note : item;
+      return mapMisskeyStatusWithInstance(note, account.instanceUrl);
+    });
+  }
+
   async uploadMedia(account: Account, file: File): Promise<string> {
     const formData = new FormData();
     formData.append("i", account.accessToken);
@@ -336,6 +360,10 @@ export class MisskeyHttpClient implements MastodonApi {
       throw new Error("업로드된 미디어 정보를 찾을 수 없습니다.");
     }
     return id;
+  }
+
+  async fetchThreadContext(account: Account, statusId: string): Promise<ThreadContext> {
+    return this.fetchConversation(account, statusId);
   }
 
   async fetchConversation(account: Account, noteId: string): Promise<ThreadContext> {
@@ -432,6 +460,16 @@ export class MisskeyHttpClient implements MastodonApi {
     return this.fetchNote(account, statusId);
   }
 
+  async bookmark(account: Account, statusId: string): Promise<Status> {
+    await this.postSimple(account, "/api/notes/favorites/create", { noteId: statusId });
+    return this.fetchNote(account, statusId);
+  }
+
+  async unbookmark(account: Account, statusId: string): Promise<Status> {
+    await this.postSimple(account, "/api/notes/favorites/delete", { noteId: statusId });
+    return this.fetchNote(account, statusId);
+  }
+
   async unfavourite(account: Account, statusId: string): Promise<Status> {
     try {
       await this.postSimple(account, "/api/notes/reactions/delete", { noteId: statusId });
@@ -452,6 +490,19 @@ export class MisskeyHttpClient implements MastodonApi {
   async deleteReaction(account: Account, statusId: string): Promise<Status> {
     await this.postSimple(account, "/api/notes/reactions/delete", { noteId: statusId });
     return this.fetchNote(account, statusId);
+  }
+
+  async fetchNoteState(
+    account: Account,
+    noteId: string
+  ): Promise<{ isFavourited: boolean; isReblogged: boolean; bookmarked: boolean }> {
+    const note = await this.fetchNoteRaw(account, noteId);
+    const isFavorited = Boolean(note.isFavorited ?? false);
+    return {
+      isFavourited: isFavorited,
+      isReblogged: Boolean(note.myRenoteId),
+      bookmarked: isFavorited
+    };
   }
 
   async reblog(account: Account, statusId: string): Promise<Status> {

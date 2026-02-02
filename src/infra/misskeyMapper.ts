@@ -460,7 +460,7 @@ export const mapMisskeyStatusWithInstance = (raw: unknown, instanceUrl?: string)
     reactions,
     reblogged,
     favourited,
-    bookmarked: false,
+    bookmarked: Boolean(value.isFavorited ?? false),
     inReplyToId: value.replyId ? String(value.replyId) : null,
     mentions,
     mediaAttachments,
