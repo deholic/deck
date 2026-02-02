@@ -484,15 +484,16 @@ export const TimelineSection = ({
     }
   };
 
-  const scrollToTop = () => {
+  const scrollToTop = (behavior: ScrollBehavior = "smooth") => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTo({ top: 0, behavior: "smooth" });
+      scrollRef.current.scrollTo({ top: 0, behavior });
     }
   };
 
   const handleShowPending = () => {
     timeline.flushPending();
-    scrollToTop();
+    setIsAtTop(true);
+    scrollToTop("auto");
   };
 
   const handleOpenInstanceOrigin = useCallback(() => {
@@ -1218,16 +1219,21 @@ export const TimelineSection = ({
       </div>
       <div className="timeline-column-body" ref={scrollRef}>
         {hasPendingUpdates ? (
-          <button
-            type="button"
-            className="timeline-pending-banner"
-            onClick={handleShowPending}
-            aria-label={`새 글 ${pendingCountLabel}개 표시`}
-            title="새 글 표시"
-          >
-            <span>새 글 {pendingCountLabel}개</span>
-            <span className="timeline-pending-action">보기</span>
-          </button>
+          <>
+            <span className="sr-only" aria-live="polite">
+              새 글 {pendingCountLabel}개가 새로 도착했습니다.
+            </span>
+            <button
+              type="button"
+              className="timeline-pending-banner"
+              onClick={handleShowPending}
+              aria-label={`새 글 ${pendingCountLabel}개 표시`}
+              title="새 글 표시"
+            >
+              <span>새 글 {pendingCountLabel}개</span>
+              <span className="timeline-pending-action">보기</span>
+            </button>
+          </>
         ) : null}
         {!account ? <p className="empty">계정을 선택하면 타임라인을 불러옵니다.</p> : null}
         {account && timeline.items.length === 0 && !timeline.loading ? (
@@ -1270,7 +1276,7 @@ export const TimelineSection = ({
       <button
         type="button"
         className="icon-button scroll-top-fab"
-        onClick={scrollToTop}
+        onClick={() => scrollToTop()}
         disabled={isAtTop}
         aria-label="최상단으로 이동"
         title="최상단으로 이동"

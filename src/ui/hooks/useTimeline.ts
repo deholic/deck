@@ -102,6 +102,22 @@ export const useTimeline = (params: {
     pauseUpdatesRef.current = pauseUpdates;
   }, [pauseUpdates]);
 
+  const clearFlushTimer = useCallback(() => {
+    if (flushTimerRef.current === null) {
+      return;
+    }
+    clearTimeout(flushTimerRef.current);
+    flushTimerRef.current = null;
+  }, []);
+
+  const clearPendingCountTimer = useCallback(() => {
+    if (pendingCountTimerRef.current === null) {
+      return;
+    }
+    clearTimeout(pendingCountTimerRef.current);
+    pendingCountTimerRef.current = null;
+  }, []);
+
   const refresh = useCallback(async () => {
     if (!account) {
       return;
@@ -111,6 +127,8 @@ export const useTimeline = (params: {
     setItems([]);
     setPendingCount(0);
     pendingUpdatesRef.current = [];
+    clearFlushTimer();
+    clearPendingCountTimer();
     try {
       let timeline: Status[];
       if (timelineType === "bookmarks") {
@@ -125,7 +143,7 @@ export const useTimeline = (params: {
     } finally {
       setLoading(false);
     }
-  }, [account, api, resolvedMaxItems, timelineType]);
+  }, [account, api, clearFlushTimer, clearPendingCountTimer, resolvedMaxItems, timelineType]);
 
   const loadMore = useCallback(async () => {
     if (!account || loadingMore || loading) {
@@ -160,24 +178,24 @@ export const useTimeline = (params: {
       setHasMore(false);
       setPendingCount(0);
       pendingUpdatesRef.current = [];
+      clearFlushTimer();
+      clearPendingCountTimer();
       return;
     }
     refresh();
-  }, [account, refresh]);
+  }, [account, clearFlushTimer, clearPendingCountTimer, refresh]);
 
   const syncPendingCount = useCallback(() => {
     setPendingCount(pendingUpdatesRef.current.length);
   }, []);
 
   const schedulePendingCountSync = useCallback(() => {
-    if (pendingCountTimerRef.current !== null) {
-      return;
-    }
+    clearPendingCountTimer();
     pendingCountTimerRef.current = setTimeout(() => {
       pendingCountTimerRef.current = null;
       syncPendingCount();
     }, resolvedFlushInterval);
-  }, [resolvedFlushInterval, syncPendingCount]);
+  }, [clearPendingCountTimer, resolvedFlushInterval, syncPendingCount]);
 
   const flushPendingUpdates = useCallback(() => {
     const batch = pendingUpdatesRef.current;
@@ -185,6 +203,7 @@ export const useTimeline = (params: {
       return;
     }
     pendingUpdatesRef.current = [];
+    clearPendingCountTimer();
     setPendingCount(0);
     setItems((current) => {
       let next = current;
@@ -193,7 +212,7 @@ export const useTimeline = (params: {
       }
       return capItems(next, resolvedMaxItems);
     });
-  }, [resolvedMaxItems]);
+  }, [clearPendingCountTimer, resolvedMaxItems]);
 
   const scheduleFlush = useCallback(() => {
     if (flushTimerRef.current !== null) {
@@ -210,9 +229,14 @@ export const useTimeline = (params: {
       if (resolvedMaxPending === 0) {
         return;
       }
-      pendingUpdatesRef.current.push(status);
-      if (pendingUpdatesRef.current.length > resolvedMaxPending) {
-        pendingUpdatesRef.current = pendingUpdatesRef.current.slice(-resolvedMaxPending);
+      const existingIndex = pendingUpdatesRef.current.findIndex((item) => item.id === status.id);
+      if (existingIndex >= 0) {
+        pendingUpdatesRef.current[existingIndex] = status;
+      } else {
+        pendingUpdatesRef.current.push(status);
+        if (pendingUpdatesRef.current.length > resolvedMaxPending) {
+          pendingUpdatesRef.current = pendingUpdatesRef.current.slice(-resolvedMaxPending);
+        }
       }
       if (pauseUpdatesRef.current) {
         schedulePendingCountSync();
@@ -234,10 +258,10 @@ export const useTimeline = (params: {
       }
       pendingUpdatesRef.current = next;
       if (pauseUpdatesRef.current) {
-        schedulePendingCountSync();
+        syncPendingCount();
       }
     },
-    [schedulePendingCountSync]
+    [syncPendingCount]
   );
 
   useEffect(() => {
@@ -279,17 +303,13 @@ export const useTimeline = (params: {
       notificationDisconnectRef.current = null;
       pendingUpdatesRef.current = [];
       setPendingCount(0);
-      if (flushTimerRef.current !== null) {
-        clearTimeout(flushTimerRef.current);
-        flushTimerRef.current = null;
-      }
-      if (pendingCountTimerRef.current !== null) {
-        clearTimeout(pendingCountTimerRef.current);
-        pendingCountTimerRef.current = null;
-      }
+      clearFlushTimer();
+      clearPendingCountTimer();
     };
   }, [
     account,
+    clearFlushTimer,
+    clearPendingCountTimer,
     dropPendingUpdate,
     enableStreaming,
     enqueuePendingUpdate,
@@ -300,25 +320,20 @@ export const useTimeline = (params: {
 
   useEffect(() => {
     if (!pauseUpdates && pendingUpdatesRef.current.length > 0) {
-      if (flushTimerRef.current !== null) {
-        clearTimeout(flushTimerRef.current);
-        flushTimerRef.current = null;
-      }
+      clearFlushTimer();
+      clearPendingCountTimer();
       flushPendingUpdates();
     }
-    if (pauseUpdates && flushTimerRef.current !== null) {
-      clearTimeout(flushTimerRef.current);
-      flushTimerRef.current = null;
+    if (pauseUpdates) {
+      clearFlushTimer();
     }
-  }, [flushPendingUpdates, pauseUpdates]);
+  }, [clearFlushTimer, clearPendingCountTimer, flushPendingUpdates, pauseUpdates]);
 
   const flushPending = useCallback(() => {
-    if (flushTimerRef.current !== null) {
-      clearTimeout(flushTimerRef.current);
-      flushTimerRef.current = null;
-    }
+    clearFlushTimer();
+    clearPendingCountTimer();
     flushPendingUpdates();
-  }, [flushPendingUpdates]);
+  }, [clearFlushTimer, clearPendingCountTimer, flushPendingUpdates]);
 
   const updateItem = useCallback((status: Status) => {
     setItems((current) => replaceStatus(current, status));
