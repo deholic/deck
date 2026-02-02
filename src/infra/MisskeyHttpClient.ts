@@ -449,14 +449,7 @@ export class MisskeyHttpClient implements MastodonApi {
   }
 
   async favourite(account: Account, statusId: string): Promise<Status> {
-    try {
-      await this.postSimple(account, "/api/notes/reactions/create", {
-        noteId: statusId,
-        reaction: DEFAULT_REACTION
-      });
-    } catch {
-      await this.postSimple(account, "/api/notes/favorites/create", { noteId: statusId });
-    }
+    await this.postSimple(account, "/api/notes/favorites/create", { noteId: statusId });
     return this.fetchNote(account, statusId);
   }
 
@@ -471,11 +464,7 @@ export class MisskeyHttpClient implements MastodonApi {
   }
 
   async unfavourite(account: Account, statusId: string): Promise<Status> {
-    try {
-      await this.postSimple(account, "/api/notes/reactions/delete", { noteId: statusId });
-    } catch {
-      await this.postSimple(account, "/api/notes/favorites/delete", { noteId: statusId });
-    }
+    await this.postSimple(account, "/api/notes/favorites/delete", { noteId: statusId });
     return this.fetchNote(account, statusId);
   }
 
@@ -496,11 +485,22 @@ export class MisskeyHttpClient implements MastodonApi {
     account: Account,
     noteId: string
   ): Promise<{ isFavourited: boolean; isReblogged: boolean; bookmarked: boolean }> {
-    const note = await this.fetchNoteRaw(account, noteId);
-    const isFavorited = Boolean(note.isFavorited ?? false);
+    const response = await fetch(`${normalizeInstanceUrl(account.instanceUrl)}/api/notes/state`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(buildBody(account, { noteId }))
+    });
+    if (!response.ok) {
+      throw new Error("게시물 상태를 불러오지 못했습니다.");
+    }
+    const state = (await response.json()) as Record<string, unknown>;
+    const isFavorited = Boolean(state.isFavorited ?? false);
+    const isReblogged = Boolean(state.isRenoted ?? state.isReblogged ?? false);
     return {
       isFavourited: isFavorited,
-      isReblogged: Boolean(note.myRenoteId),
+      isReblogged,
       bookmarked: isFavorited
     };
   }
