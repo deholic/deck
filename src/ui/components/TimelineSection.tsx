@@ -1043,6 +1043,48 @@ export const TimelineSection = ({
                     if ("type" in item && item.type === "divider") {
                       return <div key={`divider-${index}`} className="section-menu-divider" role="separator" />;
                     }
+                    const icon = (() => {
+                      switch (item.label) {
+                        case "새로고침":
+                          return (
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path d="M20 11a8 8 0 1 1-3.5-5.9" />
+                              <path d="M21.5 2.5v6h-6" />
+                            </svg>
+                          );
+                        case "원본 서버에서 보기":
+                          return (
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path d="M4 5h16v10H4z" />
+                              <path d="M8 19h8" />
+                              <path d="M12 15v4" />
+                            </svg>
+                          );
+                        case "섹션 설정":
+                          return (
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path d="M4 6h16" />
+                              <circle cx="9" cy="6" r="2" />
+                              <path d="M4 12h16" />
+                              <circle cx="15" cy="12" r="2" />
+                              <path d="M4 18h16" />
+                              <circle cx="8" cy="18" r="2" />
+                            </svg>
+                          );
+                        case "왼쪽 섹션 추가":
+                          return null;
+                        case "왼쪽으로 이동":
+                          return null;
+                        case "오른쪽으로 이동":
+                          return null;
+                        case "오른쪽 섹션 추가":
+                          return null;
+                        case "섹션 삭제":
+                          return null;
+                        default:
+                          return null;
+                      }
+                    })();
                     const className = [
                       item.danger ? "danger" : "",
                       highlightedSectionMenuIndex === index ? "is-highlighted" : ""
@@ -1058,7 +1100,15 @@ export const TimelineSection = ({
                         onClick={item.onClick}
                         disabled={item.disabled}
                       >
-                        {item.label}
+                        {icon ? (
+                          <span
+                            className={`section-menu-icon${item.danger ? " is-danger" : ""}`}
+                            aria-hidden="true"
+                          >
+                            {icon}
+                          </span>
+                        ) : null}
+                        <span className="section-menu-label">{item.label}</span>
                       </button>
                     );
                   })}
