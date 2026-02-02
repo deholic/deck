@@ -1406,24 +1406,38 @@ export const TimelineItem = ({
                       setMenuOpen(false);
 
                       void (async () => {
+                        const previousState = favouriteState;
+                        if (previousState === null) {
+                          return;
+                        }
+                        const nextState = !previousState;
                         try {
-                          if (favouriteState) {
+                          if (previousState) {
                             await api.unfavourite(account, displayStatus.id);
                           } else {
                             await api.favourite(account, displayStatus.id);
                           }
-
-                          const state = await api.fetchNoteState(account, displayStatus.id);
-                          const newFavouriteState = state.isFavourited;
-                          setFavouriteState(newFavouriteState);
-                          showToast(
-                            newFavouriteState ? "즐겨찾기에 추가했습니다." : "즐겨찾기에서 해제했습니다.",
-                            { tone: "success" }
-                          );
+                          setFavouriteState(nextState);
                         } catch (error) {
                           console.error("즐겨찾기 처리 실패:", error);
+                          setFavouriteState(previousState);
                           showToast("즐겨찾기 처리에 실패했습니다.", { tone: "error" });
+                          return;
                         }
+                        let finalState = nextState;
+                        try {
+                          const state = await api.fetchNoteState(account, displayStatus.id);
+                          if (state.isFavourited !== nextState) {
+                            setFavouriteState(state.isFavourited);
+                            finalState = state.isFavourited;
+                          }
+                        } catch (error) {
+                          console.error("즐겨찾기 상태 확인 실패:", error);
+                        }
+                        showToast(
+                          finalState ? "즐겨찾기에 추가했습니다." : "즐겨찾기에서 해제했습니다.",
+                          { tone: "success" }
+                        );
                       })();
                     }}
                   >
