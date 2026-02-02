@@ -497,10 +497,9 @@ export class MisskeyHttpClient implements MastodonApi {
     noteId: string
   ): Promise<{ isFavourited: boolean; isReblogged: boolean; bookmarked: boolean }> {
     const note = await this.fetchNoteRaw(account, noteId);
-    const myReaction = typeof note.myReaction === "string" ? note.myReaction : null;
     const isFavorited = Boolean(note.isFavorited ?? false);
     return {
-      isFavourited: Boolean(note.isFavorited ?? myReaction),
+      isFavourited: isFavorited,
       isReblogged: Boolean(note.myRenoteId),
       bookmarked: isFavorited
     };
