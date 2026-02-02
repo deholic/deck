@@ -1324,6 +1324,39 @@ button.ghost {
   z-index: 20;
 }
 
+.section-settings-panel {
+  min-width: 240px;
+  padding: 12px;
+  gap: 12px;
+}
+
+.section-settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.section-settings-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.section-settings-text strong {
+  font-size: 12px;
+}
+
+.section-settings-text p {
+  margin: 0;
+  font-size: 11px;
+  color: var(--color-hint-text);
+}
+
+.section-settings-select {
+  min-width: 84px;
+}
+
 .section-menu-panel button {
   background: none;
   color: var(--color-section-menu-text);
@@ -1331,6 +1364,32 @@ button.ghost {
   text-align: left;
   font-size: 12px;
   border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.section-menu-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+
+.section-menu-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.section-menu-label {
+  flex: 1;
 }
 
 .section-menu-panel button.is-highlighted {
@@ -1340,6 +1399,13 @@ button.ghost {
 .section-menu-panel .danger {
   color: var(--color-section-menu-danger);
   font-weight: 600;
+}
+
+.section-menu-divider {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--color-section-menu-border);
+  opacity: 0.7;
 }
 
 .notification-menu {
@@ -2797,6 +2863,8 @@ button.ghost {
   width: 44px;
   height: 24px;
   display: inline-block;
+  min-width: 44px;
+  flex: 0 0 44px;
 }
 
 .switch input {
@@ -2811,6 +2879,7 @@ button.ghost {
   border-radius: 999px;
   background: var(--color-switch-track);
   transition: background 0.2s ease;
+  overflow: hidden;
 }
 
 .slider::before {
