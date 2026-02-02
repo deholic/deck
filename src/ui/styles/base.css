@@ -186,6 +186,14 @@
   --color-pomodoro-focus: #ff6347;
   --color-pomodoro-break: #22c55e;
   --color-pomodoro-long-break: #3b82f6;
+  --height-app-paddingY: 16px;
+  --height-app-container: calc(100vh - 2*var(--height-app-paddingY) - 10px);
+  --height-panel-paddingY: 16px;
+  --height-timeline-column: calc(var(--height-app-container) - 2*var(--height-panel-paddingY) - 2*var(--height-timeline-column-paddingY));
+  --height-timeline-column-paddingY: 12px;
+  --height-timeline-column-gap: 12px;
+  --height-timeline-header: 48px;
+  --height-timeline-column-body: calc(var(--height-timeline-column) - var(--height-timeline-column-gap) - var(--height-timeline-header));
 }
 
 :root[data-color-scheme="light"] {
@@ -238,8 +246,5 @@ html,
 body,
 #root {
   height: 100%;
-}
-
-body {
   margin: 0;
 }
