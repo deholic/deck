@@ -1418,23 +1418,26 @@ export const TimelineItem = ({
                             await api.favourite(account, displayStatus.id);
                           }
                           setFavouriteState(nextState);
-                          showToast(
-                            nextState ? "즐겨찾기에 추가했습니다." : "즐겨찾기에서 해제했습니다.",
-                            { tone: "success" }
-                          );
-                          try {
-                            const state = await api.fetchNoteState(account, displayStatus.id);
-                            if (state.isFavourited !== nextState) {
-                              setFavouriteState(state.isFavourited);
-                            }
-                          } catch (error) {
-                            console.error("즐겨찾기 상태 확인 실패:", error);
-                          }
                         } catch (error) {
                           console.error("즐겨찾기 처리 실패:", error);
                           setFavouriteState(previousState);
                           showToast("즐겨찾기 처리에 실패했습니다.", { tone: "error" });
+                          return;
                         }
+                        let finalState = nextState;
+                        try {
+                          const state = await api.fetchNoteState(account, displayStatus.id);
+                          if (state.isFavourited !== nextState) {
+                            setFavouriteState(state.isFavourited);
+                            finalState = state.isFavourited;
+                          }
+                        } catch (error) {
+                          console.error("즐겨찾기 상태 확인 실패:", error);
+                        }
+                        showToast(
+                          finalState ? "즐겨찾기에 추가했습니다." : "즐겨찾기에서 해제했습니다.",
+                          { tone: "success" }
+                        );
                       })();
                     }}
                   >
