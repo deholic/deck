@@ -1459,7 +1459,7 @@ export const TimelineItem = ({
       ) : null}
       {showContent ? (
         <>
-          <p className="status-text">{displayStatus.content ? contentParts : "(내용 없음)"}</p>
+          <div className="status-text">{displayStatus.content ? contentParts : "(내용 없음)"}</div>
           {previewCard ? (
             <a
               className={`link-preview${previewCard.image ? "" : " no-image"}`}
