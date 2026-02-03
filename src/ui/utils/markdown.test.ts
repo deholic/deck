@@ -60,6 +60,16 @@ describe("renderMarkdown", () => {
     );
   });
 
+  it("does not render emoji shortcodes inside URLs", () => {
+    const input = "https://example.com/:wave:/path";
+    const emojiMap = new Map([["wave", "https://example.com/wave.png"]]);
+    const output = renderMarkdown(input, emojiMap);
+
+    expect(output).toBe(
+      '<p><a href="https://example.com/:wave:/path" target="_blank" rel="noreferrer">https://example.com/:wave:/path</a></p>'
+    );
+  });
+
   it("renders emojis inside markdown link labels", () => {
     const input = "[go :wave:](https://example.com)";
     const emojiMap = new Map([["wave", "https://example.com/wave.png"]]);
