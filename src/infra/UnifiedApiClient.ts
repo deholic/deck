@@ -1,6 +1,6 @@
 import type { Account, ThreadContext, TimelineType, InstanceInfo } from "../domain/types";
 import type { CustomEmoji } from "../domain/types";
-import type { CreateStatusInput, MastodonApi } from "../services/MastodonApi";
+import type { CreateStatusInput, MastodonApi, StatusTranslation } from "../services/MastodonApi";
 
 export class UnifiedApiClient implements MastodonApi {
   constructor(
@@ -131,5 +131,9 @@ export class UnifiedApiClient implements MastodonApi {
     noteId: string
   ): Promise<{ isFavourited: boolean; isReblogged: boolean; bookmarked: boolean }> {
     return this.getClient(account).fetchNoteState(account, noteId);
+  }
+
+  translateStatus(account: Account, statusId: string): Promise<StatusTranslation> {
+    return this.getClient(account).translateStatus(account, statusId);
   }
 }

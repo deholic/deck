@@ -505,6 +505,53 @@ export class MisskeyHttpClient implements MastodonApi {
     };
   }
 
+  async translateStatus(account: Account, statusId: string) {
+    const response = await fetch(`${normalizeInstanceUrl(account.instanceUrl)}/api/notes/translate`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(buildBody(account, { noteId: statusId }))
+    });
+    if (!response.ok) {
+      throw new Error("번역에 실패했습니다.");
+    }
+    const data = (await response.json()) as Record<string, unknown>;
+    const content =
+      typeof data.text === "string"
+        ? data.text
+        : typeof data.translatedText === "string"
+          ? data.translatedText
+          : typeof data.content === "string"
+            ? data.content
+            : typeof data.translation === "string"
+              ? data.translation
+              : "";
+    if (!content) {
+      throw new Error("번역 결과를 확인할 수 없습니다.");
+    }
+    const sourceLanguage =
+      typeof data.sourceLang === "string"
+        ? data.sourceLang
+        : typeof data.detectedLanguage === "string"
+          ? data.detectedLanguage
+          : null;
+    const targetLanguage =
+      typeof data.targetLang === "string"
+        ? data.targetLang
+        : typeof data.targetLanguage === "string"
+          ? data.targetLanguage
+          : null;
+    const provider = typeof data.provider === "string" ? data.provider : null;
+    return {
+      content,
+      htmlContent: null,
+      sourceLanguage,
+      targetLanguage,
+      provider
+    };
+  }
+
   async reblog(account: Account, statusId: string): Promise<Status> {
     await this.postSimple(account, "/api/notes/create", { renoteId: statusId });
     return this.fetchNote(account, statusId);
