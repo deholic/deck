@@ -1459,6 +1459,7 @@ button.ghost {
   overflow-y: auto;
   max-height: var(--height-timeline-column-body);
   padding-right: 6px;
+  overscroll-behavior-x: contain;
 }
 
 .sr-only {
