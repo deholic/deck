@@ -9,6 +9,14 @@ export type CreateStatusInput = {
   spoilerText?: string;
 };
 
+export type StatusTranslation = {
+  content: string;
+  htmlContent?: string | null;
+  sourceLanguage?: string | null;
+  targetLanguage?: string | null;
+  provider?: string | null;
+};
+
 export interface MastodonApi {
   verifyAccount(
     account: Account
@@ -44,4 +52,5 @@ export interface MastodonApi {
     account: Account,
     noteId: string
   ): Promise<{ isFavourited: boolean; isReblogged: boolean; bookmarked: boolean }>;
+  translateStatus(account: Account, statusId: string): Promise<StatusTranslation>;
 }

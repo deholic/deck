@@ -1692,6 +1692,43 @@ button.ghost {
   user-select: none;
 }
 
+.status-translation {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--color-status-border);
+  background: var(--color-panel-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.status-translation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--color-status-meta);
+}
+
+.status-translation-content {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-status-header);
+}
+
+.status-translation-content .rich-content {
+  margin: 0;
+}
+
+.status-translation-meta {
+  font-size: 12px;
+  color: var(--color-status-meta);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .rich-content p {
   margin: 0;
   padding: 0;

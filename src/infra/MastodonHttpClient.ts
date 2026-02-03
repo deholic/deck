@@ -443,6 +443,29 @@ export class MastodonHttpClient implements MastodonApi {
     };
   }
 
+  async translateStatus(account: Account, statusId: string) {
+    const response = await fetch(`${account.instanceUrl}/api/v1/statuses/${statusId}/translate`, {
+      method: "POST",
+      headers: buildHeaders(account)
+    });
+    if (!response.ok) {
+      throw new Error("번역에 실패했습니다.");
+    }
+    const data = (await response.json()) as Record<string, unknown>;
+    const htmlContent = typeof data.content === "string" ? data.content : "";
+    const sourceLanguage =
+      typeof data.detected_source_language === "string" ? data.detected_source_language : null;
+    const targetLanguage = typeof data.target_language === "string" ? data.target_language : null;
+    const provider = typeof data.provider === "string" ? data.provider : null;
+    return {
+      content: htmlContent,
+      htmlContent,
+      sourceLanguage,
+      targetLanguage,
+      provider
+    };
+  }
+
   async reblog(account: Account, statusId: string): Promise<Status> {
     return this.postAction(account, statusId, "reblog");
   }
