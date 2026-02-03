@@ -1207,6 +1207,7 @@ button.ghost {
   cursor: grab;
   scroll-behavior: smooth;
   scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
 }
 
 .timeline-board.is-dragging {
