@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import type { ToastTone } from "../state/ToastContext";
 
 type ToastItem = {
@@ -19,6 +20,7 @@ export const ToastHost = ({
   toasts: ToastItem[];
   onDismiss: (id: string) => void;
 }) => {
+  const { t } = useTranslation();
   if (toasts.length === 0) {
     return null;
   }
@@ -50,9 +52,9 @@ export const ToastHost = ({
               type="button"
               className="toast-close"
               onClick={() => onDismiss(toast.id)}
-              aria-label="토스트 닫기"
+              aria-label={t("toast.closeAria")}
             >
-              닫기
+              {t("toast.close")}
             </button>
           </div>
         </div>

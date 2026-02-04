@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Account, Status, TimelineType } from "../../domain/types";
 import type { MastodonApi } from "../../services/MastodonApi";
 import type { StreamingClient } from "../../services/StreamingClient";
@@ -64,6 +65,7 @@ export const useTimeline = (params: {
   flushInterval?: number;
   maxPending?: number;
 }) => {
+  const { t } = useTranslation();
   const {
     account,
     api,
@@ -139,11 +141,11 @@ export const useTimeline = (params: {
       setItems(capItems(timeline, resolvedMaxItems));
       setHasMore(timeline.length > 0);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "타임라인을 불러오지 못했습니다.");
+      setError(err instanceof Error ? err.message : t("errors.timelineLoadFailed"));
     } finally {
       setLoading(false);
     }
-  }, [account, api, clearFlushTimer, clearPendingCountTimer, resolvedMaxItems, timelineType]);
+  }, [account, api, clearFlushTimer, clearPendingCountTimer, resolvedMaxItems, t, timelineType]);
 
   const loadMore = useCallback(async () => {
     if (!account || loadingMore || loading) {
@@ -166,11 +168,11 @@ export const useTimeline = (params: {
         setHasMore(false);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "추가 글을 불러오지 못했습니다.");
+      setError(err instanceof Error ? err.message : t("errors.timelineLoadMoreFailed"));
     } finally {
       setLoadingMore(false);
     }
-  }, [account, api, hasMore, items, loading, loadingMore, resolvedMaxItems, timelineType]);
+  }, [account, api, hasMore, items, loading, loadingMore, resolvedMaxItems, t, timelineType]);
 
   useEffect(() => {
     if (!account) {

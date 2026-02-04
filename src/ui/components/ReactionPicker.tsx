@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Account, ReactionInput } from "../../domain/types";
 import type { MastodonApi } from "../../services/MastodonApi";
 import { useClickOutside } from "../hooks/useClickOutside";
@@ -18,6 +19,7 @@ export const ReactionPicker = ({
   onSelect: (reaction: ReactionInput) => void;
   buttonDataAction?: string;
 }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [panelStyle, setPanelStyle] = useState<React.CSSProperties>({});
   const [recentOpen, setRecentOpen] = useState(true);
@@ -49,13 +51,13 @@ export const ReactionPicker = ({
       lastEmojiErrorRef.current = null;
       return;
     }
-    const message = emojiError ?? "이모지를 불러오지 못했습니다.";
+    const message = emojiError ?? t("errors.emojisLoadFailed");
     if (message === lastEmojiErrorRef.current) {
       return;
     }
     lastEmojiErrorRef.current = message;
     showToast(message, { tone: "error" });
-  }, [emojiError, emojiStatus, showToast]);
+  }, [emojiError, emojiStatus, showToast, t]);
 
   const emojiSearchResults = useMemo(() => {
     if (!emojiSearchQuery.trim()) {
@@ -383,11 +385,11 @@ export const ReactionPicker = ({
         disabled={disabled}
         ref={buttonRef}
         data-action={buttonDataAction}
-        aria-label="리액션 추가"
+        aria-label={t("reactions.addAria")}
         aria-haspopup="dialog"
         aria-expanded={open}
       >
-        리액션
+        {t("reactions.add")}
       </button>
       {open ? (
         <>
@@ -396,7 +398,7 @@ export const ReactionPicker = ({
             className="reaction-picker-panel"
             role="dialog"
             aria-modal="true"
-            aria-label="리액션 선택"
+            aria-label={t("reactions.panelAria")}
             ref={panelRef}
             style={panelStyle}
             onKeyDown={handleEmojiPanelKeyDown}
@@ -404,39 +406,39 @@ export const ReactionPicker = ({
             tabIndex={-1}
           >
             <div className="compose-emoji-panel reaction-emoji-panel">
-              {!account ? <p className="compose-emoji-empty">계정을 선택해주세요.</p> : null}
+              {!account ? <p className="compose-emoji-empty">{t("errors.accountRequired")}</p> : null}
               {account ? (
                 <div className="compose-emoji-search">
                   <input
                     type="text"
                     value={emojiSearchQuery}
                     onChange={(event) => setEmojiSearchQuery(event.target.value)}
-                    placeholder="이모지 검색"
-                    aria-label="이모지 검색"
+                    placeholder={t("compose.emojiPanel.searchPlaceholder")}
+                    aria-label={t("compose.emojiPanel.searchAria")}
                     disabled={emojiStatus === "loading"}
                   />
                 </div>
               ) : null}
               {account && emojiStatus === "loading" ? (
-                <p className="compose-emoji-empty">이모지를 불러오는 중...</p>
+                <p className="compose-emoji-empty">{t("compose.emojiPanel.loading")}</p>
               ) : null}
               {account && emojiStatus === "error" ? (
                 <div className="compose-emoji-empty">
-                  <p>{emojiError ?? "이모지를 불러오지 못했습니다."}</p>
+                  <p>{emojiError ?? t("errors.emojisLoadFailed")}</p>
                   <button type="button" className="ghost" onClick={() => loadEmojis()}>
-                    다시 불러오기
+                    {t("actions.reload")}
                   </button>
                 </div>
               ) : null}
               {account && emojiCategories.length === 0 ? (
-                <p className="compose-emoji-empty">사용할 수 있는 이모지가 없습니다.</p>
+                <p className="compose-emoji-empty">{t("compose.emojiPanel.empty")}</p>
               ) : null}
               {account && emojiCategories.length > 0 ? (
                 <>
                   {hasEmojiSearch ? (
                     <section className="compose-emoji-category">
                       <div className="compose-emoji-category-toggle is-static">
-                        <span>검색 결과</span>
+                        <span>{t("compose.emojiPanel.searchResults")}</span>
                         <span className="compose-emoji-count">{emojiSearchResults.length}</span>
                       </div>
                       {emojiSearchResults.length > 0 ? (
@@ -447,7 +449,7 @@ export const ReactionPicker = ({
                               type="button"
                               className="compose-emoji-button"
                               onClick={() => handleSelect(emoji)}
-                              aria-label={`이모지 ${emoji.label}`}
+                              aria-label={t("compose.emojiPanel.emojiAria", { label: emoji.label })}
                               title={emoji.shortcode ? `:${emoji.shortcode}:` : undefined}
                               data-emoji-nav="emoji"
                               data-emoji-id={emoji.id}
@@ -463,7 +465,7 @@ export const ReactionPicker = ({
                           ))}
                         </div>
                       ) : (
-                        <p className="compose-emoji-empty">검색 결과가 없습니다.</p>
+                        <p className="compose-emoji-empty">{t("compose.emojiPanel.noSearchResults")}</p>
                       )}
                     </section>
                   ) : null}
@@ -493,7 +495,7 @@ export const ReactionPicker = ({
                                 type="button"
                                 className="compose-emoji-button"
                                 onClick={() => handleSelect(emoji)}
-                                aria-label={`이모지 ${emoji.label}`}
+                                aria-label={t("compose.emojiPanel.emojiAria", { label: emoji.label })}
                                 title={emoji.shortcode ? `:${emoji.shortcode}:` : undefined}
                                 data-emoji-nav="emoji"
                                 data-emoji-id={emoji.id}
@@ -536,7 +538,7 @@ export const ReactionPicker = ({
                                 type="button"
                                 className="compose-emoji-button"
                                 onClick={() => handleSelect(emoji)}
-                                aria-label={`이모지 ${emoji.label}`}
+                                aria-label={t("compose.emojiPanel.emojiAria", { label: emoji.label })}
                                 title={emoji.shortcode ? `:${emoji.shortcode}:` : undefined}
                                 data-emoji-nav="emoji"
                                 data-emoji-id={emoji.id}
@@ -559,9 +561,9 @@ export const ReactionPicker = ({
                     <div
                       className="compose-emoji-divider"
                       role="separator"
-                      aria-label="표준 이모지 구분선"
+                      aria-label={t("compose.emojiPanel.standardDividerAria")}
                     >
-                      <span>표준 이모지</span>
+                      <span>{t("compose.emojiPanel.standardTitle")}</span>
                     </div>
                   ) : null}
                   {standardEmojiCategories.map((category) => {
@@ -588,7 +590,7 @@ export const ReactionPicker = ({
                                 type="button"
                                 className="compose-emoji-button"
                                 onClick={() => handleSelect(emoji)}
-                                aria-label={`이모지 ${emoji.label}`}
+                                aria-label={t("compose.emojiPanel.emojiAria", { label: emoji.label })}
                                 title={emoji.shortcode ? `:${emoji.shortcode}:` : undefined}
                                 data-emoji-nav="emoji"
                                 data-emoji-id={emoji.id}

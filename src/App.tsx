@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import type { Account, ReactionInput, Status, TimelineType } from "./domain/types";
 import { AccountAdd } from "./ui/components/AccountAdd";
 import { AccountSelector } from "./ui/components/AccountSelector";
@@ -82,6 +83,7 @@ const parseRoute = (): Route => {
 };
 
 export const App = () => {
+  const { t } = useTranslation();
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => getStoredTheme());
   const [colorScheme, setColorScheme] = useState<ColorScheme>(() => getStoredColorScheme());
   const [showPomodoro, setShowPomodoro] = useState(() => {
@@ -297,23 +299,23 @@ export const App = () => {
 
     if (!pending || !state || pending.state !== state) {
       clearPendingOAuth();
-      setActionError("OAuth 상태가 유효하지 않습니다. 다시 시도해주세요.");
+      setActionError(t("errors.oauth.invalidState"));
       return;
     }
     if (pending.platform === "mastodon" && !code) {
       clearPendingOAuth();
-      setActionError("OAuth 코드를 받지 못했습니다. 다시 시도해주세요.");
+      setActionError(t("errors.oauth.missingCode"));
       return;
     }
     if (pending.platform === "misskey") {
       if (!session) {
         clearPendingOAuth();
-        setActionError("미스키 세션 정보를 받지 못했습니다. 다시 시도해주세요.");
+        setActionError(t("errors.oauth.misskeyMissingSession"));
         return;
       }
       if (session !== pending.sessionId) {
         clearPendingOAuth();
-        setActionError("미스키 세션 정보가 일치하지 않습니다. 다시 시도해주세요.");
+        setActionError(t("errors.oauth.misskeySessionMismatch"));
         return;
       }
     }
@@ -344,7 +346,7 @@ export const App = () => {
           if (pending.accountId) {
             const existing = accountsState.accounts.find((account) => account.id === pending.accountId);
             if (!existing) {
-              setActionError("재인증할 계정을 찾지 못했습니다.");
+              setActionError(t("errors.accountReauthNotFound"));
               return;
             }
             const updated: Account = {
@@ -369,7 +371,7 @@ export const App = () => {
               account.handle === fullHandle
           );
           if (existing) {
-            setActionError("이미 등록된 계정입니다.");
+            setActionError(t("errors.accountAlreadyRegistered"));
             accountsState.setActiveAccount(existing.id);
             return;
           }
@@ -382,7 +384,7 @@ export const App = () => {
             emojis: verified.emojis ?? []
           });
         } catch (err) {
-          setActionError(err instanceof Error ? err.message : "OAuth 처리에 실패했습니다.");
+        setActionError(err instanceof Error ? err.message : t("errors.oauth.failed"));
         } finally {
         clearPendingOAuth();
         setOauthLoading(false);
@@ -390,7 +392,7 @@ export const App = () => {
     };
 
     void addAccountWithToken();
-  }, [accountsState, services.api, services.oauth]);
+  }, [accountsState, services.api, services.oauth, t]);
 
   useEffect(() => {
     const value = themeMode === "default" ? "" : themeMode;
@@ -465,7 +467,7 @@ export const App = () => {
       const needsRegister = !cached || cached.redirectUri !== redirectUri || cached.platform === "misskey";
       const registered = needsRegister ? await services.oauth.registerApp(normalizedUrl, redirectUri) : cached;
       if (!registered) {
-        throw new Error("앱 등록 정보를 불러오지 못했습니다.");
+        throw new Error(t("errors.appRegistrationLoadFailed"));
       }
       if (needsRegister && registered.platform === "mastodon") {
         saveRegisteredApp(registered);
@@ -477,21 +479,19 @@ export const App = () => {
     } catch {
       setReauthLoading(false);
     }
-  }, [accountsState.accounts, settingsAccountId, services.oauth]);
+  }, [accountsState.accounts, settingsAccountId, services.oauth, t]);
 
   const handleSettingsRemove = useCallback(() => {
     if (!settingsAccountId) return;
-    const confirmed = window.confirm("이 계정을 삭제할까요?");
+    const confirmed = window.confirm(t("confirm.removeAccount"));
     if (confirmed) {
       accountsState.removeAccount(settingsAccountId);
       setSettingsAccountId(null);
     }
-  }, [settingsAccountId, accountsState]);
+  }, [accountsState, settingsAccountId, t]);
 
   const handleClearLocalStorage = useCallback(() => {
-    const confirmed = window.confirm(
-      "로컬 저장소의 모든 데이터를 삭제할까요? 계정과 설정 정보가 모두 초기화됩니다."
-    );
+    const confirmed = window.confirm(t("confirm.clearLocalStorage"));
     if (!confirmed) {
       return;
     }
@@ -501,7 +501,7 @@ export const App = () => {
       /* noop */
     }
     window.location.reload();
-  }, []);
+  }, [t]);
 
   const isEditableElement = useCallback((element: Element | null) => {
     if (!element) {
@@ -898,7 +898,7 @@ export const App = () => {
       setMentionSeed(null);
       return true;
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "글 작성에 실패했습니다.");
+      setActionError(err instanceof Error ? err.message : t("errors.composeFailed"));
       return false;
     }
   };
@@ -957,16 +957,16 @@ export const App = () => {
   const handleReaction = useCallback(
     async (account: Account | null, status: Status, reaction: ReactionInput) => {
       if (!account) {
-        setActionError("계정을 선택해주세요.");
+        setActionError(t("errors.accountRequired"));
         return;
       }
       if (account.platform !== "misskey") {
-        setActionError("리액션은 미스키 계정에서만 사용할 수 있습니다.");
+        setActionError(t("errors.reactionMisskeyOnly"));
         return;
       }
       const target = status.reblog ?? status;
       if (target.myReaction && target.myReaction !== reaction.name) {
-        setActionError("이미 리액션을 남겼습니다. 먼저 취소해주세요.");
+        setActionError(t("errors.reactionAlreadyExists"));
         return;
       }
       setActionError(null);
@@ -981,11 +981,11 @@ export const App = () => {
           updateStatusEverywhere(account.id, updated);
         }
       } catch (err) {
-        setActionError(err instanceof Error ? err.message : "리액션 처리에 실패했습니다.");
+        setActionError(err instanceof Error ? err.message : t("errors.reactionFailed"));
         updateStatusEverywhere(account.id, target);
       }
     },
-    [services.api, updateStatusEverywhere]
+    [services.api, t, updateStatusEverywhere]
   );
 
   const composeAccountSelector = (
@@ -1104,14 +1104,14 @@ export const App = () => {
   return (
     <div className="app">
       <header className="app-header">
-        <a href="#/" className="app-logo" aria-label="Deck 홈">
-          <img src={logoUrl} alt="Deck 로고" />
+        <a href="#/" className="app-logo" aria-label={t("app.logoHomeAria")}>
+          <img src={logoUrl} alt={t("app.logoAlt")} />
         </a>
         <div className="app-header-actions">
           <button
             type="button"
             className="icon-button mobile-compose-button"
-            aria-label="글쓰기 열기"
+            aria-label={t("compose.openAria")}
             onClick={() => setMobileComposeOpen(true)}
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1122,7 +1122,7 @@ export const App = () => {
           <button
             type="button"
             className="icon-button mobile-menu-button"
-            aria-label="메뉴 열기"
+            aria-label={t("menu.openAria")}
             onClick={() => setMobileMenuOpen(true)}
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1133,11 +1133,11 @@ export const App = () => {
           </button>
         </div>
       </header>
-      <div className="mobile-blocker" role="dialog" aria-modal="true" aria-label="모바일 안내">
+      <div className="mobile-blocker" role="dialog" aria-modal="true" aria-label={t("app.mobileBlocker.aria")}>
         <div className="mobile-blocker-card">
-          <h2>모바일 환경에서는 사용이 불가능합니다 🙇‍♂️</h2>
+          <h2>{t("app.mobileBlocker.title")}</h2>
           <p>
-            멀티 컬럼 인터페이스 특성상 모바일 지원이 제한됩니다. 데스크톱 또는 태블릿에서 이용해 주세요.
+            {t("app.mobileBlocker.description")}
           </p>
         </div>
       </div>
@@ -1175,14 +1175,14 @@ export const App = () => {
           {route === "home" ? (
             <section className="panel sidebar-panel">
               <div className="brand">
-                <img src={logoUrl} alt="Deck 로고" />
+                <img src={logoUrl} alt={t("app.logoAlt")} />
                 <div className="brand-text">
                   <h1>Deck</h1>
-                  <p>오픈소스 페디버스 웹 클라이언트</p>
+                  <p>{t("app.tagline")}</p>
                 </div>
               </div>
               <p className="sidebar-description">
-                여러 계정을 전환하고 타임라인을 실시간으로 확인할 수 있습니다.
+                {t("app.sidebarDescription")}
               </p>
               <div className="sidebar-actions">
                 <button
@@ -1198,7 +1198,7 @@ export const App = () => {
                     <path d="M4 18h16" />
                     <circle cx="8" cy="18" r="2" />
                   </svg>
-                  설정 열기
+                  {t("settings.open")}
                 </button>
                 <AccountAdd
                   oauth={services.oauth}
@@ -1213,7 +1213,7 @@ export const App = () => {
                     setInfoModal("terms");
                   }}
                 >
-                  이용약관
+                  {t("infoPages.terms")}
                 </a>
                 <a
                   href="#/license"
@@ -1222,7 +1222,7 @@ export const App = () => {
                     setInfoModal("license");
                   }}
                 >
-                  라이선스
+                  {t("infoPages.license")}
                 </a>
                 <a
                   href="#/oss"
@@ -1231,7 +1231,7 @@ export const App = () => {
                     setInfoModal("oss");
                   }}
                 >
-                  오픈소스 목록
+                  {t("infoPages.oss")}
                 </a>
                 <a
                   href="#/shortcuts"
@@ -1240,10 +1240,10 @@ export const App = () => {
                     setInfoModal("shortcuts");
                   }}
                 >
-                  단축키
+                  {t("infoPages.shortcuts")}
                 </a>
                 <a href="https://github.com/deholic/textodon" target="_blank" rel="noreferrer">
-                  소스 코드
+                  {t("app.sourceCode")}
                 </a>
               </nav>
             </section>
@@ -1252,14 +1252,18 @@ export const App = () => {
 
         {hasAccounts ? (
           <section className="main-column">
-            {oauthLoading ? <p className="empty">OAuth 인증 중...</p> : null}
+            {oauthLoading ? <p className="empty">{t("oauth.authenticating")}</p> : null}
             {route === "home" ? (
               <section className="panel">
                 {showPomodoro && pomodoroSessionType === "focus" && pomodoroIsRunning ? (
                   <div className="pomodoro-focus-message">
                     <div className="pomodoro-focus-message-content">
-                      <h2>🎯 집중 세션 진행 중</h2>
-                      <p>뽀모도로 타이머가 동작 중입니다.<br />타임라인은 집중이 끝날 때까지 숨겨집니다.</p>
+                      <h2>{t("pomodoro.focusSession.title")}</h2>
+                      <p>
+                        <Trans i18nKey="pomodoro.focusSession.description">
+                          뽀모도로 타이머가 동작 중입니다.<br />타임라인은 집중이 끝날 때까지 숨겨집니다.
+                        </Trans>
+                      </p>
                     </div>
                   </div>
                 ) : null}
@@ -1426,7 +1430,7 @@ export const App = () => {
           }}
           onToggleFavourite={async (status) => {
             if (!composeAccount) {
-              setActionError("계정을 선택해주세요.");
+              setActionError(t("errors.accountRequired"));
               return;
             }
             setActionError(null);
@@ -1437,12 +1441,12 @@ export const App = () => {
               // Update the status in modal
               setSelectedStatus(updated);
             } catch (err) {
-              setActionError(err instanceof Error ? err.message : "좋아요 처리에 실패했습니다.");
+              setActionError(err instanceof Error ? err.message : t("errors.likeFailed"));
             }
           }}
           onToggleReblog={async (status) => {
             if (!composeAccount) {
-              setActionError("계정을 선택해주세요.");
+              setActionError(t("errors.accountRequired"));
               return;
             }
             setActionError(null);
@@ -1452,12 +1456,12 @@ export const App = () => {
                 : await services.api.reblog(composeAccount, status.id);
               setSelectedStatus(updated);
             } catch (err) {
-              setActionError(err instanceof Error ? err.message : "부스트 처리에 실패했습니다.");
+              setActionError(err instanceof Error ? err.message : t("errors.boostFailed"));
             }
           }}
           onToggleBookmark={async (status) => {
             if (!composeAccount) {
-              setActionError("계정을 선택해주세요.");
+              setActionError(t("errors.accountRequired"));
               return;
             }
             setActionError(null);
@@ -1468,12 +1472,12 @@ export const App = () => {
                 : await services.api.bookmark(composeAccount, status.id);
               setSelectedStatus(updated);
               if (isBookmarking) {
-                showToast("북마크했습니다.");
+                showToast(t("toast.bookmarkAdded"));
               } else {
-                showToast("북마크를 취소했습니다.");
+                showToast(t("toast.bookmarkRemoved"));
               }
             } catch (err) {
-              setActionError(err instanceof Error ? err.message : "북마크 처리에 실패했습니다.");
+              setActionError(err instanceof Error ? err.message : t("errors.bookmarkFailed"));
             }
           }}
           onDelete={async (status) => {
@@ -1485,7 +1489,7 @@ export const App = () => {
               await services.api.deleteStatus(composeAccount, status.id);
               setSelectedStatus(null);
             } catch (err) {
-              setActionError(err instanceof Error ? err.message : "게시글 삭제에 실패했습니다.");
+              setActionError(err instanceof Error ? err.message : t("errors.statusDeleteFailed"));
             }
           }}
           activeHandle={

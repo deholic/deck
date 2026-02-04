@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Account, ReactionInput, Status, TimelineType } from "../../domain/types";
 import type { SectionDisplaySettings } from "../types/section";
 import type { AccountsState, AppServices } from "../state/AppContext";
@@ -150,6 +151,7 @@ export const TimelineSection = ({
   columnRef,
   selectedStatusId
 }: TimelineSectionProps) => {
+  const { t } = useTranslation();
   const notificationsTimeline = useTimeline({
     account,
     api: services.api,
@@ -197,7 +199,7 @@ export const TimelineSection = ({
     () => timelineOptions.filter((option) => !option.isDivider),
     [timelineOptions]
   );
-  const timelineButtonLabel = `타임라인 선택: ${getTimelineLabel(timelineType)}`;
+  const timelineButtonLabel = t("timeline.selectAria", { label: getTimelineLabel(timelineType) });
   const hasNotificationBadge = notificationCount > 0;
   const instanceOriginUrl = useMemo(() => {
     if (!account) {
@@ -210,10 +212,12 @@ export const TimelineSection = ({
     }
   }, [account]);
   const notificationBadgeLabel = notificationsOpen
-    ? "알림 닫기"
+    ? t("notifications.close")
     : hasNotificationBadge
-      ? `알림 열기 (새 알림 ${notificationCount >= 99 ? "99개 이상" : `${notificationCount}개`})`
-      : "알림 열기";
+      ? t("notifications.openWithCount", {
+          badge: notificationCount >= 99 ? t("notifications.badgeOver") : t("notifications.badgeCount", { count: notificationCount })
+        })
+      : t("notifications.open");
   const notificationBadgeText = notificationCount >= 99 ? "99+" : String(notificationCount);
   const handleNotification = useCallback(() => {
     if (notificationsOpen) {
@@ -229,13 +233,13 @@ export const TimelineSection = ({
       return;
     }
     lastNotificationToastRef.current = now;
-    showToast("새 알림이 도착했습니다.", {
+    showToast(t("notifications.toast"), {
       tone: "info",
-      actionLabel: "알림 받은 컬럼으로 이동",
-      actionAriaLabel: "알림이 도착한 컬럼으로 이동",
+      actionLabel: t("notifications.toastAction"),
+      actionAriaLabel: t("notifications.toastActionAria"),
       onAction: () => onScrollToSection(section.id)
     });
-  }, [notificationsOpen, refreshNotifications, timelineType, showToast, onScrollToSection, section.id]);
+  }, [notificationsOpen, refreshNotifications, timelineType, showToast, onScrollToSection, section.id, t]);
   const timeline = useTimeline({
     account,
     api: services.api,
@@ -246,10 +250,10 @@ export const TimelineSection = ({
   });
   const actionsDisabled = timelineType === "notifications" || timelineType === "bookmarks";
   const emptyMessage = timelineType === "notifications"
-    ? "표시할 알림이 없습니다."
+    ? t("timeline.empty.notifications")
     : timelineType === "bookmarks"
-      ? "북마크한 글이 없습니다."
-      : "표시할 글이 없습니다.";
+      ? t("timeline.empty.bookmarks")
+      : t("timeline.empty.default");
   const pendingCount = timeline.pendingCount ?? 0;
   const pendingCountLabel = pendingCount >= 99 ? "99+" : String(pendingCount);
   const hasPendingUpdates = pendingCount > 0 && !isAtTop;
@@ -397,7 +401,7 @@ export const TimelineSection = ({
 
   const handleToggleFavourite = async (status: Status) => {
     if (!account) {
-      onError("계정을 선택해주세요.");
+      onError(t("errors.accountRequired"));
       return;
     }
     onError(null);
@@ -407,13 +411,13 @@ export const TimelineSection = ({
         : await services.api.favourite(account, status.id);
       timeline.updateItem(updated);
     } catch (err) {
-      onError(err instanceof Error ? err.message : "좋아요 처리에 실패했습니다.");
+      onError(err instanceof Error ? err.message : t("errors.likeFailed"));
     }
   };
 
   const handleToggleReblog = async (status: Status) => {
     if (!account) {
-      onError("계정을 선택해주세요.");
+      onError(t("errors.accountRequired"));
       return;
     }
     onError(null);
@@ -430,14 +434,14 @@ export const TimelineSection = ({
         : await services.api.reblog(account, status.id);
       timeline.updateItem(updated);
     } catch (err) {
-      onError(err instanceof Error ? err.message : "부스트 처리에 실패했습니다.");
+      onError(err instanceof Error ? err.message : t("errors.boostFailed"));
       timeline.updateItem(status);
     }
   };
 
   const handleToggleBookmark = async (status: Status) => {
     if (!account) {
-      onError("계정을 선택해주세요.");
+      onError(t("errors.accountRequired"));
       return;
     }
     onError(null);
@@ -453,12 +457,12 @@ export const TimelineSection = ({
         : await services.api.bookmark(account, status.id);
       timeline.updateItem(updated);
       if (isBookmarking) {
-        showToast("북마크했습니다.", { tone: "success" });
+        showToast(t("toast.bookmarkAdded"), { tone: "success" });
       } else {
-        showToast("북마크를 취소했습니다.", { tone: "success" });
+        showToast(t("toast.bookmarkRemoved"), { tone: "success" });
       }
     } catch (err) {
-      onError(err instanceof Error ? err.message : "북마크 처리에 실패했습니다.");
+      onError(err instanceof Error ? err.message : t("errors.bookmarkFailed"));
       timeline.updateItem(status);
     }
   };
@@ -480,7 +484,7 @@ export const TimelineSection = ({
       timeline.removeItem(status.id);
       onCloseStatusModal();
     } catch (err) {
-      onError(err instanceof Error ? err.message : "게시글 삭제에 실패했습니다.");
+      onError(err instanceof Error ? err.message : t("errors.statusDeleteFailed"));
     }
   };
 
@@ -503,6 +507,121 @@ export const TimelineSection = ({
     window.open(instanceOriginUrl, "_blank", "noopener,noreferrer");
     setMenuOpen(false);
   }, [instanceOriginUrl]);
+
+  const sectionMenuItems = useMemo(
+    () => [
+      {
+        id: "refresh",
+        label: t("sectionMenu.refresh"),
+        onClick: () => {
+          timeline.refresh();
+          setMenuOpen(false);
+        },
+        disabled: !account || timeline.loading,
+        icon: (
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 11a8 8 0 1 1-3.5-5.9" />
+            <path d="M21.5 2.5v6h-6" />
+          </svg>
+        )
+      },
+      {
+        id: "open-instance",
+        label: t("sectionMenu.openOrigin"),
+        onClick: handleOpenInstanceOrigin,
+        disabled: !instanceOriginUrl,
+        icon: (
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 5h16v10H4z" />
+            <path d="M8 19h8" />
+            <path d="M12 15v4" />
+          </svg>
+        )
+      },
+      {
+        id: "settings",
+        label: t("sectionMenu.settings"),
+        onClick: () => {
+          setMenuOpen(false);
+          setSettingsOpen(true);
+        },
+        disabled: false,
+        icon: (
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 6h16" />
+            <circle cx="9" cy="6" r="2" />
+            <path d="M4 12h16" />
+            <circle cx="15" cy="12" r="2" />
+            <path d="M4 18h16" />
+            <circle cx="8" cy="18" r="2" />
+          </svg>
+        )
+      },
+      { id: "divider-1", type: "divider" as const },
+      {
+        id: "add-left",
+        label: t("sectionMenu.addLeft"),
+        onClick: () => {
+          onAddSectionLeft(section.id);
+          setMenuOpen(false);
+        },
+        disabled: false
+      },
+      {
+        id: "move-left",
+        label: t("sectionMenu.moveLeft"),
+        onClick: () => {
+          onMoveSection(section.id, "left");
+          setMenuOpen(false);
+        },
+        disabled: !canMoveLeft
+      },
+      {
+        id: "move-right",
+        label: t("sectionMenu.moveRight"),
+        onClick: () => {
+          onMoveSection(section.id, "right");
+          setMenuOpen(false);
+        },
+        disabled: !canMoveRight
+      },
+      {
+        id: "add-right",
+        label: t("sectionMenu.addRight"),
+        onClick: () => {
+          onAddSectionRight(section.id);
+          setMenuOpen(false);
+        },
+        disabled: false
+      },
+      {
+        id: "remove",
+        label: t("sectionMenu.remove"),
+        onClick: () => {
+          onRemoveSection(section.id);
+          setMenuOpen(false);
+        },
+        disabled: !canRemoveSection,
+        danger: true
+      }
+    ],
+    [
+      account,
+      canMoveLeft,
+      canMoveRight,
+      canRemoveSection,
+      handleOpenInstanceOrigin,
+      instanceOriginUrl,
+      onAddSectionLeft,
+      onAddSectionRight,
+      onMoveSection,
+      onRemoveSection,
+      section.id,
+      t,
+      timeline.loading,
+      timeline.refresh
+    ]
+  );
 
   const handleTimelineShortcuts = useCallback(
     (event: KeyboardEvent) => {
@@ -722,7 +841,7 @@ export const TimelineSection = ({
       }
       if (key === "t") {
         if (!account) {
-          onError("계정을 선택해주세요.");
+          onError(t("errors.accountRequired"));
           return true;
         }
         event.preventDefault();
@@ -734,7 +853,7 @@ export const TimelineSection = ({
       }
       if (key === "g") {
         if (!account) {
-          onError("계정을 선택해주세요.");
+          onError(t("errors.accountRequired"));
           return true;
         }
         event.preventDefault();
@@ -815,17 +934,17 @@ export const TimelineSection = ({
             accountsState.setActiveAccount(id);
           }}
           summaryRef={accountSummaryRef}
-          summaryTitle="계정 선택 (A)"
+          summaryTitle={t("accountSelector.shortcutHintCompact")}
           variant="inline"
         />
-        <div className="timeline-column-actions" role="group" aria-label="타임라인 작업">
+        <div className="timeline-column-actions" role="group" aria-label={t("timeline.actionsAria")}>
           <div className="timeline-selector">
             <button
               type="button"
               className="timeline-selector-button"
               onClick={() => {
                 if (!account) {
-                  onError("계정을 선택해주세요.");
+                  onError(t("errors.accountRequired"));
                   return;
                 }
                 setTimelineMenuOpen((current) => !current);
@@ -837,7 +956,7 @@ export const TimelineSection = ({
               aria-label={timelineButtonLabel}
               aria-haspopup="menu"
               aria-expanded={timelineMenuOpen}
-              title="타임라인 선택 (T)"
+              title={t("timeline.selectHint")}
             >
               <TimelineIcon timeline={timelineType} />
               <span className="timeline-selector-label">{getTimelineLabel(timelineType)}</span>
@@ -849,7 +968,7 @@ export const TimelineSection = ({
                   ref={timelineMenuRef}
                   className="section-menu-panel timeline-selector-panel"
                   role="menu"
-                  aria-label="타임라인 선택"
+                  aria-label={t("timeline.selectMenuAria")}
                 >
                   {timelineOptions.map((option) => {
                     if (option.isDivider) {
@@ -866,7 +985,7 @@ export const TimelineSection = ({
                         type="button"
                         className={`${isSelected ? "is-active" : ""}${isHighlighted ? " is-highlighted" : ""}`}
                         aria-pressed={isSelected}
-                        title={isHighlighted ? "선택 (Enter)" : undefined}
+                        title={isHighlighted ? t("actions.selectHint") : undefined}
                         onClick={() => {
                           if (!option.isDivider) {
                             onTimelineChange(section.id, option.id as TimelineType);
@@ -890,7 +1009,7 @@ export const TimelineSection = ({
               className={`icon-button${notificationsOpen ? " is-active" : ""}`}
               onClick={() => {
                 if (!account) {
-                  onError("계정을 선택해주세요.");
+                  onError(t("errors.accountRequired"));
                   return;
                 }
                 setMenuOpen(false);
@@ -901,7 +1020,7 @@ export const TimelineSection = ({
               disabled={!account}
               aria-label={notificationBadgeLabel}
               aria-pressed={notificationsOpen}
-              title="알림 열기 (G)"
+              title={t("notifications.openHint")}
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 7h18s-3 0-3-7" />
@@ -916,13 +1035,13 @@ export const TimelineSection = ({
             {notificationsOpen ? (
               <>
                 <div className="overlay-backdrop" aria-hidden="true" />
-                <div ref={notificationMenuRef} className="notification-popover panel" role="dialog" aria-modal="true" aria-label="알림">
+                <div ref={notificationMenuRef} className="notification-popover panel" role="dialog" aria-modal="true" aria-label={t("notifications.title")}>
                   <div className="notification-popover-body" ref={notificationScrollRef}>
                     {notificationItems.length === 0 && !notificationsLoading ? (
-                      <p className="empty">표시할 알림이 없습니다.</p>
+                      <p className="empty">{t("notifications.empty")}</p>
                     ) : null}
                     {notificationsLoading && notificationItems.length === 0 ? (
-                      <p className="empty">알림을 불러오는 중...</p>
+                      <p className="empty">{t("notifications.loading")}</p>
                     ) : null}
                     {notificationItems.length > 0 ? (
                       <div className="timeline">
@@ -954,7 +1073,7 @@ export const TimelineSection = ({
                         ))}
                       </div>
                     ) : null}
-                    {notificationsLoadingMore ? <p className="empty">더 불러오는 중...</p> : null}
+                    {notificationsLoadingMore ? <p className="empty">{t("timeline.loadingMore")}</p> : null}
                   </div>
                 </div>
               </>
@@ -964,8 +1083,8 @@ export const TimelineSection = ({
             <button
               type="button"
               className="icon-button menu-button"
-              aria-label="섹션 메뉴 열기"
-              title="섹션 메뉴 열기 (M)"
+              aria-label={t("sectionMenu.openAria")}
+              title={t("sectionMenu.openHint")}
               onClick={() => {
                 setMenuOpen((current) => !current);
                 setNotificationsOpen(false);
@@ -983,120 +1102,10 @@ export const TimelineSection = ({
               <>
                 <div className="overlay-backdrop" aria-hidden="true" />
                 <div ref={menuRef} className="section-menu-panel" role="menu">
-                  {(
-                    [
-                      {
-                        label: "새로고침",
-                        onClick: () => {
-                          timeline.refresh();
-                          setMenuOpen(false);
-                        },
-                        disabled: !account || timeline.loading
-                      },
-                      {
-                        label: "원본 서버에서 보기",
-                        onClick: handleOpenInstanceOrigin,
-                        disabled: !instanceOriginUrl
-                      },
-                      {
-                        label: "섹션 설정",
-                        onClick: () => {
-                          setMenuOpen(false);
-                          setSettingsOpen(true);
-                        },
-                        disabled: false
-                      },
-                      {
-                        type: "divider"
-                      },
-                      {
-                        label: "왼쪽 섹션 추가",
-                        onClick: () => {
-                          onAddSectionLeft(section.id);
-                          setMenuOpen(false);
-                        },
-                        disabled: false
-                      },
-                      {
-                        label: "왼쪽으로 이동",
-                        onClick: () => {
-                          onMoveSection(section.id, "left");
-                          setMenuOpen(false);
-                        },
-                        disabled: !canMoveLeft
-                      },
-                      {
-                        label: "오른쪽으로 이동",
-                        onClick: () => {
-                          onMoveSection(section.id, "right");
-                          setMenuOpen(false);
-                        },
-                        disabled: !canMoveRight
-                      },
-                      {
-                        label: "오른쪽 섹션 추가",
-                        onClick: () => {
-                          onAddSectionRight(section.id);
-                          setMenuOpen(false);
-                        },
-                        disabled: false
-                      },
-                      {
-                        label: "섹션 삭제",
-                        onClick: () => {
-                          onRemoveSection(section.id);
-                          setMenuOpen(false);
-                        },
-                        disabled: !canRemoveSection,
-                        danger: true
-                      }
-                    ]
-                  ).map((item, index) => {
+                  {sectionMenuItems.map((item, index) => {
                     if ("type" in item && item.type === "divider") {
-                      return <div key={`divider-${index}`} className="section-menu-divider" role="separator" />;
+                      return <div key={item.id} className="section-menu-divider" role="separator" />;
                     }
-                    const icon = (() => {
-                      switch (item.label) {
-                        case "새로고침":
-                          return (
-                            <svg viewBox="0 0 24 24" aria-hidden="true">
-                              <path d="M20 11a8 8 0 1 1-3.5-5.9" />
-                              <path d="M21.5 2.5v6h-6" />
-                            </svg>
-                          );
-                        case "원본 서버에서 보기":
-                          return (
-                            <svg viewBox="0 0 24 24" aria-hidden="true">
-                              <path d="M4 5h16v10H4z" />
-                              <path d="M8 19h8" />
-                              <path d="M12 15v4" />
-                            </svg>
-                          );
-                        case "섹션 설정":
-                          return (
-                            <svg viewBox="0 0 24 24" aria-hidden="true">
-                              <path d="M4 6h16" />
-                              <circle cx="9" cy="6" r="2" />
-                              <path d="M4 12h16" />
-                              <circle cx="15" cy="12" r="2" />
-                              <path d="M4 18h16" />
-                              <circle cx="8" cy="18" r="2" />
-                            </svg>
-                          );
-                        case "왼쪽 섹션 추가":
-                          return null;
-                        case "왼쪽으로 이동":
-                          return null;
-                        case "오른쪽으로 이동":
-                          return null;
-                        case "오른쪽 섹션 추가":
-                          return null;
-                        case "섹션 삭제":
-                          return null;
-                        default:
-                          return null;
-                      }
-                    })();
                     const className = [
                       item.danger ? "danger" : "",
                       highlightedSectionMenuIndex === index ? "is-highlighted" : ""
@@ -1105,19 +1114,19 @@ export const TimelineSection = ({
                       .join(" ");
                     return (
                       <button
-                        key={item.label}
+                        key={item.id}
                         type="button"
                         className={className}
-                        title={highlightedSectionMenuIndex === index ? "선택 (Enter)" : undefined}
+                        title={highlightedSectionMenuIndex === index ? t("actions.selectHint") : undefined}
                         onClick={item.onClick}
                         disabled={item.disabled}
                       >
-                        {icon ? (
+                        {item.icon ? (
                           <span
                             className={`section-menu-icon${item.danger ? " is-danger" : ""}`}
                             aria-hidden="true"
                           >
-                            {icon}
+                            {item.icon}
                           </span>
                         ) : null}
                         <span className="section-menu-label">{item.label}</span>
@@ -1135,12 +1144,12 @@ export const TimelineSection = ({
                   className="section-menu-panel section-settings-panel"
                   role="dialog"
                   aria-modal="true"
-                  aria-label="섹션 설정"
+                  aria-label={t("sectionSettings.title")}
                 >
                   <div className="section-settings-item">
                     <div className="section-settings-text">
-                      <strong id={`${settingsIdPrefix}-profile-label`}>프로필 이미지 표시</strong>
-                      <p id={`${settingsIdPrefix}-profile-hint`}>이 섹션에서만 프로필 이미지를 보여줍니다.</p>
+                      <strong id={`${settingsIdPrefix}-profile-label`}>{t("sectionSettings.profileImages.title")}</strong>
+                      <p id={`${settingsIdPrefix}-profile-hint`}>{t("sectionSettings.profileImages.description")}</p>
                     </div>
                     <label className="switch">
                       <input
@@ -1157,8 +1166,8 @@ export const TimelineSection = ({
                   </div>
                   <div className="section-settings-item">
                     <div className="section-settings-text">
-                      <strong id={`${settingsIdPrefix}-emoji-label`}>커스텀 이모지 표시</strong>
-                      <p id={`${settingsIdPrefix}-emoji-hint`}>사용자 이름과 본문에 커스텀 이모지를 표시합니다.</p>
+                      <strong id={`${settingsIdPrefix}-emoji-label`}>{t("sectionSettings.customEmojis.title")}</strong>
+                      <p id={`${settingsIdPrefix}-emoji-hint`}>{t("sectionSettings.customEmojis.description")}</p>
                     </div>
                     <label className="switch">
                       <input
@@ -1175,8 +1184,8 @@ export const TimelineSection = ({
                   </div>
                   <div className="section-settings-item">
                     <div className="section-settings-text">
-                      <strong id={`${settingsIdPrefix}-reaction-label`}>리액션 표시</strong>
-                      <p id={`${settingsIdPrefix}-reaction-hint`}>리액션을 지원하는 서버에서 받은 리액션을 보여줍니다.</p>
+                      <strong id={`${settingsIdPrefix}-reaction-label`}>{t("sectionSettings.reactions.title")}</strong>
+                      <p id={`${settingsIdPrefix}-reaction-hint`}>{t("sectionSettings.reactions.description")}</p>
                     </div>
                     <label className="switch">
                       <input
@@ -1193,8 +1202,8 @@ export const TimelineSection = ({
                   </div>
                   <div className="section-settings-item">
                     <div className="section-settings-text">
-                      <strong>섹션 폭</strong>
-                      <p>이 섹션의 가로 폭을 조절합니다.</p>
+                      <strong>{t("sectionSettings.sectionSize.title")}</strong>
+                      <p>{t("sectionSettings.sectionSize.description")}</p>
                     </div>
                     <select
                       className="section-settings-select"
@@ -1204,11 +1213,11 @@ export const TimelineSection = ({
                           sectionSize: event.target.value as SectionDisplaySettings["sectionSize"]
                         })
                       }
-                      aria-label="섹션 폭 설정"
+                      aria-label={t("sectionSettings.sectionSize.aria")}
                     >
-                      <option value="small">소</option>
-                      <option value="medium">중</option>
-                      <option value="large">대</option>
+                      <option value="small">{t("sectionSettings.sectionSize.small")}</option>
+                      <option value="medium">{t("sectionSettings.sectionSize.medium")}</option>
+                      <option value="large">{t("sectionSettings.sectionSize.large")}</option>
                     </select>
                   </div>
                 </div>
@@ -1221,21 +1230,21 @@ export const TimelineSection = ({
         {hasPendingUpdates ? (
           <>
             <span className="sr-only" aria-live="polite">
-              새 글 {pendingCountLabel}개가 새로 도착했습니다.
+              {t("timeline.pending.sr", { label: pendingCountLabel })}
             </span>
             <button
               type="button"
               className="timeline-pending-banner"
               onClick={handleShowPending}
-              aria-label={`새 글 ${pendingCountLabel}개 표시`}
-              title="새 글 표시"
+              aria-label={t("timeline.pending.aria", { label: pendingCountLabel })}
+              title={t("timeline.pending.title")}
             >
-              <span>새 글 {pendingCountLabel}개</span>
-              <span className="timeline-pending-action">보기</span>
+              <span>{t("timeline.pending.label", { label: pendingCountLabel })}</span>
+              <span className="timeline-pending-action">{t("timeline.pending.action")}</span>
             </button>
           </>
         ) : null}
-        {!account ? <p className="empty">계정을 선택하면 타임라인을 불러옵니다.</p> : null}
+        {!account ? <p className="empty">{t("timeline.accountRequired")}</p> : null}
         {account && timeline.items.length === 0 && !timeline.loading ? (
           <p className="empty">{emptyMessage}</p>
         ) : null}
@@ -1271,15 +1280,15 @@ export const TimelineSection = ({
             ))}
           </div>
         ) : null}
-        {timeline.loadingMore ? <p className="empty">더 불러오는 중...</p> : null}
+        {timeline.loadingMore ? <p className="empty">{t("timeline.loadingMore")}</p> : null}
       </div>
       <button
         type="button"
         className="icon-button scroll-top-fab"
         onClick={() => scrollToTop()}
         disabled={isAtTop}
-        aria-label="최상단으로 이동"
-        title="최상단으로 이동"
+        aria-label={t("timeline.scrollTop")}
+        title={t("timeline.scrollTop")}
       >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M12 19V5" />

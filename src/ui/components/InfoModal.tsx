@@ -1,19 +1,12 @@
 import type { InfoModalType } from "../types/info";
 import { LicenseContent, OssContent, ShortcutsContent, TermsContent } from "../pages/InfoPages";
+import { useTranslation } from "react-i18next";
 
-const getInfoModalTitle = (type: InfoModalType) => {
-  switch (type) {
-    case "terms":
-      return "이용약관";
-    case "license":
-      return "라이선스";
-    case "oss":
-      return "오픈소스 목록";
-    case "shortcuts":
-      return "단축키";
-    default:
-      return "";
-  }
+const INFO_MODAL_TITLE_KEYS: Record<InfoModalType, string> = {
+  terms: "infoPages.terms",
+  license: "infoPages.license",
+  oss: "infoPages.oss",
+  shortcuts: "infoPages.shortcuts"
 };
 
 const InfoModalContent = ({ type }: { type: InfoModalType }) => {
@@ -32,15 +25,16 @@ const InfoModalContent = ({ type }: { type: InfoModalType }) => {
 };
 
 export const InfoModal = ({ type, onClose }: { type: InfoModalType; onClose: () => void }) => {
-  const title = getInfoModalTitle(type);
+  const { t } = useTranslation();
+  const title = t(INFO_MODAL_TITLE_KEYS[type]);
   return (
     <div className="info-modal" role="dialog" aria-modal="true" aria-label={title}>
       <div className="info-modal-backdrop" onClick={onClose} />
       <div className="info-modal-content">
         <div className="info-modal-header">
           <h3 className="info-modal-title">{title}</h3>
-          <button type="button" className="ghost" onClick={onClose} aria-label={`${title} 닫기`}>
-            닫기
+          <button type="button" className="ghost" onClick={onClose} aria-label={t("infoModal.closeAria", { title })}>
+            {t("actions.close")}
           </button>
         </div>
         <div className="info-modal-body">

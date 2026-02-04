@@ -1,0 +1,412 @@
+{
+  "actions": {
+    "add": "Add",
+    "cancel": "Cancel",
+    "close": "Close",
+    "reload": "Reload",
+    "remove": "Remove",
+    "selectHint": "Select (Enter)",
+    "send": "Send"
+  },
+  "accountAdd": {
+    "closeAria": "Close add account",
+    "closeLabel": "Close add account",
+    "connectWithOAuth": "Connect with OAuth",
+    "connecting": "Connecting...",
+    "oauthRedirectHint": "You'll be redirected back after OAuth approval.",
+    "openAria": "Add account",
+    "openLabel": "Add account",
+    "serverAddress": "Server address",
+    "serverPlaceholder": "mastodon.social"
+  },
+  "accountLabel": {
+    "unknown": "Unknown"
+  },
+  "accountSelector": {
+    "empty": "No accounts registered.",
+    "placeholder": "Select an account.",
+    "shortcutHint": "Select account (Ctrl+Shift+A)",
+    "shortcutHintCompact": "Select account (A)"
+  },
+  "app": {
+    "logoAlt": "Deck logo",
+    "logoHomeAria": "Deck home",
+    "mobileBlocker": {
+      "aria": "Mobile notice",
+      "description": "The multi-column interface is limited on mobile. Please use desktop or tablet.",
+      "title": "This app isn't available on mobile 🙇‍♂️"
+    },
+    "sidebarDescription": "Switch between multiple accounts and monitor timelines in real time.",
+    "sourceCode": "Source code",
+    "tagline": "Open-source fediverse web client"
+  },
+  "colorScheme": {
+    "dark": "Dark",
+    "light": "Light",
+    "system": "System"
+  },
+  "compose": {
+    "aria": "Compose",
+    "attachments": {
+      "addAria": "Add image",
+      "addHint": "Add image (Ctrl+Shift+I)",
+      "previewAria": "Image preview",
+      "selectedImageAlt": "Selected image",
+      "selectedImageOriginalAlt": "Original selected image"
+    },
+    "cw": {
+      "aria": "Content warning",
+      "placeholder": "Enter content warning",
+      "toggleAria": "Toggle content warning",
+      "toggleHint": "Content warning (Ctrl+Shift+W)"
+    },
+    "closeAria": "Close compose",
+    "emojiPanel": {
+      "aria": "Emoji palette",
+      "emojiAria": "Emoji {{label}}",
+      "empty": "No emojis available.",
+      "loading": "Loading emojis...",
+      "noSearchResults": "No search results.",
+      "openAria": "Open emoji palette",
+      "openHint": "Open emoji palette (Ctrl+Shift+E)",
+      "searchAria": "Search emojis",
+      "searchPlaceholder": "Search emojis",
+      "searchResults": "Search results",
+      "selectAccount": "Please select an account.",
+      "standardDividerAria": "Standard emoji divider",
+      "standardTitle": "Standard emoji"
+    },
+    "emojiSuggestions": {
+      "aria": "Emoji suggestions",
+      "itemAria": "Emoji {{label}}"
+    },
+    "inputHint": "Compose (N / Ctrl+Shift+N)",
+    "openAria": "Open compose",
+    "placeholder": "What's on your mind?",
+    "replyingTo": "Replying to: {{summary}}",
+    "submitAria": "Post",
+    "submitHint": "Send (Ctrl+Enter)",
+    "submitting": "Posting...",
+    "title": "Compose",
+    "visibility": {
+      "direct": "DM",
+      "hint": "Visibility (Ctrl+Shift+O)",
+      "private": "Followers",
+      "public": "Public",
+      "publicWarning": "Posting publicly. Please be cautious with sensitive content.",
+      "unlisted": "Unlisted"
+    }
+  },
+  "confirm": {
+    "clearLocalStorage": "Clear all local data? Accounts and settings will be reset.",
+    "removeAccount": "Remove this account?"
+  },
+  "emojiCategory": {
+    "activities": "Activities",
+    "animals": "Animals & Nature",
+    "flags": "Flags",
+    "food": "Food & Drink",
+    "objects": "Objects",
+    "other": "Other",
+    "people": "People & Body",
+    "recent": "Recent",
+    "smileys": "Smileys & Emotion",
+    "symbols": "Symbols",
+    "travel": "Travel & Places"
+  },
+  "errors": {
+    "accountAlreadyRegistered": "This account is already registered.",
+    "accountReauthNotFound": "Couldn't find the account to reauthenticate.",
+    "accountRequired": "Please select an account.",
+    "appContextRequired": "AppContext provider is required.",
+    "appRegistrationLoadFailed": "Couldn't load app registration details.",
+    "bookmarkFailed": "Failed to process bookmark.",
+    "boostFailed": "Failed to process boost.",
+    "characterLimitExceeded": "Character limit ({{limit}} chars) exceeded.",
+    "composeFailed": "Failed to publish the post.",
+    "emojisLoadFailed": "Failed to load emojis.",
+    "likeFailed": "Failed to process like.",
+    "oauth": {
+      "failed": "OAuth processing failed.",
+      "invalidState": "OAuth state is invalid. Please try again.",
+      "misskeyMissingSession": "Couldn't receive Misskey session info. Please try again.",
+      "misskeySessionMismatch": "Misskey session info doesn't match. Please try again.",
+      "missingCode": "Couldn't receive the OAuth code. Please try again."
+    },
+    "oauthConnectFailed": "Failed to connect via OAuth.",
+    "reactionAlreadyExists": "You've already reacted. Remove it first.",
+    "reactionFailed": "Failed to process reaction.",
+    "reactionMisskeyOnly": "Reactions are only available on Misskey accounts.",
+    "serverAddressRequired": "Please enter a server address.",
+    "statusDeleteFailed": "Failed to delete the post.",
+    "threadLoadFailed": "Couldn't load the thread.",
+    "timelineLoadFailed": "Couldn't load the timeline.",
+    "timelineLoadMoreFailed": "Couldn't load more posts."
+  },
+  "infoModal": {
+    "closeAria": "Close {{title}}"
+  },
+  "infoPages": {
+    "backToTimeline": "Back to timeline",
+    "license": "License",
+    "oss": "Open-source list",
+    "shortcuts": "Shortcuts",
+    "terms": "Terms of service"
+  },
+  "language": {
+    "english": "English",
+    "korean": "Korean"
+  },
+  "mention": {
+    "viewProfile": "View profile: {{name}}"
+  },
+  "menu": {
+    "closeAria": "Close menu",
+    "openAria": "Open menu",
+    "title": "Menu"
+  },
+  "notifications": {
+    "badgeCount": "{{count}}",
+    "badgeOver": "99+",
+    "close": "Close notifications",
+    "empty": "No notifications to display.",
+    "loading": "Loading notifications...",
+    "open": "Open notifications",
+    "openHint": "Open notifications (G)",
+    "openWithCount": "Open notifications (new {{badge}})",
+    "title": "Notifications",
+    "toast": "New notification received.",
+    "toastAction": "Go to the column with notifications",
+    "toastActionAria": "Go to the column where notifications arrived"
+  },
+  "oauth": {
+    "authenticating": "Authenticating with OAuth..."
+  },
+  "pomodoro": {
+    "controls": {
+      "reset": "Reset",
+      "resetHint": "Reset (X)",
+      "start": "Start",
+      "stop": "Stop",
+      "toggleHint": "Start/Stop (S)"
+    },
+    "focusSession": {
+      "description": "Pomodoro timer is running.<br />Timeline stays hidden until focus ends.",
+      "title": "🎯 Focus session in progress"
+    },
+    "nextSession": "Switch to next session",
+    "progress": {
+      "completed": "Session {{session}} ({{label}} complete)",
+      "pending": "Session {{session}} (pending)"
+    },
+    "session": {
+      "break": "Break",
+      "focus": "Focus",
+      "longBreak": "Long break"
+    },
+    "todos": {
+      "addAria": "Add todo",
+      "aria": "Pomodoro todos",
+      "completeAria": "Complete todo: {{text}}",
+      "inputAria": "Pomodoro todo input",
+      "inputHint": "Add task (F) · ↑ to list · ESC blur",
+      "listHint": "Up/Down move · Space complete · D delete · → timeline · ESC clear",
+      "placeholder": "Add a task",
+      "removeAria": "Remove todo: {{text}}"
+    }
+  },
+  "reactions": {
+    "add": "Reaction",
+    "addAria": "Add reaction",
+    "panelAria": "Select reaction"
+  },
+  "sectionMenu": {
+    "addLeft": "Add section to the left",
+    "addRight": "Add section to the right",
+    "moveLeft": "Move left",
+    "moveRight": "Move right",
+    "openAria": "Open section menu",
+    "openHint": "Open section menu (M)",
+    "openOrigin": "View on origin server",
+    "refresh": "Refresh",
+    "remove": "Remove section",
+    "settings": "Section settings"
+  },
+  "sectionSettings": {
+    "customEmojis": {
+      "description": "Show custom emojis in names and content.",
+      "title": "Show custom emojis"
+    },
+    "profileImages": {
+      "description": "Show profile images only in this section.",
+      "title": "Show profile images"
+    },
+    "reactions": {
+      "description": "Show reactions from servers that support them.",
+      "title": "Show reactions"
+    },
+    "sectionSize": {
+      "aria": "Set section width",
+      "description": "Adjust the column width for this section.",
+      "large": "Large",
+      "medium": "Medium",
+      "small": "Small",
+      "title": "Section width"
+    },
+    "title": "Section settings"
+  },
+  "settings": {
+    "account": {
+      "description": "Select an account to reauthenticate or remove.",
+      "reauth": "Reauthenticate",
+      "reauthAria": "Reauthenticate account",
+      "reauthing": "Reauthenticating...",
+      "removeAria": "Remove account",
+      "title": "Account management"
+    },
+    "colorScheme": {
+      "aria": "Select color mode",
+      "description": "Follow system settings or lock light/dark mode.",
+      "title": "Color mode"
+    },
+    "language": {
+      "aria": "Select language",
+      "description": "Choose the display language.",
+      "title": "Language"
+    },
+    "pomodoro": {
+      "break": "Break",
+      "description": "Show the Pomodoro timer in the sidebar.",
+      "focus": "Focus",
+      "longBreak": "Long break",
+      "timerDescription": "Set focus, break, and long break minutes.",
+      "timerTitle": "Pomodoro durations",
+      "title": "Pomodoro timer"
+    },
+    "storage": {
+      "clear": "Clear all",
+      "clearAria": "Clear local storage",
+      "description": "Delete all local data including accounts and settings.",
+      "title": "Clear local storage"
+    },
+    "theme": {
+      "aria": "Select theme",
+      "description": "Choose from Default, Christmas, Sky Pink, Monochrome, and Matcha Core.",
+      "title": "Theme"
+    },
+    "open": "Open settings",
+    "title": "Settings"
+  },
+  "shortcuts": {
+    "compose": {
+      "attachMedia": "Attach media",
+      "blur": "Blur compose input",
+      "focus": "Focus compose input",
+      "focusWhileActive": "Focus compose input (while active)",
+      "note": "Applies within the compose area.",
+      "openAccountSelector": "Open account selector",
+      "openVisibility": "Open visibility selector",
+      "submit": "Post",
+      "title": "Compose",
+      "toggleContentWarning": "Toggle content warning",
+      "toggleEmojiPanel": "Toggle emoji panel"
+    },
+    "emojiPanel": {
+      "close": "Close emoji picker",
+      "navigate": "Navigate emojis/categories",
+      "note": "Works only when the emoji picker is open.",
+      "select": "Insert selected emoji / react",
+      "title": "Emoji panel / reactions",
+      "toggleCategory": "Collapse/expand categories"
+    },
+    "imageViewer": {
+      "close": "Close image viewer",
+      "navigate": "Navigate images",
+      "title": "Image viewer"
+    },
+    "pomodoro": {
+      "focusTask": "Focus add-task input",
+      "reset": "Reset Pomodoro timer",
+      "title": "Pomodoro timer",
+      "toggle": "Start/stop Pomodoro timer"
+    },
+    "selected": {
+      "boost": "Boost",
+      "closeMenu": "Close open menu",
+      "likeOrReaction": "Like (Mastodon) / ❤️ reaction (Misskey)",
+      "navigateMenu": "Navigate open menu",
+      "note": "Works only when a post is selected.",
+      "openAccount": "Open account selector",
+      "openColumnMenu": "Open column menu",
+      "openMedia": "Open attached media",
+      "openNotifications": "Open notifications",
+      "openProfile": "Open author profile",
+      "openReactions": "Open reaction palette (Misskey)",
+      "openStatus": "Open post popup (or select item in open menus)",
+      "openTimelineMenu": "Open timeline menu",
+      "reply": "Reply",
+      "title": "Selected post controls"
+    },
+    "suggestions": {
+      "close": "Close suggestions",
+      "insert": "Insert suggested emoji",
+      "navigate": "Navigate suggestions",
+      "note": "Works only when the suggestion list is open.",
+      "title": "Emoji suggestions"
+    },
+    "timeline": {
+      "clearSelection": "Clear selection",
+      "moveColumn": "Move to adjacent column",
+      "moveVertical": "Move up/down within selected posts",
+      "selectLeftmost": "Select leftmost post when nothing is selected",
+      "title": "Timeline navigation"
+    }
+  },
+  "status": {
+    "boostedBy": "Boosted by <name></name>",
+    "threadLoading": "Loading thread...",
+    "title": "Post",
+    "viewAria": "View post"
+  },
+  "themes": {
+    "christmas": "Christmas",
+    "default": "Default",
+    "matchaCore": "Matcha Core",
+    "monochrome": "Monochrome",
+    "skyPink": "Sky Pink"
+  },
+  "timeline": {
+    "accountRequired": "Select an account to load the timeline.",
+    "actionsAria": "Timeline actions",
+    "bookmarks": "Bookmarks",
+    "empty": {
+      "bookmarks": "No bookmarked posts.",
+      "default": "No posts to display.",
+      "notifications": "No notifications to display."
+    },
+    "federated": "Federated",
+    "global": "Global",
+    "home": "Home",
+    "loadingMore": "Loading more...",
+    "local": "Local",
+    "notifications": "Notifications",
+    "pending": {
+      "action": "View",
+      "aria": "Show {{label}} new posts",
+      "label": "{{label}} new posts",
+      "sr": "{{label}} new posts have arrived.",
+      "title": "Show new posts"
+    },
+    "scrollTop": "Scroll to top",
+    "selectAria": "Select timeline: {{label}}",
+    "selectHint": "Select timeline (T)",
+    "selectMenuAria": "Select timeline",
+    "social": "Social"
+  },
+  "toast": {
+    "bookmarkAdded": "Bookmarked.",
+    "bookmarkRemoved": "Bookmark removed.",
+    "close": "Close",
+    "closeAria": "Close toast"
+  }
+}

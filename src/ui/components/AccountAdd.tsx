@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { OAuthClient } from "../../services/OAuthClient";
 import { normalizeInstanceUrl } from "../utils/account";
 import { createOauthState, loadRegisteredApp, saveRegisteredApp, storePendingOAuth } from "../utils/oauth";
@@ -13,12 +14,13 @@ export const AccountAdd = ({
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
     const normalizedUrl = normalizeInstanceUrl(instanceUrl);
     if (!normalizedUrl) {
-      showToast("서버 주소를 입력해주세요.", { tone: "error" });
+      showToast(t("errors.serverAddressRequired"), { tone: "error" });
       return;
     }
 
@@ -32,7 +34,7 @@ export const AccountAdd = ({
       const needsRegister = !cached || cached.redirectUri !== redirectUri || cached.platform === "misskey";
       const registered = needsRegister ? await oauth.registerApp(normalizedUrl, redirectUri) : cached;
       if (!registered) {
-        throw new Error("앱 등록 정보를 불러오지 못했습니다.");
+        throw new Error(t("errors.appRegistrationLoadFailed"));
       }
       if (needsRegister && registered.platform === "mastodon") {
         saveRegisteredApp(registered);
@@ -42,7 +44,7 @@ export const AccountAdd = ({
       const authorizeUrl = oauth.buildAuthorizeUrl(registered, state);
       window.location.assign(authorizeUrl);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "OAuth 연결에 실패했습니다.", { tone: "error" });
+      showToast(err instanceof Error ? err.message : t("errors.oauthConnectFailed"), { tone: "error" });
     } finally {
       setLoading(false);
     }
@@ -54,7 +56,7 @@ export const AccountAdd = ({
         type="button"
         className="account-add-button header button-with-icon"
         onClick={() => setShowForm((prev) => !prev)}
-        aria-label={showForm ? "계정 추가 닫기" : "계정 추가"}
+        aria-label={showForm ? t("accountAdd.closeAria") : t("accountAdd.openAria")}
         aria-expanded={showForm}
       >
         {showForm ? (
@@ -68,26 +70,26 @@ export const AccountAdd = ({
             <path d="M5 12h14" />
           </svg>
         )}
-        {showForm ? "계정 추가 닫기" : "계정 추가"}
+        {showForm ? t("accountAdd.closeLabel") : t("accountAdd.openLabel")}
       </button>
 
       {showForm ? (
         <div className="account-add-panel">
           <form className="account-form" onSubmit={handleSubmit}>
             <label>
-              서버 주소
+              {t("accountAdd.serverAddress")}
               <input
                 type="text"
-                placeholder="mastodon.social"
+                placeholder={t("accountAdd.serverPlaceholder")}
                 value={instanceUrl}
                 onChange={(event) => setInstanceUrl(event.target.value)}
               />
             </label>
             <button type="submit" disabled={loading}>
-              {loading ? "연결 중..." : "OAuth로 연결"}
+              {loading ? t("accountAdd.connecting") : t("accountAdd.connectWithOAuth")}
             </button>
           </form>
-          <p className="hint">OAuth 승인 후 자동으로 돌아옵니다.</p>
+          <p className="hint">{t("accountAdd.oauthRedirectHint")}</p>
         </div>
       ) : null}
     </div>

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Account, Visibility } from "../../domain/types";
 import type { MastodonApi } from "../../services/MastodonApi";
 import { useEmojiManager, type EmojiItem } from "../hooks/useEmojiManager";
@@ -23,13 +24,6 @@ const parseVisibility = (value: string | null): Visibility | null => {
 
 const getVisibilityStorageKey = (accountId: string | null | undefined) =>
   accountId ? `${VISIBILITY_KEY_PREFIX}.${accountId}` : VISIBILITY_KEY_PREFIX;
-
-const visibilityOptions: { value: Visibility; label: string }[] = [
-  { value: "public", label: "전체 공개" },
-  { value: "unlisted", label: "미등록" },
-  { value: "private", label: "팔로워" },
-  { value: "direct", label: "DM" }
-];
 
 const ZERO_WIDTH_SPACE = "\u200b";
 
@@ -56,6 +50,7 @@ export const ComposeBox = ({
   account: Account | null;
   api: MastodonApi;
 }) => {
+  const { t } = useTranslation();
   const [text, setText] = useState("");
   const [emojiQuery, setEmojiQuery] = useState<{
     value: string;
@@ -105,6 +100,16 @@ export const ComposeBox = ({
   const { showToast } = useToast();
   const lastEmojiErrorRef = useRef<string | null>(null);
 
+  const visibilityOptions = useMemo(
+    () => [
+      { value: "public" as const, label: t("compose.visibility.public") },
+      { value: "unlisted" as const, label: t("compose.visibility.unlisted") },
+      { value: "private" as const, label: t("compose.visibility.private") },
+      { value: "direct" as const, label: t("compose.visibility.direct") }
+    ],
+    [t]
+  );
+
   const handleAccountSelectionDone = useCallback(() => {
     requestAnimationFrame(() => {
       textareaRef.current?.focus();
@@ -137,7 +142,7 @@ export const ComposeBox = ({
       lastEmojiErrorRef.current = null;
       return;
     }
-    const message = emojiError ?? "이모지를 불러오지 못했습니다.";
+    const message = emojiError ?? t("errors.emojisLoadFailed");
     if (message === lastEmojiErrorRef.current) {
       return;
     }
@@ -260,7 +265,9 @@ export const ComposeBox = ({
 
     // 문자 수 제한 검사
     if (characterLimit && currentCharCount > characterLimit) {
-      showToast(`글자 수 제한(${characterLimit.toLocaleString()}자)을 초과했습니다.`, { tone: "error" });
+      showToast(t("errors.characterLimitExceeded", { limit: characterLimit.toLocaleString() }), {
+        tone: "error"
+      });
       return;
     }
 
@@ -851,9 +858,9 @@ export const ComposeBox = ({
       ) : null}
       {replyingTo ? (
         <div className="replying">
-          <span>답글 대상: {replyingTo.summary}</span>
+          <span>{t("compose.replyingTo", { summary: replyingTo.summary })}</span>
           <button type="button" className="ghost" onClick={onCancelReply}>
-            취소
+            {t("actions.cancel")}
           </button>
         </div>
       ) : null}
@@ -865,8 +872,8 @@ export const ComposeBox = ({
               type="text"
               value={cwText}
               onChange={(event) => setCwText(event.target.value)}
-              placeholder="CW 내용을 입력하세요"
-              aria-label="콘텐츠 경고"
+              placeholder={t("compose.cw.placeholder")}
+              aria-label={t("compose.cw.aria")}
               disabled={isSubmitting}
             />
           </div>
@@ -880,9 +887,9 @@ export const ComposeBox = ({
               setText(nextValue);
               updateEmojiQuery(nextValue, event.target.selectionStart ?? nextValue.length);
             }}
-            placeholder="지금 무슨 생각을 하고 있나요?"
-            aria-label="글 작성"
-            title="글 작성 (N / Ctrl+Shift+N)"
+            placeholder={t("compose.placeholder")}
+            aria-label={t("compose.aria")}
+            title={t("compose.inputHint")}
             rows={4}
             onPaste={handlePaste}
             disabled={isSubmitting}
@@ -932,7 +939,7 @@ export const ComposeBox = ({
             }}
           />
           {emojiSuggestions.length > 0 ? (
-            <div className="compose-emoji-suggestions" role="listbox" aria-label="이모지 추천">
+            <div className="compose-emoji-suggestions" role="listbox" aria-label={t("compose.emojiSuggestions.aria")}>
               {emojiSuggestions.map((emoji, index) => {
                 const isActive = index === emojiSuggestionIndex;
                 const label = emoji.shortcode ? `:${emoji.shortcode}:` : emoji.label;
@@ -943,7 +950,7 @@ export const ComposeBox = ({
                     className={`compose-emoji-suggestion${isActive ? " is-active" : ""}`}
                     role="option"
                     aria-selected={isActive}
-                    aria-label={`이모지 ${label}`}
+                    aria-label={t("compose.emojiSuggestions.itemAria", { label })}
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => handleEmojiSuggestionSelect(emoji)}
                   >
@@ -972,17 +979,17 @@ export const ComposeBox = ({
                     resetImageZoom();
                     setActiveImageId(item.id);
                   }}
-                  aria-label="이미지 미리보기"
+                  aria-label={t("compose.attachments.previewAria")}
                 >
-                  <img src={item.previewUrl} alt="선택한 이미지" loading="lazy" />
+                  <img src={item.previewUrl} alt={t("compose.attachments.selectedImageAlt")} loading="lazy" />
                 </button>
               ))}
               
               {/* 이미지 추가 버튼 */}
               <label
                 className="file-button attachment-thumb"
-                aria-label="이미지 추가"
-                title="이미지 추가 (Ctrl+Shift+I)"
+                aria-label={t("compose.attachments.addAria")}
+                title={t("compose.attachments.addHint")}
               >
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <rect x="3" y="5" width="18" height="14" rx="2" ry="2" />
@@ -1012,7 +1019,7 @@ export const ComposeBox = ({
         </div>
         {visibilityState.visibility === "public" ? (
           <p className="compose-visibility-warning" role="status">
-            전체 공개로 게시됩니다. 민감한 내용은 주의해주세요.
+            {t("compose.visibility.publicWarning")}
           </p>
         ) : null}
         <div className="compose-actions">
@@ -1021,7 +1028,7 @@ export const ComposeBox = ({
             value={visibilityState.visibility}
             onChange={(event) => setVisibilityState(prev => ({ ...prev, visibility: event.target.value as Visibility }))}
             disabled={isSubmitting}
-            title="공개 범위 (Ctrl+Shift+O)"
+            title={t("compose.visibility.hint")}
           >
             {visibilityOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -1034,8 +1041,8 @@ export const ComposeBox = ({
             <button
               type="button"
               className={`icon-button compose-icon-button${emojiPanelOpen ? " is-active" : ""}`}
-              aria-label="이모지 팔렛트 열기"
-              title="이모지 팔렛트 열기 (Ctrl+Shift+E)"
+              aria-label={t("compose.emojiPanel.openAria")}
+              title={t("compose.emojiPanel.openHint")}
               onClick={() => setEmojiPanelOpen((open) => !open)}
               disabled={!account || isSubmitting}
               ref={emojiToggleRef}
@@ -1050,8 +1057,8 @@ export const ComposeBox = ({
             <button
               type="button"
               className={`icon-button compose-icon-button${cwEnabled ? " is-active" : ""}`}
-              aria-label="콘텐츠 경고 입력"
-              title="콘텐츠 경고 입력 (Ctrl+Shift+W)"
+              aria-label={t("compose.cw.toggleAria")}
+              title={t("compose.cw.toggleHint")}
               aria-pressed={cwEnabled}
               onClick={toggleCw}
               disabled={isSubmitting}
@@ -1062,15 +1069,15 @@ export const ComposeBox = ({
             <button
               type="submit"
               className="icon-button compose-icon-button compose-submit-button"
-              aria-label="게시"
-              title="전송 (Ctrl+Enter)"
+              aria-label={t("compose.submitAria")}
+              title={t("compose.submitHint")}
               disabled={isSubmitting}
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M22 2L11 13" />
                 <path d="M22 2l-7 20-4-9-9-4 20-7z" />
               </svg>
-              <span>전송</span>
+              <span>{t("actions.send")}</span>
             </button>
           </div>
         </div>
@@ -1080,45 +1087,45 @@ export const ComposeBox = ({
             <div
               className="compose-emoji-panel"
               role="region"
-              aria-label="이모지 팔렛트"
+              aria-label={t("compose.emojiPanel.aria")}
               ref={emojiPanelRef}
               onKeyDown={handleEmojiPanelKeyDown}
               data-emoji-picker-open="true"
               tabIndex={-1}
             >
-              {!account ? <p className="compose-emoji-empty">계정을 선택해주세요.</p> : null}
+              {!account ? <p className="compose-emoji-empty">{t("compose.emojiPanel.selectAccount")}</p> : null}
               {account ? (
                 <div className="compose-emoji-search">
                   <input
                     type="text"
                     value={emojiSearchQuery}
                     onChange={(event) => setEmojiSearchQuery(event.target.value)}
-                    placeholder="이모지 검색"
-                    aria-label="이모지 검색"
+                    placeholder={t("compose.emojiPanel.searchPlaceholder")}
+                    aria-label={t("compose.emojiPanel.searchAria")}
                     disabled={emojiStatus === "loading"}
                   />
                 </div>
               ) : null}
               {account && emojiStatus === "loading" ? (
-                <p className="compose-emoji-empty">이모지를 불러오는 중...</p>
+                <p className="compose-emoji-empty">{t("compose.emojiPanel.loading")}</p>
               ) : null}
               {account && emojiStatus === "error" ? (
                 <div className="compose-emoji-empty">
-                  <p>{emojiError ?? "이모지를 불러오지 못했습니다."}</p>
+                  <p>{emojiError ?? t("errors.emojisLoadFailed")}</p>
                   <button type="button" className="ghost" onClick={() => loadEmojis()}>
-                    다시 불러오기
+                    {t("actions.reload")}
                   </button>
                 </div>
               ) : null}
               {account && emojiCategories.length === 0 ? (
-                <p className="compose-emoji-empty">사용할 수 있는 이모지가 없습니다.</p>
+                <p className="compose-emoji-empty">{t("compose.emojiPanel.empty")}</p>
               ) : null}
               {account && emojiCategories.length > 0 ? (
                 <>
                   {hasEmojiSearch ? (
                     <section className="compose-emoji-category">
                       <div className="compose-emoji-category-toggle is-static">
-                        <span>검색 결과</span>
+                        <span>{t("compose.emojiPanel.searchResults")}</span>
                         <span className="compose-emoji-count">{emojiSearchResults.length}</span>
                       </div>
                       {emojiSearchResults.length > 0 ? (
@@ -1129,7 +1136,7 @@ export const ComposeBox = ({
                               type="button"
                               className="compose-emoji-button"
                               onClick={() => handleEmojiSelect(emoji)}
-                              aria-label={`이모지 ${emoji.label}`}
+                              aria-label={t("compose.emojiPanel.emojiAria", { label: emoji.label })}
                               title={emoji.shortcode ? `:${emoji.shortcode}:` : undefined}
                               data-emoji-nav="emoji"
                               data-emoji-id={emoji.id}
@@ -1145,7 +1152,7 @@ export const ComposeBox = ({
                           ))}
                         </div>
                       ) : (
-                        <p className="compose-emoji-empty">검색 결과가 없습니다.</p>
+                        <p className="compose-emoji-empty">{t("compose.emojiPanel.noSearchResults")}</p>
                       )}
                     </section>
                   ) : null}
@@ -1175,7 +1182,7 @@ export const ComposeBox = ({
                                 type="button"
                                 className="compose-emoji-button"
                                 onClick={() => handleEmojiSelect(emoji)}
-                                aria-label={`이모지 ${emoji.label}`}
+                                aria-label={t("compose.emojiPanel.emojiAria", { label: emoji.label })}
                                 title={emoji.shortcode ? `:${emoji.shortcode}:` : undefined}
                                 data-emoji-nav="emoji"
                                 data-emoji-id={emoji.id}
@@ -1215,14 +1222,14 @@ export const ComposeBox = ({
                             {category.emojis.map((emoji) => (
                               <button
                                 key={`${category.id}:${emoji.id}`}
-                                type="button"
-                                className="compose-emoji-button"
-                                onClick={() => handleEmojiSelect(emoji)}
-                                aria-label={`이모지 ${emoji.label}`}
-                                title={emoji.shortcode ? `:${emoji.shortcode}:` : undefined}
-                                data-emoji-nav="emoji"
-                                data-emoji-id={emoji.id}
-                              >
+                              type="button"
+                              className="compose-emoji-button"
+                              onClick={() => handleEmojiSelect(emoji)}
+                              aria-label={t("compose.emojiPanel.emojiAria", { label: emoji.label })}
+                              title={emoji.shortcode ? `:${emoji.shortcode}:` : undefined}
+                              data-emoji-nav="emoji"
+                              data-emoji-id={emoji.id}
+                            >
                                 {emoji.unicode ? (
                                   <span className="compose-emoji-text" aria-hidden="true">
                                     {emoji.unicode}
@@ -1241,9 +1248,9 @@ export const ComposeBox = ({
                     <div
                       className="compose-emoji-divider"
                       role="separator"
-                      aria-label="표준 이모지 구분선"
+                      aria-label={t("compose.emojiPanel.standardDividerAria")}
                     >
-                      <span>표준 이모지</span>
+                      <span>{t("compose.emojiPanel.standardTitle")}</span>
                     </div>
                   ) : null}
                   {standardEmojiCategories.map((category) => {
@@ -1267,14 +1274,14 @@ export const ComposeBox = ({
                             {category.emojis.map((emoji) => (
                               <button
                                 key={`${category.id}:${emoji.id}`}
-                                type="button"
-                                className="compose-emoji-button"
-                                onClick={() => handleEmojiSelect(emoji)}
-                                aria-label={`이모지 ${emoji.label}`}
-                                title={emoji.shortcode ? `:${emoji.shortcode}:` : undefined}
-                                data-emoji-nav="emoji"
-                                data-emoji-id={emoji.id}
-                              >
+                              type="button"
+                              className="compose-emoji-button"
+                              onClick={() => handleEmojiSelect(emoji)}
+                              aria-label={t("compose.emojiPanel.emojiAria", { label: emoji.label })}
+                              title={emoji.shortcode ? `:${emoji.shortcode}:` : undefined}
+                              data-emoji-nav="emoji"
+                              data-emoji-id={emoji.id}
+                            >
                                 {emoji.unicode ? (
                                   <span className="compose-emoji-text" aria-hidden="true">
                                     {emoji.unicode}
@@ -1301,7 +1308,7 @@ export const ComposeBox = ({
           <div className="compose-busy-backdrop" aria-hidden="true" />
           <div className="compose-busy-content">
             <span className="compose-busy-spinner" aria-hidden="true" />
-            <span>게시 중...</span>
+            <span>{t("compose.submitting")}</span>
           </div>
         </div>
       ) : null}
@@ -1336,15 +1343,15 @@ export const ComposeBox = ({
                 className="image-modal-delete"
                 onClick={handleDeleteActive}
               >
-                삭제
+                {t("actions.remove")}
               </button>
               <button type="button" onClick={() => setActiveImageId(null)}>
-                닫기
+                {t("actions.close")}
               </button>
             </div>
             <img
               src={activeImage.previewUrl}
-              alt="선택한 이미지 원본"
+              alt={t("compose.attachments.selectedImageOriginalAlt")}
               ref={imageRef}
               draggable={false}
               className={isDragging ? "is-dragging" : undefined}

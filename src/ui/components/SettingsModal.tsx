@@ -1,6 +1,8 @@
 import type { AccountsState } from "../state/AppContext";
 import type { ColorScheme, ThemeMode } from "../utils/theme";
 import { AccountSelector } from "./AccountSelector";
+import { useTranslation } from "react-i18next";
+import { SUPPORTED_LANGUAGES } from "../../i18n";
 
 type SettingsModalProps = {
   open: boolean;
@@ -49,6 +51,7 @@ export const SettingsModal = ({
   onPomodoroBreakChange,
   onPomodoroLongBreakChange
 }: SettingsModalProps) => {
+  const { t, i18n } = useTranslation();
   if (!open) {
     return null;
   }
@@ -58,20 +61,20 @@ export const SettingsModal = ({
       <div className="settings-modal-backdrop" onClick={onClose} />
       <div className="settings-modal-content panel">
         <div className="settings-modal-header">
-          <h3>설정</h3>
+          <h3>{t("settings.title")}</h3>
           <button
             type="button"
             className="settings-close"
             onClick={onClose}
           >
-            닫기
+            {t("actions.close")}
           </button>
         </div>
         <div className="settings-modal-body">
           <div className="settings-item settings-item-account">
             <div>
-              <strong>계정 관리</strong>
-              <p>계정을 선택하여 재인증하거나 삭제합니다.</p>
+              <strong>{t("settings.account.title")}</strong>
+              <p>{t("settings.account.description")}</p>
             </div>
             <div className="settings-account-actions">
               <AccountSelector
@@ -85,62 +88,81 @@ export const SettingsModal = ({
                   type="button"
                   onClick={onReauth}
                   disabled={!settingsAccountId || reauthLoading}
-                  aria-label="계정 재인증"
+                  aria-label={t("settings.account.reauthAria")}
                 >
-                  {reauthLoading ? "재인증 중..." : "재인증"}
+                  {reauthLoading ? t("settings.account.reauthing") : t("settings.account.reauth")}
                 </button>
                 <button
                   type="button"
                   className="settings-danger-button"
                   onClick={onRemove}
                   disabled={!settingsAccountId}
-                  aria-label="계정 삭제"
+                  aria-label={t("settings.account.removeAria")}
                 >
-                  삭제
+                  {t("actions.remove")}
                 </button>
               </div>
             </div>
           </div>
           <div className="settings-item">
             <div>
-              <strong>테마</strong>
-              <p>기본, 크리스마스, 하늘핑크, 모노톤 테마를 선택합니다.</p>
+              <strong>{t("settings.theme.title")}</strong>
+              <p>{t("settings.theme.description")}</p>
             </div>
             <select
               value={themeMode}
               onChange={(event) => {
                 onThemeChange(event.target.value);
               }}
-              aria-label="테마 선택"
+              aria-label={t("settings.theme.aria")}
             >
-              <option value="default">기본</option>
-              <option value="christmas">크리스마스</option>
-              <option value="sky-pink">하늘핑크</option>
-              <option value="monochrome">모노톤</option>
-              <option value="matcha-core">말차코어</option>
+              <option value="default">{t("themes.default")}</option>
+              <option value="christmas">{t("themes.christmas")}</option>
+              <option value="sky-pink">{t("themes.skyPink")}</option>
+              <option value="monochrome">{t("themes.monochrome")}</option>
+              <option value="matcha-core">{t("themes.matchaCore")}</option>
             </select>
           </div>
           <div className="settings-item">
             <div>
-              <strong>색상 모드</strong>
-              <p>시스템 설정을 따르거나 라이트/다크 모드를 고정합니다.</p>
+              <strong>{t("settings.colorScheme.title")}</strong>
+              <p>{t("settings.colorScheme.description")}</p>
             </div>
             <select
               value={colorScheme}
               onChange={(event) => {
                 onColorSchemeChange(event.target.value);
               }}
-              aria-label="색상 모드 선택"
+              aria-label={t("settings.colorScheme.aria")}
             >
-              <option value="system">시스템</option>
-              <option value="light">라이트</option>
-              <option value="dark">다크</option>
+              <option value="system">{t("colorScheme.system")}</option>
+              <option value="light">{t("colorScheme.light")}</option>
+              <option value="dark">{t("colorScheme.dark")}</option>
             </select>
           </div>
           <div className="settings-item">
             <div>
-              <strong>뽀모도로 타이머</strong>
-              <p>사이드바에 뽀모도로 타이머를 표시합니다.</p>
+              <strong>{t("settings.language.title")}</strong>
+              <p>{t("settings.language.description")}</p>
+            </div>
+            <select
+              value={i18n.resolvedLanguage ?? i18n.language}
+              onChange={(event) => {
+                void i18n.changeLanguage(event.target.value);
+              }}
+              aria-label={t("settings.language.aria")}
+            >
+              {SUPPORTED_LANGUAGES.map((locale) => (
+                <option key={locale} value={locale}>
+                  {locale === "ko" ? t("language.korean") : t("language.english")}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="settings-item">
+            <div>
+              <strong>{t("settings.pomodoro.title")}</strong>
+              <p>{t("settings.pomodoro.description")}</p>
             </div>
             <label className="switch">
               <input
@@ -155,12 +177,12 @@ export const SettingsModal = ({
             <>
               <div className="settings-item settings-item-pomodoro">
                 <div>
-                  <strong>뽀모도로 시간 설정</strong>
-                  <p>집중, 휴식, 긴 휴식 시간을 분 단위로 설정합니다.</p>
+                  <strong>{t("settings.pomodoro.timerTitle")}</strong>
+                  <p>{t("settings.pomodoro.timerDescription")}</p>
                 </div>
                 <div className="pomodoro-time-inputs">
                   <label>
-                    집중
+                    {t("settings.pomodoro.focus")}
                     <input
                       type="number"
                       min="1"
@@ -170,7 +192,7 @@ export const SettingsModal = ({
                     />
                   </label>
                   <label>
-                    휴식
+                    {t("settings.pomodoro.break")}
                     <input
                       type="number"
                       min="1"
@@ -180,7 +202,7 @@ export const SettingsModal = ({
                     />
                   </label>
                   <label>
-                    긴 휴식
+                    {t("settings.pomodoro.longBreak")}
                     <input
                       type="number"
                       min="1"
@@ -195,16 +217,16 @@ export const SettingsModal = ({
           ) : null}
           <div className="settings-item">
             <div>
-              <strong>로컬 저장소 초기화</strong>
-              <p>계정과 설정을 포함한 모든 로컬 데이터를 삭제합니다.</p>
+              <strong>{t("settings.storage.title")}</strong>
+              <p>{t("settings.storage.description")}</p>
             </div>
             <button
               type="button"
               className="settings-danger-button"
               onClick={onClearLocalStorage}
-              aria-label="로컬 저장소 초기화"
+              aria-label={t("settings.storage.clearAria")}
             >
-              모두 삭제
+              {t("settings.storage.clear")}
             </button>
           </div>
         </div>

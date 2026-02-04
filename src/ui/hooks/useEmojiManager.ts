@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import emojiData from "emoji-datasource/emoji.json";
 import type { Account, CustomEmoji } from "../../domain/types";
 import type { MastodonApi } from "../../services/MastodonApi";
@@ -32,16 +33,16 @@ export type EmojiCategory = {
   emojis: EmojiItem[];
 };
 
-const STANDARD_CATEGORY_LABELS: Record<string, string> = {
-  "Smileys & Emotion": "표정",
-  "People & Body": "사람/손",
-  "Animals & Nature": "동물/자연",
-  "Food & Drink": "음식",
-  "Travel & Places": "여행/장소",
-  Activities: "활동",
-  Objects: "사물",
-  Symbols: "기호",
-  Flags: "국기"
+const STANDARD_CATEGORY_KEYS: Record<string, string> = {
+  "Smileys & Emotion": "emojiCategory.smileys",
+  "People & Body": "emojiCategory.people",
+  "Animals & Nature": "emojiCategory.animals",
+  "Food & Drink": "emojiCategory.food",
+  "Travel & Places": "emojiCategory.travel",
+  Activities: "emojiCategory.activities",
+  Objects: "emojiCategory.objects",
+  Symbols: "emojiCategory.symbols",
+  Flags: "emojiCategory.flags"
 };
 
 const STANDARD_CATEGORY_ORDER = [
@@ -93,7 +94,7 @@ const scoreFuzzyMatch = (query: string, target: string) => {
   return -1;
 };
 
-const buildStandardEmojiCategories = () => {
+const buildStandardEmojiCategories = (getLabel: (categoryKey: string) => string) => {
   const grouped = new Map<string, EmojiItem[]>();
   const seen = new Set<string>();
 
@@ -107,7 +108,7 @@ const buildStandardEmojiCategories = () => {
       return;
     }
     seen.add(id);
-    const label = STANDARD_CATEGORY_LABELS[categoryKey] ?? "기타";
+    const label = getLabel(categoryKey);
     const list = grouped.get(label) ?? [];
     list.push({
       id,
@@ -128,7 +129,7 @@ const buildStandardEmojiCategories = () => {
     if (emoji.has_img_apple === false) {
       return;
     }
-    const categoryKey = emoji.category ?? "기타";
+    const categoryKey = emoji.category ?? "emojiCategory.other";
     const shortcode = emoji.short_name ? normalizeSearchTerm(emoji.short_name) : undefined;
     addEmoji(emoji.unified, categoryKey, shortcode);
     if (emoji.skin_variations) {
@@ -140,9 +141,7 @@ const buildStandardEmojiCategories = () => {
     }
   });
 
-  const orderedLabels = STANDARD_CATEGORY_ORDER.map(
-    (category) => STANDARD_CATEGORY_LABELS[category]
-  ).filter(Boolean);
+  const orderedLabels = STANDARD_CATEGORY_ORDER.map((category) => getLabel(category)).filter(Boolean);
   const categories: EmojiCategory[] = [];
   orderedLabels.forEach((label) => {
     const emojis = grouped.get(label);
@@ -157,8 +156,6 @@ const buildStandardEmojiCategories = () => {
 
   return [...categories, ...remaining];
 };
-
-const STANDARD_EMOJI_CATEGORIES = buildStandardEmojiCategories();
 
 const buildRecentEmojiKey = (instanceUrl: string) =>
   `${RECENT_EMOJI_KEY_PREFIX}${encodeURIComponent(instanceUrl)}`;
@@ -209,6 +206,7 @@ export const useEmojiManager = (
   api: MastodonApi,
   autoLoad: boolean = false
 ) => {
+  const { t, i18n } = useTranslation();
   const instanceUrl = account?.instanceUrl ?? null;
 
   // 이모지 카탈로그 상태 (인스턴스별로 관리)
@@ -237,7 +235,15 @@ export const useEmojiManager = (
   // 최근 사용한 이모지 id 목록
   const recentIds = instanceUrl ? recentByInstance[instanceUrl] ?? [] : [];
 
-  const standardEmojiCategories = STANDARD_EMOJI_CATEGORIES;
+  const resolveCategoryLabel = useCallback(
+    (categoryKey: string) => t(STANDARD_CATEGORY_KEYS[categoryKey] ?? "emojiCategory.other"),
+    [t]
+  );
+
+  const standardEmojiCategories = useMemo(
+    () => buildStandardEmojiCategories(resolveCategoryLabel),
+    [resolveCategoryLabel]
+  );
 
   const standardEmojiItems = useMemo<EmojiItem[]>(
     () => standardEmojiCategories.flatMap((category) => category.emojis),
@@ -251,7 +257,7 @@ export const useEmojiManager = (
         label: emoji.shortcode,
         shortcode: emoji.shortcode,
         url: emoji.url,
-        category: emoji.category?.trim() || "기타",
+        category: emoji.category?.trim() || t("emojiCategory.other"),
         isCustom: true
       })),
     [activeEmojis]
@@ -303,24 +309,24 @@ export const useEmojiManager = (
   const categorizedEmojis = useMemo(() => {
     const grouped = new Map<string, EmojiItem[]>();
     customEmojiItems.forEach((emoji) => {
-      const category = emoji.category?.trim() || "기타";
+      const category = emoji.category?.trim() || t("emojiCategory.other");
       const list = grouped.get(category) ?? [];
       list.push(emoji);
       grouped.set(category, list);
     });
     return Array.from(grouped.entries())
-      .sort(([a], [b]) => a.localeCompare(b, "ko-KR"))
+      .sort(([a], [b]) => a.localeCompare(b, i18n.resolvedLanguage ?? i18n.language))
       .map(([label, emojis]) => ({ id: `category:${label}`, label, emojis }));
-  }, [customEmojiItems]);
+  }, [customEmojiItems, i18n.language, i18n.resolvedLanguage, t]);
 
   // 최근 사용 카테고리를 포함한 전체 카테고리 목록
   const emojiCategories = useMemo(() => {
     const categories = [...categorizedEmojis, ...standardEmojiCategories];
     if (recentEmojis.length > 0) {
-      categories.unshift({ id: "recent", label: "최근 사용", emojis: recentEmojis });
+      categories.unshift({ id: "recent", label: t("emojiCategory.recent"), emojis: recentEmojis });
     }
     return categories;
-  }, [standardEmojiCategories, categorizedEmojis, recentEmojis]);
+  }, [categorizedEmojis, recentEmojis, standardEmojiCategories, t]);
 
   // 현재 인스턴스에서 확장된 카테고리 Set
   const expandedCategories = instanceUrl ? expandedByInstance[instanceUrl] ?? new Set() : new Set();
@@ -379,7 +385,7 @@ export const useEmojiManager = (
       setEmojiCatalogs((current) => ({ ...current, [instanceUrl]: emojis }));
       setEmojiLoadState((current) => ({ ...current, [instanceUrl]: "loaded" }));
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "이모지 로드 실패";
+      const errorMessage = err instanceof Error ? err.message : t("errors.emojisLoadFailed");
       setEmojiErrors((current) => ({ ...current, [instanceUrl]: errorMessage }));
       setEmojiLoadState((current) => ({ ...current, [instanceUrl]: "error" }));
     }

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import type { Account, Visibility } from "../../domain/types";
 import type { MastodonApi } from "../../services/MastodonApi";
 import type { OAuthClient } from "../../services/OAuthClient";
@@ -34,6 +35,7 @@ export const MobileComposeMenu = ({
   onCancelReply,
   mentionText
 }: MobileComposeMenuProps) => {
+  const { t } = useTranslation();
   if (!open) {
     return null;
   }
@@ -43,14 +45,14 @@ export const MobileComposeMenu = ({
       <div className="mobile-menu-backdrop" onClick={onClose} />
       <div className="mobile-menu-panel panel">
         <div className="mobile-menu-header">
-          <h3>글쓰기</h3>
+          <h3>{t("compose.title")}</h3>
           <button
             type="button"
             className="ghost"
             onClick={onClose}
-            aria-label="글쓰기 닫기"
+            aria-label={t("compose.closeAria")}
           >
-            닫기
+            {t("actions.close")}
           </button>
         </div>
         {composeAccount ? (
@@ -77,6 +79,7 @@ type MobileMenuProps = {
 };
 
 export const MobileMenu = ({ open, onClose, onOpenSettings, oauth }: MobileMenuProps) => {
+  const { t } = useTranslation();
   if (!open) {
     return null;
   }
@@ -86,9 +89,9 @@ export const MobileMenu = ({ open, onClose, onOpenSettings, oauth }: MobileMenuP
       <div className="mobile-menu-backdrop" onClick={onClose} />
       <div className="mobile-menu-panel panel">
         <div className="mobile-menu-header">
-          <h3>메뉴</h3>
-          <button type="button" className="ghost" onClick={onClose} aria-label="메뉴 닫기">
-            닫기
+          <h3>{t("menu.title")}</h3>
+          <button type="button" className="ghost" onClick={onClose} aria-label={t("menu.closeAria")}>
+            {t("actions.close")}
           </button>
         </div>
         <div className="mobile-menu-actions">
@@ -108,7 +111,7 @@ export const MobileMenu = ({ open, onClose, onOpenSettings, oauth }: MobileMenuP
               <path d="M4 18h16" />
               <circle cx="8" cy="18" r="2" />
             </svg>
-            설정 열기
+            {t("settings.open")}
           </button>
         </div>
         <div className="mobile-menu-section">

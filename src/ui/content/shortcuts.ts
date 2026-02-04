@@ -1,83 +1,87 @@
-export const shortcutSections: Array<{
+import type { TFunction } from "i18next";
+
+export type ShortcutSection = {
   title: string;
   note?: string;
   items: Array<{ keys: string; description: string }>;
-}> = [
+};
+
+export const getShortcutSections = (t: TFunction): ShortcutSection[] => [
   {
-    title: "타임라인 이동",
+    title: t("shortcuts.timeline.title"),
     items: [
-      { keys: "M", description: "선택이 없을 때 왼쪽 첫 글을 선택" },
-      { keys: "↑ / ↓", description: "선택된 글 위아래 이동" },
-      { keys: "← / →", description: "이웃 컬럼으로 이동" },
-      { keys: "ESC", description: "선택 해제" }
+      { keys: "M", description: t("shortcuts.timeline.selectLeftmost") },
+      { keys: "↑ / ↓", description: t("shortcuts.timeline.moveVertical") },
+      { keys: "← / →", description: t("shortcuts.timeline.moveColumn") },
+      { keys: "ESC", description: t("shortcuts.timeline.clearSelection") }
     ]
   },
   {
-    title: "선택된 글 컨트롤",
-    note: "글을 선택한 상태에서만 동작합니다.",
+    title: t("shortcuts.selected.title"),
+    note: t("shortcuts.selected.note"),
     items: [
-      { keys: "R", description: "답글 작성" },
-      { keys: "B", description: "부스트" },
-      { keys: "L", description: "좋아요 (마스토돈) / ❤️ 리액션 (미스키)" },
-      { keys: "C", description: "리액션 팔레트 열기 (미스키)" },
-      { keys: "I", description: "첨부 이미지 열기" },
-      { keys: "Enter", description: "글 팝업 열기 (열린 메뉴에서는 항목 선택)" },
-      { keys: "P", description: "작성자 프로필 팝업 열기" },
-      { keys: "A", description: "계정 선택 열기" },
-      { keys: "T", description: "타임라인 메뉴 열기" },
-      { keys: "M", description: "컬럼 메뉴 열기" },
-      { keys: "G", description: "알림 열기" },
-      { keys: "↑ / ↓", description: "열린 메뉴에서 항목 이동" },
-      { keys: "ESC", description: "열린 메뉴 닫기" }
+      { keys: "R", description: t("shortcuts.selected.reply") },
+      { keys: "B", description: t("shortcuts.selected.boost") },
+      { keys: "L", description: t("shortcuts.selected.likeOrReaction") },
+      { keys: "C", description: t("shortcuts.selected.openReactions") },
+      { keys: "I", description: t("shortcuts.selected.openMedia") },
+      { keys: "Enter", description: t("shortcuts.selected.openStatus") },
+      { keys: "P", description: t("shortcuts.selected.openProfile") },
+      { keys: "A", description: t("shortcuts.selected.openAccount") },
+      { keys: "T", description: t("shortcuts.selected.openTimelineMenu") },
+      { keys: "M", description: t("shortcuts.selected.openColumnMenu") },
+      { keys: "G", description: t("shortcuts.selected.openNotifications") },
+      { keys: "↑ / ↓", description: t("shortcuts.selected.navigateMenu") },
+      { keys: "ESC", description: t("shortcuts.selected.closeMenu") }
     ]
   },
   {
-    title: "글쓰기",
-    note: "글쓰기 영역 기준으로 동작합니다.",
+    title: t("shortcuts.compose.title"),
+    note: t("shortcuts.compose.note"),
     items: [
-      { keys: "N", description: "글쓰기 입력으로 이동" },
-      { keys: "Ctrl+Shift+N", description: "글쓰기 입력으로 이동 (포커스 중)" },
-      { keys: "Ctrl+Shift+W", description: "내용 경고 토글" },
-      { keys: "Ctrl+Shift+A", description: "계정 선택 열기" },
-      { keys: "Ctrl+Shift+O", description: "공개 범위 선택" },
-      { keys: "Ctrl+Shift+I", description: "미디어 첨부" },
-      { keys: "Ctrl+Shift+E", description: "이모지 패널 토글" },
-      { keys: "Ctrl/Command+Enter", description: "글 올리기" },
-      { keys: "ESC", description: "글쓰기 입력 포커스 해제" }
+      { keys: "N", description: t("shortcuts.compose.focus") },
+      { keys: "Ctrl+Shift+N", description: t("shortcuts.compose.focusWhileActive") },
+      { keys: "Ctrl+Shift+W", description: t("shortcuts.compose.toggleContentWarning") },
+      { keys: "Ctrl+Shift+A", description: t("shortcuts.compose.openAccountSelector") },
+      { keys: "Ctrl+Shift+O", description: t("shortcuts.compose.openVisibility") },
+      { keys: "Ctrl+Shift+I", description: t("shortcuts.compose.attachMedia") },
+      { keys: "Ctrl+Shift+E", description: t("shortcuts.compose.toggleEmojiPanel") },
+      { keys: "Ctrl/Command+Enter", description: t("shortcuts.compose.submit") },
+      { keys: "ESC", description: t("shortcuts.compose.blur") }
     ]
   },
   {
-    title: "이모지 추천",
-    note: "추천 목록이 열려 있을 때만 동작합니다.",
+    title: t("shortcuts.suggestions.title"),
+    note: t("shortcuts.suggestions.note"),
     items: [
-      { keys: "↑ / ↓", description: "추천 항목 이동" },
-      { keys: "Enter", description: "추천 이모지 입력" },
-      { keys: "ESC", description: "추천 닫기" }
+      { keys: "↑ / ↓", description: t("shortcuts.suggestions.navigate") },
+      { keys: "Enter", description: t("shortcuts.suggestions.insert") },
+      { keys: "ESC", description: t("shortcuts.suggestions.close") }
     ]
   },
   {
-    title: "이모지 패널/리액션",
-    note: "이모지 선택 팝오버가 열려 있을 때만 동작합니다.",
+    title: t("shortcuts.emojiPanel.title"),
+    note: t("shortcuts.emojiPanel.note"),
     items: [
-      { keys: "↑ / ↓", description: "이모지/카테고리 이동" },
-      { keys: "← / →", description: "카테고리 접기/펼치기" },
-      { keys: "Enter", description: "선택된 이모지 입력/리액션" },
-      { keys: "ESC", description: "이모지 선택 닫기" }
+      { keys: "↑ / ↓", description: t("shortcuts.emojiPanel.navigate") },
+      { keys: "← / →", description: t("shortcuts.emojiPanel.toggleCategory") },
+      { keys: "Enter", description: t("shortcuts.emojiPanel.select") },
+      { keys: "ESC", description: t("shortcuts.emojiPanel.close") }
     ]
   },
   {
-    title: "뽀모도로 타이머",
+    title: t("shortcuts.pomodoro.title"),
     items: [
-      { keys: "S", description: "뽀모도로 타이머 시작/정지" },
-      { keys: "X", description: "뽀모도로 타이머 리셋" },
-      { keys: "F", description: "할 일 추가 입력으로 이동" }
+      { keys: "S", description: t("shortcuts.pomodoro.toggle") },
+      { keys: "X", description: t("shortcuts.pomodoro.reset") },
+      { keys: "F", description: t("shortcuts.pomodoro.focusTask") }
     ]
   },
   {
-    title: "이미지 뷰어",
+    title: t("shortcuts.imageViewer.title"),
     items: [
-      { keys: "← / →", description: "이미지 이동" },
-      { keys: "ESC", description: "이미지 보기 닫기" }
+      { keys: "← / →", description: t("shortcuts.imageViewer.navigate") },
+      { keys: "ESC", description: t("shortcuts.imageViewer.close") }
     ]
   }
 ];

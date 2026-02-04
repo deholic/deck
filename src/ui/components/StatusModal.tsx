@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import type { Account, CustomEmoji, Status, ThreadContext } from "../../domain/types";
 import type { MastodonApi } from "../../services/MastodonApi";
 import { TimelineItem } from "./TimelineItem";
@@ -49,6 +50,7 @@ export const StatusModal = ({
   showReactions: boolean;
   sectionSettings: SectionDisplaySettings;
 }) => {
+  const { t } = useTranslation();
   const displayStatus = status.reblog ?? status;
   const boostedBy = status.reblog ? status.boostedBy : null;
   const renderEmojiText = useCallback(
@@ -108,11 +110,7 @@ export const StatusModal = ({
     }
     const label = boostedBy.name || boostedBy.handle;
     const labelNode = renderEmojiText(label, status.accountEmojis);
-    return (
-      <>
-        {labelNode} 님이 부스트함
-      </>
-    );
+    return <Trans i18nKey="status.boostedBy" components={{ name: <span>{labelNode}</span> }} />;
   }, [boostedBy, renderEmojiText, status.accountEmojis]);
   const handleProfileClick = useCallback(
     (target: Status) => {
@@ -145,14 +143,14 @@ export const StatusModal = ({
         setThreadContext(context);
       } catch (error) {
         console.error("스레드 컨텍스트 로딩 실패:", error);
-        setThreadError("스레드를 불러오지 못했습니다.");
+        setThreadError(t("errors.threadLoadFailed"));
       } finally {
         setIsLoadingThread(false);
       }
     };
 
     fetchThreadContext();
-  }, [account, api, displayStatus.id]);
+  }, [account, api, displayStatus.id, t]);
 
   useEffect(() => {
     if (!threadError) {
@@ -167,25 +165,25 @@ export const StatusModal = ({
       className="status-modal"
       role="dialog"
       aria-modal="true"
-      aria-label="글 보기"
+      aria-label={t("status.viewAria")}
       style={zIndex ? { zIndex } : undefined}
     >
       <div className="status-modal-backdrop" onClick={onClose} />
       <div className="status-modal-content">
         <div className="status-modal-header">
-          <h3 className="status-modal-title">게시글</h3>
+          <h3 className="status-modal-title">{t("status.title")}</h3>
           <div className="status-modal-header-actions">
             {isLoadingThread && (
               <div className="thread-loading-header">
                 <div className="thread-loading-spinner" />
-                <span className="thread-loading-text">스레드 불러오는 중</span>
+                <span className="thread-loading-text">{t("status.threadLoading")}</span>
               </div>
             )}
             <button
               type="button"
               className="icon-button"
               onClick={onClose}
-              aria-label="닫기"
+              aria-label={t("actions.close")}
             >
               <svg viewBox="0 0 24 24">
                 <line x1="6" y1="6" x2="18" y2="18" />

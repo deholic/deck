@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { App } from "./App";
+import "./i18n";
 import { MastodonHttpClient } from "./infra/MastodonHttpClient";
 import { MastodonStreamingClient } from "./infra/MastodonStreamingClient";
 import { MastodonOAuthClient } from "./infra/MastodonOAuthClient";

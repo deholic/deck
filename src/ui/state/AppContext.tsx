@@ -4,6 +4,7 @@ import type { AccountStore } from "../../services/AccountStore";
 import type { MastodonApi } from "../../services/MastodonApi";
 import type { OAuthClient } from "../../services/OAuthClient";
 import type { StreamingClient } from "../../services/StreamingClient";
+import i18n from "../../i18n";
 import { formatHandle, parseAccountLabel } from "../utils/account";
 
 const ACTIVE_ACCOUNT_KEY = "textodon.accounts.activeId";
@@ -212,7 +213,7 @@ export const AppProvider = ({ services, children }: { services: AppServices; chi
 export const useAppContext = () => {
   const context = useContext(AppContext);
   if (!context) {
-    throw new Error("AppContext provider가 필요합니다.");
+    throw new Error(i18n.t("errors.appContextRequired"));
   }
   return context;
 };

@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import type { CustomEmoji } from "../../domain/types";
 
 export interface AccountLabelProps {
@@ -125,7 +126,8 @@ export const AccountLabel: React.FC<AccountLabelProps> = ({
   textAsDiv = false,
   boldName = false
 }) => {
-  const effectiveDisplayName = displayName || name || instanceUrl || "알 수 없음";
+  const { t } = useTranslation();
+  const effectiveDisplayName = displayName || name || instanceUrl || t("accountLabel.unknown");
   const isInteractive = !!(onClick || accountUrl);
   
   // 툴팁에 표시할 전체 텍스트 계산

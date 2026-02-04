@@ -1,4 +1,5 @@
 import React from "react";
+import i18n from "../../i18n";
 
 export type MentionLink = {
   id?: string | null;
@@ -71,7 +72,7 @@ export const renderTextWithLinks = (
               type: "button",
               className: "text-link",
               onClick: () => options.onMentionClick?.(mention),
-              "aria-label": `${mention.displayName ?? mention.handle} 프로필 보기`
+              "aria-label": i18n.t("mention.viewProfile", { name: mention.displayName ?? mention.handle })
             },
             matched
           )

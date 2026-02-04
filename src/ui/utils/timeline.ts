@@ -1,4 +1,5 @@
 import type { AccountPlatform, TimelineType } from "../../domain/types";
+import i18n from "../../i18n";
 
 export type TimelineOption = {
   id: TimelineType | "divider-before-bookmarks";
@@ -6,14 +7,14 @@ export type TimelineOption = {
   isDivider?: boolean;
 };
 
-const TIMELINE_LABELS: Record<TimelineType, string> = {
-  home: "홈",
-  local: "로컬",
-  federated: "연합",
-  social: "소셜",
-  global: "글로벌",
-  notifications: "알림",
-  bookmarks: "북마크"
+const TIMELINE_LABEL_KEYS: Record<TimelineType, string> = {
+  home: "timeline.home",
+  local: "timeline.local",
+  federated: "timeline.federated",
+  social: "timeline.social",
+  global: "timeline.global",
+  notifications: "timeline.notifications",
+  bookmarks: "timeline.bookmarks"
 };
 
 const MASTODON_TIMELINES: TimelineType[] = ["home", "local", "federated", "notifications", "bookmarks"];
@@ -47,7 +48,7 @@ export const getTimelineOptions = (
   
   const options: TimelineOption[] = list.map((id) => ({
     id,
-    label: TIMELINE_LABELS[id]
+    label: i18n.t(TIMELINE_LABEL_KEYS[id])
   }));
   
   // 북마크 앞에 구분선 추가
@@ -73,4 +74,5 @@ export const normalizeTimelineType = (
   return filtered.includes(value) ? value : "home";
 };
 
-export const getTimelineLabel = (timeline: TimelineType): string => TIMELINE_LABELS[timeline];
+export const getTimelineLabel = (timeline: TimelineType): string =>
+  i18n.t(TIMELINE_LABEL_KEYS[timeline]);

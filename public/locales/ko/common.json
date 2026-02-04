@@ -1,0 +1,412 @@
+{
+  "actions": {
+    "add": "추가",
+    "cancel": "취소",
+    "close": "닫기",
+    "reload": "다시 불러오기",
+    "remove": "삭제",
+    "selectHint": "선택 (Enter)",
+    "send": "전송"
+  },
+  "accountAdd": {
+    "closeAria": "계정 추가 닫기",
+    "closeLabel": "계정 추가 닫기",
+    "connectWithOAuth": "OAuth로 연결",
+    "connecting": "연결 중...",
+    "oauthRedirectHint": "OAuth 승인 후 자동으로 돌아옵니다.",
+    "openAria": "계정 추가",
+    "openLabel": "계정 추가",
+    "serverAddress": "서버 주소",
+    "serverPlaceholder": "mastodon.social"
+  },
+  "accountLabel": {
+    "unknown": "알 수 없음"
+  },
+  "accountSelector": {
+    "empty": "등록된 계정이 없습니다.",
+    "placeholder": "계정을 선택하세요.",
+    "shortcutHint": "계정 선택 (Ctrl+Shift+A)",
+    "shortcutHintCompact": "계정 선택 (A)"
+  },
+  "app": {
+    "logoAlt": "Deck 로고",
+    "logoHomeAria": "Deck 홈",
+    "mobileBlocker": {
+      "aria": "모바일 안내",
+      "description": "멀티 컬럼 인터페이스 특성상 모바일 지원이 제한됩니다. 데스크톱 또는 태블릿에서 이용해 주세요.",
+      "title": "모바일 환경에서는 사용이 불가능합니다 🙇‍♂️"
+    },
+    "sidebarDescription": "여러 계정을 전환하고 타임라인을 실시간으로 확인할 수 있습니다.",
+    "sourceCode": "소스 코드",
+    "tagline": "오픈소스 페디버스 웹 클라이언트"
+  },
+  "colorScheme": {
+    "dark": "다크",
+    "light": "라이트",
+    "system": "시스템"
+  },
+  "compose": {
+    "aria": "글 작성",
+    "attachments": {
+      "addAria": "이미지 추가",
+      "addHint": "이미지 추가 (Ctrl+Shift+I)",
+      "previewAria": "이미지 미리보기",
+      "selectedImageAlt": "선택한 이미지",
+      "selectedImageOriginalAlt": "선택한 이미지 원본"
+    },
+    "cw": {
+      "aria": "콘텐츠 경고",
+      "placeholder": "CW 내용을 입력하세요",
+      "toggleAria": "콘텐츠 경고 입력",
+      "toggleHint": "콘텐츠 경고 입력 (Ctrl+Shift+W)"
+    },
+    "closeAria": "글쓰기 닫기",
+    "emojiPanel": {
+      "aria": "이모지 팔렛트",
+      "emojiAria": "이모지 {{label}}",
+      "empty": "사용할 수 있는 이모지가 없습니다.",
+      "loading": "이모지를 불러오는 중...",
+      "noSearchResults": "검색 결과가 없습니다.",
+      "openAria": "이모지 팔렛트 열기",
+      "openHint": "이모지 팔렛트 열기 (Ctrl+Shift+E)",
+      "searchAria": "이모지 검색",
+      "searchPlaceholder": "이모지 검색",
+      "searchResults": "검색 결과",
+      "selectAccount": "계정을 선택해주세요.",
+      "standardDividerAria": "표준 이모지 구분선",
+      "standardTitle": "표준 이모지"
+    },
+    "emojiSuggestions": {
+      "aria": "이모지 추천",
+      "itemAria": "이모지 {{label}}"
+    },
+    "inputHint": "글 작성 (N / Ctrl+Shift+N)",
+    "openAria": "글쓰기 열기",
+    "placeholder": "지금 무슨 생각을 하고 있나요?",
+    "replyingTo": "답글 대상: {{summary}}",
+    "submitAria": "게시",
+    "submitHint": "전송 (Ctrl+Enter)",
+    "submitting": "게시 중...",
+    "title": "글쓰기",
+    "visibility": {
+      "direct": "DM",
+      "hint": "공개 범위 (Ctrl+Shift+O)",
+      "private": "팔로워",
+      "public": "전체 공개",
+      "publicWarning": "전체 공개로 게시됩니다. 민감한 내용은 주의해주세요.",
+      "unlisted": "미등록"
+    }
+  },
+  "confirm": {
+    "clearLocalStorage": "로컬 저장소의 모든 데이터를 삭제할까요? 계정과 설정 정보가 모두 초기화됩니다.",
+    "removeAccount": "이 계정을 삭제할까요?"
+  },
+  "emojiCategory": {
+    "activities": "활동",
+    "animals": "동물/자연",
+    "flags": "국기",
+    "food": "음식",
+    "objects": "사물",
+    "other": "기타",
+    "people": "사람/손",
+    "recent": "최근 사용",
+    "smileys": "표정",
+    "symbols": "기호",
+    "travel": "여행/장소"
+  },
+  "errors": {
+    "accountAlreadyRegistered": "이미 등록된 계정입니다.",
+    "accountReauthNotFound": "재인증할 계정을 찾지 못했습니다.",
+    "accountRequired": "계정을 선택해주세요.",
+    "appContextRequired": "AppContext provider가 필요합니다.",
+    "appRegistrationLoadFailed": "앱 등록 정보를 불러오지 못했습니다.",
+    "bookmarkFailed": "북마크 처리에 실패했습니다.",
+    "boostFailed": "부스트 처리에 실패했습니다.",
+    "characterLimitExceeded": "글자 수 제한({{limit}}자)을 초과했습니다.",
+    "composeFailed": "글 작성에 실패했습니다.",
+    "emojisLoadFailed": "이모지를 불러오지 못했습니다.",
+    "likeFailed": "좋아요 처리에 실패했습니다.",
+    "oauth": {
+      "failed": "OAuth 처리에 실패했습니다.",
+      "invalidState": "OAuth 상태가 유효하지 않습니다. 다시 시도해주세요.",
+      "misskeyMissingSession": "미스키 세션 정보를 받지 못했습니다. 다시 시도해주세요.",
+      "misskeySessionMismatch": "미스키 세션 정보가 일치하지 않습니다. 다시 시도해주세요.",
+      "missingCode": "OAuth 코드를 받지 못했습니다. 다시 시도해주세요."
+    },
+    "oauthConnectFailed": "OAuth 연결에 실패했습니다.",
+    "reactionAlreadyExists": "이미 리액션을 남겼습니다. 먼저 취소해주세요.",
+    "reactionFailed": "리액션 처리에 실패했습니다.",
+    "reactionMisskeyOnly": "리액션은 미스키 계정에서만 사용할 수 있습니다.",
+    "serverAddressRequired": "서버 주소를 입력해주세요.",
+    "statusDeleteFailed": "게시글 삭제에 실패했습니다.",
+    "threadLoadFailed": "스레드를 불러오지 못했습니다.",
+    "timelineLoadFailed": "타임라인을 불러오지 못했습니다.",
+    "timelineLoadMoreFailed": "추가 글을 불러오지 못했습니다."
+  },
+  "infoModal": {
+    "closeAria": "{{title}} 닫기"
+  },
+  "infoPages": {
+    "backToTimeline": "타임라인으로 돌아가기",
+    "license": "라이선스",
+    "oss": "오픈소스 목록",
+    "shortcuts": "단축키",
+    "terms": "이용약관"
+  },
+  "language": {
+    "english": "영어",
+    "korean": "한국어"
+  },
+  "mention": {
+    "viewProfile": "{{name}} 프로필 보기"
+  },
+  "menu": {
+    "closeAria": "메뉴 닫기",
+    "openAria": "메뉴 열기",
+    "title": "메뉴"
+  },
+  "notifications": {
+    "badgeCount": "{{count}}개",
+    "badgeOver": "99개 이상",
+    "close": "알림 닫기",
+    "empty": "표시할 알림이 없습니다.",
+    "loading": "알림을 불러오는 중...",
+    "open": "알림 열기",
+    "openHint": "알림 열기 (G)",
+    "openWithCount": "알림 열기 (새 알림 {{badge}})",
+    "title": "알림",
+    "toast": "새 알림이 도착했습니다.",
+    "toastAction": "알림 받은 컬럼으로 이동",
+    "toastActionAria": "알림이 도착한 컬럼으로 이동"
+  },
+  "oauth": {
+    "authenticating": "OAuth 인증 중..."
+  },
+  "pomodoro": {
+    "controls": {
+      "reset": "리셋",
+      "resetHint": "리셋 (X)",
+      "start": "시작",
+      "stop": "정지",
+      "toggleHint": "시작/정지 (S)"
+    },
+    "focusSession": {
+      "description": "뽀모도로 타이머가 동작 중입니다.<br />타임라인은 집중이 끝날 때까지 숨겨집니다.",
+      "title": "🎯 집중 세션 진행 중"
+    },
+    "nextSession": "다음 세션으로 전환",
+    "progress": {
+      "completed": "세션 {{session}} ({{label}} 완료)",
+      "pending": "세션 {{session}} (진행 전)"
+    },
+    "session": {
+      "break": "휴식",
+      "focus": "집중",
+      "longBreak": "긴 휴식"
+    },
+    "todos": {
+      "addAria": "투두 추가",
+      "aria": "뽀모도로 투두",
+      "completeAria": "할 일 완료: {{text}}",
+      "inputAria": "뽀모도로 투두 입력",
+      "inputHint": "할 일 추가 (F) · ↑ 목록 이동 · ESC 포커스 해제",
+      "listHint": "↑/↓ 이동 · Space 완료 · D 삭제 · → 타임라인 이동 · ESC 선택 해제",
+      "placeholder": "할 일 추가",
+      "removeAria": "할 일 삭제: {{text}}"
+    }
+  },
+  "reactions": {
+    "add": "리액션",
+    "addAria": "리액션 추가",
+    "panelAria": "리액션 선택"
+  },
+  "sectionMenu": {
+    "addLeft": "왼쪽 섹션 추가",
+    "addRight": "오른쪽 섹션 추가",
+    "moveLeft": "왼쪽으로 이동",
+    "moveRight": "오른쪽으로 이동",
+    "openAria": "섹션 메뉴 열기",
+    "openHint": "섹션 메뉴 열기 (M)",
+    "openOrigin": "원본 서버에서 보기",
+    "refresh": "새로고침",
+    "remove": "섹션 삭제",
+    "settings": "섹션 설정"
+  },
+  "sectionSettings": {
+    "customEmojis": {
+      "description": "사용자 이름과 본문에 커스텀 이모지를 표시합니다.",
+      "title": "커스텀 이모지 표시"
+    },
+    "profileImages": {
+      "description": "이 섹션에서만 프로필 이미지를 보여줍니다.",
+      "title": "프로필 이미지 표시"
+    },
+    "reactions": {
+      "description": "리액션을 지원하는 서버에서 받은 리액션을 보여줍니다.",
+      "title": "리액션 표시"
+    },
+    "sectionSize": {
+      "aria": "섹션 폭 설정",
+      "description": "이 섹션의 가로 폭을 조절합니다.",
+      "large": "대",
+      "medium": "중",
+      "small": "소",
+      "title": "섹션 폭"
+    },
+    "title": "섹션 설정"
+  },
+  "settings": {
+    "account": {
+      "description": "계정을 선택하여 재인증하거나 삭제합니다.",
+      "reauth": "재인증",
+      "reauthAria": "계정 재인증",
+      "reauthing": "재인증 중...",
+      "removeAria": "계정 삭제",
+      "title": "계정 관리"
+    },
+    "colorScheme": {
+      "aria": "색상 모드 선택",
+      "description": "시스템 설정을 따르거나 라이트/다크 모드를 고정합니다.",
+      "title": "색상 모드"
+    },
+    "language": {
+      "aria": "언어 선택",
+      "description": "표시 언어를 선택합니다.",
+      "title": "언어"
+    },
+    "pomodoro": {
+      "break": "휴식",
+      "description": "사이드바에 뽀모도로 타이머를 표시합니다.",
+      "focus": "집중",
+      "longBreak": "긴 휴식",
+      "timerDescription": "집중, 휴식, 긴 휴식 시간을 분 단위로 설정합니다.",
+      "timerTitle": "뽀모도로 시간 설정",
+      "title": "뽀모도로 타이머"
+    },
+    "storage": {
+      "clear": "모두 삭제",
+      "clearAria": "로컬 저장소 초기화",
+      "description": "계정과 설정을 포함한 모든 로컬 데이터를 삭제합니다.",
+      "title": "로컬 저장소 초기화"
+    },
+    "theme": {
+      "aria": "테마 선택",
+      "description": "기본, 크리스마스, 하늘핑크, 모노톤 테마를 선택합니다.",
+      "title": "테마"
+    },
+    "open": "설정 열기",
+    "title": "설정"
+  },
+  "shortcuts": {
+    "compose": {
+      "attachMedia": "미디어 첨부",
+      "blur": "글쓰기 입력 포커스 해제",
+      "focus": "글쓰기 입력으로 이동",
+      "focusWhileActive": "글쓰기 입력으로 이동 (포커스 중)",
+      "note": "글쓰기 영역 기준으로 동작합니다.",
+      "openAccountSelector": "계정 선택 열기",
+      "openVisibility": "공개 범위 선택",
+      "submit": "글 올리기",
+      "title": "글쓰기",
+      "toggleContentWarning": "내용 경고 토글",
+      "toggleEmojiPanel": "이모지 패널 토글"
+    },
+    "emojiPanel": {
+      "close": "이모지 선택 닫기",
+      "navigate": "이모지/카테고리 이동",
+      "note": "이모지 선택 팝오버가 열려 있을 때만 동작합니다.",
+      "select": "선택된 이모지 입력/리액션",
+      "title": "이모지 패널/리액션",
+      "toggleCategory": "카테고리 접기/펼치기"
+    },
+    "imageViewer": {
+      "close": "이미지 보기 닫기",
+      "navigate": "이미지 이동",
+      "title": "이미지 뷰어"
+    },
+    "pomodoro": {
+      "focusTask": "할 일 추가 입력으로 이동",
+      "reset": "뽀모도로 타이머 리셋",
+      "title": "뽀모도로 타이머",
+      "toggle": "뽀모도로 타이머 시작/정지"
+    },
+    "selected": {
+      "boost": "부스트",
+      "closeMenu": "열린 메뉴 닫기",
+      "likeOrReaction": "좋아요 (마스토돈) / ❤️ 리액션 (미스키)",
+      "navigateMenu": "열린 메뉴에서 항목 이동",
+      "note": "글을 선택한 상태에서만 동작합니다.",
+      "openAccount": "계정 선택 열기",
+      "openColumnMenu": "컬럼 메뉴 열기",
+      "openMedia": "첨부 이미지 열기",
+      "openNotifications": "알림 열기",
+      "openProfile": "작성자 프로필 팝업 열기",
+      "openReactions": "리액션 팔레트 열기 (미스키)",
+      "openStatus": "글 팝업 열기 (열린 메뉴에서는 항목 선택)",
+      "openTimelineMenu": "타임라인 메뉴 열기",
+      "reply": "답글 작성",
+      "title": "선택된 글 컨트롤"
+    },
+    "suggestions": {
+      "close": "추천 닫기",
+      "insert": "추천 이모지 입력",
+      "navigate": "추천 항목 이동",
+      "note": "추천 목록이 열려 있을 때만 동작합니다.",
+      "title": "이모지 추천"
+    },
+    "timeline": {
+      "clearSelection": "선택 해제",
+      "moveColumn": "이웃 컬럼으로 이동",
+      "moveVertical": "선택된 글 위아래 이동",
+      "selectLeftmost": "선택이 없을 때 왼쪽 첫 글을 선택",
+      "title": "타임라인 이동"
+    }
+  },
+  "status": {
+    "boostedBy": "<name></name> 님이 부스트함",
+    "threadLoading": "스레드 불러오는 중",
+    "title": "게시글",
+    "viewAria": "글 보기"
+  },
+  "themes": {
+    "christmas": "크리스마스",
+    "default": "기본",
+    "matchaCore": "말차코어",
+    "monochrome": "모노톤",
+    "skyPink": "하늘핑크"
+  },
+  "timeline": {
+    "accountRequired": "계정을 선택하면 타임라인을 불러옵니다.",
+    "actionsAria": "타임라인 작업",
+    "bookmarks": "북마크",
+    "empty": {
+      "bookmarks": "북마크한 글이 없습니다.",
+      "default": "표시할 글이 없습니다.",
+      "notifications": "표시할 알림이 없습니다."
+    },
+    "federated": "연합",
+    "global": "글로벌",
+    "home": "홈",
+    "loadingMore": "더 불러오는 중...",
+    "local": "로컬",
+    "notifications": "알림",
+    "pending": {
+      "action": "보기",
+      "aria": "새 글 {{label}}개 표시",
+      "label": "새 글 {{label}}개",
+      "sr": "새 글 {{label}}개가 새로 도착했습니다.",
+      "title": "새 글 표시"
+    },
+    "scrollTop": "최상단으로 이동",
+    "selectAria": "타임라인 선택: {{label}}",
+    "selectHint": "타임라인 선택 (T)",
+    "selectMenuAria": "타임라인 선택",
+    "social": "소셜"
+  },
+  "toast": {
+    "bookmarkAdded": "북마크했습니다.",
+    "bookmarkRemoved": "북마크를 취소했습니다.",
+    "close": "닫기",
+    "closeAria": "토스트 닫기"
+  }
+}

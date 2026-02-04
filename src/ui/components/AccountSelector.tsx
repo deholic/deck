@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Account } from "../../domain/types";
 import type { Ref } from "react";
 import { formatHandle } from "../utils/account";
@@ -27,6 +28,7 @@ export const AccountSelector = ({
   const detailsRef = useRef<HTMLDetailsElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const selectionChangeRef = useRef(false);
+  const { t } = useTranslation();
 
   useClickOutside(dropdownRef, dropdownOpen, () => setDropdownOpen(false));
 
@@ -123,7 +125,7 @@ export const AccountSelector = ({
           <summary
             ref={summaryRef}
             className="account-selector-summary"
-            title={summaryTitle ?? "계정 선택 (Ctrl+Shift+A)"}
+            title={summaryTitle ?? t("accountSelector.shortcutHint")}
           >
             {activeAccount ? (
               <AccountLabel
@@ -135,7 +137,7 @@ export const AccountSelector = ({
                 customEmojis={activeAccount.emojis}
               />
             ) : (
-              <span className="account-selector-placeholder">계정을 선택하세요.</span>
+              <span className="account-selector-placeholder">{t("accountSelector.placeholder")}</span>
             )}
             <span className="account-selector-caret" aria-hidden="true">
               ▾
@@ -178,7 +180,7 @@ export const AccountSelector = ({
                   </li>
                 );
               })}
-              {accounts.length === 0 ? <li className="empty">등록된 계정이 없습니다.</li> : null}
+              {accounts.length === 0 ? <li className="empty">{t("accountSelector.empty")}</li> : null}
             </ul>
           </div>
         </details>

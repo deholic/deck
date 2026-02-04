@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 type SessionType = "focus" | "break" | "longBreak";
 
@@ -21,17 +22,6 @@ type PomodoroTimerProps = {
 
 // TOTAL_SESSIONS을 targetCycles에 따라 동적으로 계산
 
-const getSessionLabel = (type: SessionType): string => {
-  switch (type) {
-    case "focus":
-      return "집중";
-    case "break":
-      return "휴식";
-    case "longBreak":
-      return "긴 휴식";
-  }
-};
-
 const formatTime = (seconds: number): string => {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
@@ -48,10 +38,16 @@ export const PomodoroTimer = ({
   onRequestClearTimelineSelection,
   onRequestSelectTimelineAtY,
 }: PomodoroTimerProps) => {
+  const { t } = useTranslation();
   const targetCycles = 4; // 고정된 4사이클
   const focusDuration = focusMinutes * 60;
   const breakDuration = breakMinutes * 60;
   const longBreakDuration = longBreakMinutes * 60;
+
+  const getSessionLabel = useCallback(
+    (type: SessionType) => t(`pomodoro.session.${type}`),
+    [t]
+  );
 
   const getSessionInfo = useCallback(
     (sess: number): { type: SessionType; duration: number } => {
@@ -406,7 +402,11 @@ export const PomodoroTimer = ({
         <div
           key={i}
           className={dotClass}
-          aria-label={`세션 ${i}${isCompleted ? ` (${getSessionLabel(sessionType)} 완료)` : ' (진행 전)'}`}
+          aria-label={
+            isCompleted
+              ? t("pomodoro.progress.completed", { session: i, label: getSessionLabel(sessionType) })
+              : t("pomodoro.progress.pending", { session: i })
+          }
         />
       );
     }
@@ -582,7 +582,7 @@ export const PomodoroTimer = ({
           type="button"
           className={`pomodoro-mode-toggle${sessionInfo.type === "break" ? " break" : ""}${sessionInfo.type === "longBreak" ? " long-break" : ""}`}
           onClick={handleSessionToggle}
-          aria-label="다음 세션으로 전환"
+          aria-label={t("pomodoro.nextSession")}
         >
           {getSessionLabel(sessionInfo.type)} {sessionInfo.type === "focus" ? focusCount : ""}
         </button>
@@ -601,29 +601,29 @@ export const PomodoroTimer = ({
             type="button"
             className="pomodoro-button pomodoro-start"
             onClick={handleStart}
-            title="시작/정지 (S)"
+            title={t("pomodoro.controls.toggleHint")}
           >
-            {isRunning ? "정지" : "시작"}
+            {isRunning ? t("pomodoro.controls.stop") : t("pomodoro.controls.start")}
           </button>
           <button
             type="button"
             className="pomodoro-button pomodoro-reset"
             onClick={handleReset}
-            title="리셋 (X)"
+            title={t("pomodoro.controls.resetHint")}
           >
-            리셋
+            {t("pomodoro.controls.reset")}
           </button>
         </div>
       </div>
       <div className="compose-emoji-divider pomodoro-divider" />
-      <div className="pomodoro-todos" aria-label="뽀모도로 투두">
+      <div className="pomodoro-todos" aria-label={t("pomodoro.todos.aria")}>
         {displayedTodos.length > 0 ? (
           <div
             className="pomodoro-todo-list"
             ref={todoListRef}
             tabIndex={displayedTodos.length > 0 ? 0 : -1}
             onKeyDownCapture={handleTodoKeyDown}
-            title="↑/↓ 이동 · Space 완료 · D 삭제 · → 타임라인 이동 · ESC 선택 해제"
+            title={t("pomodoro.todos.listHint")}
           >
             {displayedTodos.map((item) => (
               <div
@@ -641,13 +641,13 @@ export const PomodoroTimer = ({
                   className="pomodoro-todo-checkbox"
                   checked={item.completed}
                   onChange={() => handleToggleTodo(item.id)}
-                  aria-label={`할 일 완료: ${item.text}`}
+                  aria-label={t("pomodoro.todos.completeAria", { text: item.text })}
                 />
                 <span className="pomodoro-todo-text">{item.text}</span>
               <button
                 type="button"
                 className="pomodoro-todo-remove"
-                aria-label={`할 일 삭제: ${item.text}`}
+                aria-label={t("pomodoro.todos.removeAria", { text: item.text })}
                 onClick={() => handleRemoveTodo(item.id)}
               >
                 <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -673,12 +673,12 @@ export const PomodoroTimer = ({
             onChange={(event) => setTodoInput(event.target.value)}
             onKeyDown={handleTodoInputKeyDown}
             onFocus={() => setSelectedTodoId(null)}
-            placeholder="할 일 추가"
-            aria-label="뽀모도로 투두 입력"
-            title="할 일 추가 (F) · ↑ 목록 이동 · ESC 포커스 해제"
+            placeholder={t("pomodoro.todos.placeholder")}
+            aria-label={t("pomodoro.todos.inputAria")}
+            title={t("pomodoro.todos.inputHint")}
           />
-          <button type="submit" aria-label="투두 추가">
-            추가
+          <button type="submit" aria-label={t("pomodoro.todos.addAria")}>
+            {t("actions.add")}
           </button>
         </form>
       </div>
