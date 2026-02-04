@@ -15,6 +15,7 @@ import {
   mapMisskeyStatusWithInstance,
   mapMisskeyUserProfile
 } from "./misskeyMapper";
+import i18n from "../i18n";
 
 const normalizeInstanceUrl = (instanceUrl: string): string => instanceUrl.replace(/\/$/, "");
 
@@ -95,7 +96,7 @@ export class MisskeyHttpClient implements MastodonApi {
       body: JSON.stringify(buildBody(account, { noteId, limit }))
     });
     if (!response.ok) {
-      throw new Error("답글을 불러오지 못했습니다.");
+      throw new Error(i18n.t("errors.api.replyLoadFailed"));
     }
     const data = (await response.json()) as unknown[];
     return data
@@ -146,7 +147,7 @@ export class MisskeyHttpClient implements MastodonApi {
       body: JSON.stringify(buildBody(account, {}))
     });
     if (!response.ok) {
-      throw new Error("계정 인증에 실패했습니다.");
+      throw new Error(i18n.t("errors.api.accountVerifyFailed"));
     }
     const data = (await response.json()) as Record<string, unknown>;
     return {
@@ -195,7 +196,7 @@ export class MisskeyHttpClient implements MastodonApi {
     if (!response.ok) {
       const fallback = await fetch(url);
       if (!fallback.ok) {
-        throw new Error("이모지를 불러오지 못했습니다.");
+        throw new Error(i18n.t("errors.api.customEmojisLoadFailed"));
       }
       const data = (await fallback.json()) as unknown;
       return mapMisskeyEmojis(data);
@@ -213,7 +214,7 @@ export class MisskeyHttpClient implements MastodonApi {
       body: JSON.stringify(buildBody(account, {}))
     });
     if (!response.ok) {
-      throw new Error("인스턴스 정보를 불러오지 못했습니다.");
+      throw new Error(i18n.t("errors.api.instanceInfoLoadFailed"));
     }
     const data = (await response.json()) as Record<string, unknown>;
     return {
@@ -234,7 +235,7 @@ export class MisskeyHttpClient implements MastodonApi {
       body: JSON.stringify(buildBody(account, { userId: accountId }))
     });
     if (!response.ok) {
-      throw new Error("프로필 정보를 불러오지 못했습니다.");
+      throw new Error(i18n.t("errors.api.profileLoadFailed"));
     }
     const data = (await response.json()) as unknown;
     return mapMisskeyUserProfile(data, account.instanceUrl);
@@ -249,7 +250,7 @@ export class MisskeyHttpClient implements MastodonApi {
       body: JSON.stringify(buildBody(account, { userId: accountId }))
     });
     if (!response.ok) {
-      throw new Error("관계 정보를 불러오지 못했습니다.");
+      throw new Error(i18n.t("errors.api.relationshipLoadFailed"));
     }
     const data = (await response.json()) as unknown;
     return mapMisskeyRelationship(data);
@@ -310,7 +311,7 @@ export class MisskeyHttpClient implements MastodonApi {
       )
     });
     if (!response.ok) {
-      throw new Error("게시글을 불러오지 못했습니다.");
+      throw new Error(i18n.t("errors.api.statusesLoadFailed"));
     }
     const data = (await response.json()) as unknown[];
     return data.map((item) => mapMisskeyStatusWithInstance(item, account.instanceUrl));
@@ -330,7 +331,7 @@ export class MisskeyHttpClient implements MastodonApi {
       )
     });
     if (!response.ok) {
-      throw new Error("북마크를 불러오지 못했습니다.");
+      throw new Error(i18n.t("errors.api.bookmarksLoadFailed"));
     }
     const data = (await response.json()) as unknown[];
     return data.map((item) => {
@@ -352,12 +353,12 @@ export class MisskeyHttpClient implements MastodonApi {
       }
     );
     if (!response.ok) {
-      throw new Error("이미지 업로드에 실패했습니다.");
+      throw new Error(i18n.t("errors.api.mediaUploadFailed"));
     }
     const data = (await response.json()) as Record<string, unknown>;
     const id = String(data.id ?? "");
     if (!id) {
-      throw new Error("업로드된 미디어 정보를 찾을 수 없습니다.");
+      throw new Error(i18n.t("errors.api.mediaUploadNotFound"));
     }
     return id;
   }
@@ -375,7 +376,7 @@ export class MisskeyHttpClient implements MastodonApi {
       body: JSON.stringify(buildBody(account, { noteId, limit: 100 }))
     });
     if (!response.ok) {
-      throw new Error("대화를 불러오지 못했습니다.");
+      throw new Error(i18n.t("errors.api.conversationLoadFailed"));
     }
     const data = (await response.json()) as unknown[];
     
@@ -425,12 +426,12 @@ export class MisskeyHttpClient implements MastodonApi {
       )
     });
     if (!response.ok) {
-      throw new Error("글 작성에 실패했습니다.");
+      throw new Error(i18n.t("errors.composeFailed"));
     }
     const data = (await response.json()) as { createdNote?: unknown; note?: unknown };
     const created = data.createdNote ?? data.note;
     if (!created) {
-      throw new Error("생성된 노트를 찾을 수 없습니다.");
+      throw new Error(i18n.t("errors.api.createdNoteNotFound"));
     }
     return mapMisskeyStatusWithInstance(created, account.instanceUrl);
   }
@@ -444,7 +445,7 @@ export class MisskeyHttpClient implements MastodonApi {
       body: JSON.stringify(buildBody(account, { noteId: statusId }))
     });
     if (!response.ok) {
-      throw new Error("게시글 삭제에 실패했습니다.");
+      throw new Error(i18n.t("errors.statusDeleteFailed"));
     }
   }
 
@@ -493,7 +494,7 @@ export class MisskeyHttpClient implements MastodonApi {
       body: JSON.stringify(buildBody(account, { noteId }))
     });
     if (!response.ok) {
-      throw new Error("게시물 상태를 불러오지 못했습니다.");
+      throw new Error(i18n.t("errors.api.noteStateLoadFailed"));
     }
     const state = (await response.json()) as Record<string, unknown>;
     const isFavorited = Boolean(state.isFavorited ?? false);
@@ -514,7 +515,7 @@ export class MisskeyHttpClient implements MastodonApi {
       body: JSON.stringify(buildBody(account, { noteId: statusId }))
     });
     if (!response.ok) {
-      throw new Error("번역에 실패했습니다.");
+      throw new Error(i18n.t("errors.api.translationFailed"));
     }
     const data = (await response.json()) as Record<string, unknown>;
     const content =
@@ -528,7 +529,7 @@ export class MisskeyHttpClient implements MastodonApi {
               ? data.translation
               : "";
     if (!content) {
-      throw new Error("번역 결과를 확인할 수 없습니다.");
+      throw new Error(i18n.t("errors.api.translationResultMissing"));
     }
     const sourceLanguage =
       typeof data.sourceLang === "string"
@@ -561,7 +562,7 @@ export class MisskeyHttpClient implements MastodonApi {
     const note = await this.fetchNoteRaw(account, statusId);
     const renoteId = typeof note.myRenoteId === "string" ? note.myRenoteId : "";
     if (!renoteId) {
-      throw new Error("취소할 리노트를 찾지 못했습니다.");
+      throw new Error(i18n.t("errors.api.renoteNotFound"));
     }
     await this.postSimple(account, "/api/notes/delete", { noteId: renoteId });
     return this.fetchNote(account, statusId);
@@ -576,7 +577,7 @@ export class MisskeyHttpClient implements MastodonApi {
       body: JSON.stringify(buildBody(account, { noteId }))
     });
     if (!response.ok) {
-      throw new Error("게시글 정보를 불러오지 못했습니다.");
+      throw new Error(i18n.t("errors.api.statusInfoLoadFailed"));
     }
     return (await response.json()) as Record<string, unknown>;
   }
@@ -595,7 +596,7 @@ export class MisskeyHttpClient implements MastodonApi {
       body: JSON.stringify(buildBody(account, payload))
     });
     if (!response.ok) {
-      throw new Error("요청에 실패했습니다.");
+      throw new Error(i18n.t("errors.api.requestFailed"));
     }
   }
 
@@ -618,7 +619,7 @@ export class MisskeyHttpClient implements MastodonApi {
       )
     });
     if (!response.ok) {
-      throw new Error("타임라인을 불러오지 못했습니다.");
+      throw new Error(i18n.t("errors.timelineLoadFailed"));
     }
     const data = (await response.json()) as unknown[];
     return data.map((item) => mapMisskeyStatusWithInstance(item, account.instanceUrl));
@@ -642,7 +643,7 @@ export class MisskeyHttpClient implements MastodonApi {
       )
     });
     if (!response.ok) {
-      throw new Error("알림을 불러오지 못했습니다.");
+      throw new Error(i18n.t("errors.api.notificationsLoadFailed"));
     }
     const data = (await response.json()) as unknown[];
     return data

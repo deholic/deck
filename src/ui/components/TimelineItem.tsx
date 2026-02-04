@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
+import i18n from "../../i18n";
 import type { Account, CustomEmoji, LinkCard, MediaAttachment, Mention, ReactionInput, Status } from "../../domain/types";
 import type { MastodonApi, StatusTranslation } from "../../services/MastodonApi";
 import { sanitizeHtml } from "../utils/htmlSanitizer";
@@ -252,14 +254,14 @@ const MediaVideo = ({
           <button
             type="button"
             className="status-media-floating-close"
-            aria-label="고정 플레이어 닫기"
+            aria-label={i18n.t("media.floatingCloseAria")}
             onClick={() => {
               setIsFloating(false);
               setPlaceholderHeight(null);
               setIsDismissed(true);
             }}
           >
-            닫기
+            {i18n.t("actions.close")}
           </button>
           <span
             className="status-media-resize-edge edge-top"
@@ -346,6 +348,7 @@ export const TimelineItem = ({
   disableActions?: boolean;
   enableReactionActions?: boolean;
 }) => {
+  const { t } = useTranslation();
   const notification = status.notification;
   const displayStatus = notification?.target ?? status.reblog ?? status;
   const boostedBy = notification ? null : status.reblog ? status.boostedBy : null;
@@ -413,7 +416,7 @@ export const TimelineItem = ({
     setMenuOpen(false);
 
     if (!canTranslate) {
-      showToast("번역할 내용이 없습니다.", { tone: "error" });
+      showToast(t("translation.noContent"), { tone: "error" });
       return;
     }
 
@@ -439,15 +442,15 @@ export const TimelineItem = ({
           return;
         }
         setTranslation(result);
-        showToast("번역이 완료되었습니다.", { tone: "success" });
+        showToast(t("translation.completed"), { tone: "success" });
       } catch (error) {
         if (translationRequestId.current !== requestId) {
           return;
         }
         console.error("번역 실패:", error);
         setTranslation(null);
-        setTranslationError("번역에 실패했습니다.");
-        showToast("번역에 실패했습니다.", { tone: "error" });
+        setTranslationError(t("translation.failed"));
+        showToast(t("translation.failed"), { tone: "error" });
       } finally {
         if (translationRequestId.current === requestId) {
           setIsTranslating(false);
@@ -461,7 +464,8 @@ export const TimelineItem = ({
     displayStatus.id,
     isTranslating,
     isTranslationVisible,
-    showToast
+    showToast,
+    t
   ]);
 
   // useImageZoom 사용
@@ -637,18 +641,21 @@ export const TimelineItem = ({
       const label = boostedBy.name || boostedHandle || boostedBy.handle;
       const labelNode = renderEmojiText(label, status.accountEmojis);
       return (
-        <>
-          {labelNode}이 부스트함
-        </>
+        <Trans
+          i18nKey="status.boostedByInline"
+          components={{ name: <span>{labelNode}</span> }}
+        />
       );
     }
     if (displayStatus.reblogged) {
-      return "내가 부스트함";
+      return t("status.boostedByMe");
     }
     return null;
-  }, [boostedBy, boostedHandle, displayStatus.reblogged, notification, renderEmojiText, status.accountEmojis]);
+  }, [boostedBy, boostedHandle, displayStatus.reblogged, notification, renderEmojiText, status.accountEmojis, t]);
   const canOpenProfile = Boolean(onProfileClick);
-  const profileLabel = `${displayStatus.accountName || displayStatus.accountHandle} 프로필 보기`;
+  const profileLabel = t("profile.viewAria", {
+    name: displayStatus.accountName || displayStatus.accountHandle
+  });
   const notificationActorHandle = useMemo(() => {
     if (!notification) {
       return "";
@@ -675,14 +682,16 @@ export const TimelineItem = ({
       return null;
     }
     const actorName =
-      notification.actor.name || notificationActorHandle || notification.actor.handle || "알 수 없는 사용자";
+      notification.actor.name || notificationActorHandle || notification.actor.handle || t("profile.unknownUser");
     const actorNode = renderEmojiText(actorName, status.accountEmojis);
     return (
-      <>
-        {actorNode} 님이 {notification.label}
-      </>
+      <Trans
+        i18nKey="notifications.actorAction"
+        components={{ actor: <span>{actorNode}</span> }}
+        values={{ action: notification.label }}
+      />
     );
-  }, [notification, notificationActorHandle, renderEmojiText, status.accountEmojis]);
+  }, [notification, notificationActorHandle, renderEmojiText, status.accountEmojis, t]);
   const timestamp = useMemo(
     () => new Date(displayStatus.createdAt).toLocaleString(),
     [displayStatus.createdAt]
@@ -1142,16 +1151,16 @@ export const TimelineItem = ({
     }
     const items: string[] = [];
     if (translation.sourceLanguage) {
-      items.push(`감지 언어: ${translation.sourceLanguage}`);
+      items.push(t("translation.meta.detected", { language: translation.sourceLanguage }));
     }
     if (translation.targetLanguage) {
-      items.push(`번역 대상: ${translation.targetLanguage}`);
+      items.push(t("translation.meta.target", { language: translation.targetLanguage }));
     }
     if (translation.provider) {
-      items.push(`제공: ${translation.provider}`);
+      items.push(t("translation.meta.provider", { provider: translation.provider }));
     }
     return items.length > 0 ? items : null;
-  }, [translation]);
+  }, [t, translation]);
 
   const accountLabel = displayStatus.accountName || displayStatus.accountHandle;
   const accountNameNode = useMemo(() => {
@@ -1243,7 +1252,7 @@ export const TimelineItem = ({
   const hasAttachmentButtons = showContent && imageAttachments.length > 0;
   const shouldRenderFooter = actionsEnabled || hasAttachmentButtons;
   const renderMediaItem = useCallback((item: MediaAttachment) => {
-    const label = item.description ?? "첨부 미디어";
+    const label = item.description ?? t("media.attachment");
     if (item.kind === "audio") {
       return (
         <div key={item.id} className="status-media-item">
@@ -1257,7 +1266,7 @@ export const TimelineItem = ({
       return (
         <div key={item.id} className="status-media-item">
           <a className="status-media-link" href={item.url} target="_blank" rel="noreferrer">
-            첨부 파일 열기
+            {t("media.openAttachment")}
           </a>
         </div>
       );
@@ -1268,11 +1277,11 @@ export const TimelineItem = ({
           id={item.id}
           src={item.url}
           poster={item.previewUrl}
-          label={item.description ?? "첨부 동영상"}
+          label={item.description ?? t("media.videoAttachment")}
         />
       </div>
     );
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     setShowContent(displayStatus.spoilerText.length === 0);
@@ -1401,7 +1410,7 @@ export const TimelineItem = ({
           onKeyDown={handleStatusKeyDown}
           role={onStatusClick ? "button" : undefined}
           tabIndex={onStatusClick ? 0 : undefined}
-          aria-label={onStatusClick ? "부스트한 글 스레드 보기" : undefined}
+          aria-label={onStatusClick ? t("status.viewBoostThread") : undefined}
           data-interactive={onStatusClick ? "true" : undefined}
         >
           <BoostIcon aria-hidden="true" focusable="false" />
@@ -1415,11 +1424,11 @@ export const TimelineItem = ({
           onKeyDown={handleStatusKeyDown}
           role={onStatusClick ? "button" : undefined}
           tabIndex={onStatusClick ? 0 : undefined}
-          aria-label={onStatusClick ? "댓글 스레드 보기" : undefined}
+          aria-label={onStatusClick ? t("status.viewReplyThread") : undefined}
           data-interactive={onStatusClick ? "true" : undefined}
         >
           <ReplyIcon aria-hidden="true" focusable="false" />
-          <span>{mentionLabel}에게 보낸 답글</span>
+          <span>{t("status.replyTo", { name: mentionLabel })}</span>
         </div>
       ) : null}
       <header className="status-header-main">
@@ -1437,7 +1446,9 @@ export const TimelineItem = ({
               {displayStatus.accountAvatarUrl ? (
                 <img
                   src={displayStatus.accountAvatarUrl}
-                  alt={`${displayStatus.accountName || displayStatus.accountHandle} 프로필 이미지`}
+                  alt={t("profile.imageAlt", {
+                    name: displayStatus.accountName || displayStatus.accountHandle
+                  })}
                   loading="lazy"
                 />
               ) : (
@@ -1475,13 +1486,14 @@ export const TimelineItem = ({
           </div>
         </div>
         <div className="status-menu section-menu">
-          <button
-            type="button"
-            className="icon-button"
-            aria-label="게시글 메뉴 열기" aria-haspopup="menu"
-            aria-expanded={menuOpen}
-            onClick={handleMenuToggle}
-          >
+            <button
+              type="button"
+              className="icon-button"
+              aria-label={t("status.menuOpenAria")}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              onClick={handleMenuToggle}
+            >
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="12" cy="5" r="1.7" />
               <circle cx="12" cy="12" r="1.7" />
@@ -1515,7 +1527,7 @@ export const TimelineItem = ({
                         } catch (error) {
                           console.error("즐겨찾기 처리 실패:", error);
                           setFavouriteState(previousState);
-                          showToast("즐겨찾기 처리에 실패했습니다.", { tone: "error" });
+                          showToast(t("favourite.error"), { tone: "error" });
                           return;
                         }
                         let finalState = nextState;
@@ -1529,13 +1541,17 @@ export const TimelineItem = ({
                           console.error("즐겨찾기 상태 확인 실패:", error);
                         }
                         showToast(
-                          finalState ? "즐겨찾기에 추가했습니다." : "즐겨찾기에서 해제했습니다.",
+                          finalState ? t("favourite.added") : t("favourite.removed"),
                           { tone: "success" }
                         );
                       })();
                     }}
                   >
-                    {favouriteState === null ? "로딩..." : favouriteState ? "즐겨찾기 취소" : "즐겨찾기"}
+                    {favouriteState === null
+                      ? t("favourite.loading")
+                      : favouriteState
+                        ? t("favourite.removeLabel")
+                        : t("favourite.addLabel")}
                   </button>
                 )}
                 {account?.platform === "mastodon" && (
@@ -1546,7 +1562,7 @@ export const TimelineItem = ({
                       setMenuOpen(false);
                     }}
                   >
-                    {displayStatus.bookmarked ? "북마크 취소" : "북마크"}
+                    {displayStatus.bookmarked ? t("bookmark.removeLabel") : t("bookmark.label")}
                   </button>
                 )}
                 {account ? (
@@ -1556,16 +1572,16 @@ export const TimelineItem = ({
                     disabled={isTranslating || !canTranslate}
                   >
                     {isTranslating
-                      ? "번역 중..."
+                      ? t("translation.inProgress")
                       : isTranslationVisible
-                        ? "번역 숨기기"
+                        ? t("translation.hide")
                         : translationError
-                          ? "번역 다시하기"
-                          : "번역"}
+                          ? t("translation.retry")
+                          : t("translation.label")}
                   </button>
                 ) : null}
                 <button type="button" onClick={handleOpenOrigin} disabled={!originUrl}>
-                  원본 서버에서 보기
+                  {t("status.openOrigin")}
                 </button>
               </div>
             </>
@@ -1576,17 +1592,17 @@ export const TimelineItem = ({
         <div className="status-warning">
           <p className="status-warning-text">{displayStatus.spoilerText}</p>
           <button type="button" className="text-link" onClick={() => setShowContent((prev) => !prev)}>
-            {showContent ? "가리기" : "내용보기"}
+            {showContent ? t("status.hideContent") : t("status.showContent")}
           </button>
         </div>
       ) : null}
       {showContent ? (
         <>
-          <div className="status-text">{displayStatus.content ? contentParts : "(내용 없음)"}</div>
+          <div className="status-text">{displayStatus.content ? contentParts : t("status.noContent")}</div>
           {translation ? (
-            <div className="status-translation" role="region" aria-label="번역 결과">
+            <div className="status-translation" role="region" aria-label={t("translation.resultAria")}>
               <div className="status-translation-header">
-                <span>번역</span>
+                <span>{t("translation.label")}</span>
                 <button
                   type="button"
                   className="text-link"
@@ -1594,13 +1610,13 @@ export const TimelineItem = ({
                     setTranslation(null);
                     setTranslationError(null);
                   }}
-                  aria-label="번역 숨기기"
+                  aria-label={t("translation.hideAria")}
                 >
-                  번역 숨기기
+                  {t("translation.hide")}
                 </button>
               </div>
               <div className="status-translation-content">
-                {translationParts ?? "(내용 없음)"}
+                {translationParts ?? t("translation.noContent")}
               </div>
               {translationMeta ? (
                 <div className="status-translation-meta">
@@ -1642,7 +1658,7 @@ export const TimelineItem = ({
         onClick={handleStatusClick}
         role={onStatusClick ? "button" : undefined}
         tabIndex={onStatusClick ? 0 : undefined}
-        aria-label={onStatusClick ? "글 보기" : undefined}
+        aria-label={onStatusClick ? t("status.viewAria") : undefined}
         data-interactive={onStatusClick ? "true" : undefined}
       >
         {visibilityIcon}
@@ -1650,7 +1666,7 @@ export const TimelineItem = ({
         <time dateTime={displayStatus.createdAt}>{timestamp}</time>
       </div>
       {shouldShowReactions ? (
-        <div className="status-reactions" aria-label="받은 리액션">
+        <div className="status-reactions" aria-label={t("reactions.receivedAria")}>
           {displayStatus.reactions.map((reaction) => {
             const label = formatReactionLabel(reaction);
             const isMine = displayStatus.myReaction === reaction.name;
@@ -1659,8 +1675,11 @@ export const TimelineItem = ({
                 key={reaction.name}
                 type="button"
                 className={`status-reaction${isMine ? " is-active" : ""}`}
-                title={`${label} ${reaction.count}개`}
-                aria-label={`${label} 리액션 ${isMine ? "취소" : "추가"}`}
+                title={t("reactions.countTitle", { label, count: reaction.count })}
+                aria-label={t("reactions.toggleAria", {
+                  label,
+                  action: isMine ? t("actions.remove") : t("actions.add")
+                })}
                 onClick={() =>
                   handleReactionSelect({
                     name: reaction.name,
@@ -1674,7 +1693,7 @@ export const TimelineItem = ({
                 {reaction.url ? (
                   <img
                     src={reaction.url}
-                    alt={`${label} 이모지`}
+                    alt={t("emoji.alt", { label })}
                     className="status-reaction-emoji"
                     loading="lazy"
                   />
@@ -1695,7 +1714,7 @@ export const TimelineItem = ({
             {actionsEnabled ? (
               <>
                 <button type="button" onClick={() => onReply(displayStatus)} data-action="reply">
-                  답글
+                  {t("actions.reply")}
                 </button>
                 {account?.platform !== "misskey" ? (
                   <button
@@ -1704,7 +1723,7 @@ export const TimelineItem = ({
                     onClick={() => onToggleFavourite(displayStatus)}
                     data-action="favourite"
                   >
-                    {displayStatus.favourited ? "좋아요 취소" : "좋아요"}
+                    {displayStatus.favourited ? t("like.remove") : t("like.add")}
                     {displayStatus.favouritesCount > 0 ? ` (${displayStatus.favouritesCount})` : ""}
                   </button>
                 ) : null}
@@ -1713,10 +1732,10 @@ export const TimelineItem = ({
                   className={displayStatus.reblogged ? "is-active" : undefined}
                   onClick={() => onToggleReblog(displayStatus)}
                   disabled={boostDisabled}
-                  title={boostDisabled ? "비공개 글은 부스트할 수 없습니다." : undefined}
+                  title={boostDisabled ? t("status.boostDisabled") : undefined}
                   data-action="reblog"
                 >
-                  {displayStatus.reblogged ? "부스트 취소" : "부스트"}
+                  {displayStatus.reblogged ? t("boost.remove") : t("boost.add")}
                   {displayStatus.reblogsCount > 0 ? ` (${displayStatus.reblogsCount})` : ""}
                 </button>
                 {canReact ? (
@@ -1741,9 +1760,17 @@ export const TimelineItem = ({
                       setActiveImageIndex(index);
                     }}
                     data-action={index === 0 ? "open-image" : undefined}
-                    aria-label={item.description ? `이미지 보기: ${item.description}` : "이미지 보기"}
+                    aria-label={
+                      item.description
+                        ? t("media.viewImageWithDescription", { description: item.description })
+                        : t("media.viewImage")
+                    }
                   >
-                    <img src={item.previewUrl ?? item.url} alt={item.description ?? "첨부 이미지"} loading="lazy" />
+                    <img
+                      src={item.previewUrl ?? item.url}
+                      alt={item.description ?? t("media.imageAttachment")}
+                      loading="lazy"
+                    />
                   </button>
                 ))
               : null}
@@ -1759,7 +1786,7 @@ export const TimelineItem = ({
         <div className="confirm-modal" role="dialog" aria-modal="true">
           <div className="image-modal-backdrop" onClick={() => setShowDeleteConfirm(false)} />
           <div className="confirm-modal-content">
-            <h3>게시글 삭제</h3>
+            <h3>{t("status.deleteTitle")}</h3>
             <div className="status confirm-status">
               <header className="status-header">
                 <AccountLabel
@@ -1775,7 +1802,7 @@ export const TimelineItem = ({
                 />
               </header>
               <p className="status-text confirm-text">
-                {displayStatus.content || "(내용 없음)"}
+                {displayStatus.content || t("status.noContent")}
               </p>
               <time dateTime={displayStatus.createdAt} className="status-time">
                 {timestamp}
@@ -1790,10 +1817,10 @@ export const TimelineItem = ({
                   onDelete(displayStatus);
                 }}
               >
-                삭제
+                {t("actions.remove")}
               </button>
               <button type="button" onClick={() => setShowDeleteConfirm(false)}>
-                취소
+                {t("actions.cancel")}
               </button>
             </div>
           </div>
@@ -1829,14 +1856,14 @@ export const TimelineItem = ({
               className="image-modal-close"
               onClick={() => setActiveImageIndex(null)}
             >
-              닫기
+              {t("actions.close")}
             </button>
             {imageAttachments.length > 1 ? (
               <button
                 type="button"
                 className="image-modal-nav image-modal-nav-prev"
                 onClick={goToPrevImage}
-                aria-label="이전 이미지"
+                aria-label={t("media.prevImage")}
               >
                 <svg viewBox="0 0 24 24" width="24" height="24">
                   <polyline points="15 18 9 12 15 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -1848,7 +1875,7 @@ export const TimelineItem = ({
                 type="button"
                 className="image-modal-nav image-modal-nav-next"
                 onClick={goToNextImage}
-                aria-label="다음 이미지"
+                aria-label={t("media.nextImage")}
               >
                 <svg viewBox="0 0 24 24" width="24" height="24">
                   <polyline points="9 18 15 12 9 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -1857,7 +1884,7 @@ export const TimelineItem = ({
             ) : null}
             <img
               src={activeImageUrl}
-              alt="선택한 이미지 원본"
+              alt={t("media.selectedImageOriginalAlt")}
               ref={imageRef}
               draggable={false}
               className={isDragging ? "is-dragging" : undefined}

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import type {
   Account,
   AccountRelationship,
@@ -164,6 +165,7 @@ export const ProfileModal = ({
   showReactions: boolean;
   sectionSettings: SectionDisplaySettings;
 }) => {
+  const { t } = useTranslation();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -210,7 +212,7 @@ export const ProfileModal = ({
   useEffect(() => {
     if (!account || !targetAccountId) {
       setProfile(null);
-      setProfileError("프로필 정보를 불러올 수 없습니다.");
+      setProfileError(t("errors.profileLoadFailed"));
       setProfileLoading(false);
       return;
     }
@@ -226,7 +228,7 @@ export const ProfileModal = ({
       })
       .catch((error) => {
         if (cancelled) return;
-        setProfileError(error instanceof Error ? error.message : "프로필 정보를 불러오지 못했습니다.");
+        setProfileError(error instanceof Error ? error.message : t("errors.profileLoadFailed"));
       })
       .finally(() => {
         if (cancelled) return;
@@ -235,7 +237,7 @@ export const ProfileModal = ({
     return () => {
       cancelled = true;
     };
-  }, [account, api, targetAccountId]);
+  }, [account, api, t, targetAccountId]);
 
   useEffect(() => {
     if (!account || !targetAccountId || account.id === targetAccountId) {
@@ -256,12 +258,12 @@ export const ProfileModal = ({
       .catch((error) => {
         if (cancelled) return;
         setRelationship(null);
-        setFollowError(error instanceof Error ? error.message : "관계 정보를 불러오지 못했습니다.");
+        setFollowError(error instanceof Error ? error.message : t("errors.relationshipLoadFailed"));
       });
     return () => {
       cancelled = true;
     };
-  }, [account, api, targetAccountId]);
+  }, [account, api, t, targetAccountId]);
 
   useEffect(() => {
     if (!account || !targetAccountId) {
@@ -286,7 +288,7 @@ export const ProfileModal = ({
       })
       .catch((error) => {
         if (cancelled) return;
-        setItemsError(error instanceof Error ? error.message : "게시글을 불러오지 못했습니다.");
+        setItemsError(error instanceof Error ? error.message : t("errors.statusesLoadFailed"));
         setItems([]);
       })
       .finally(() => {
@@ -296,7 +298,7 @@ export const ProfileModal = ({
     return () => {
       cancelled = true;
     };
-  }, [account, api, targetAccountId]);
+  }, [account, api, t, targetAccountId]);
 
   useEffect(() => {
     if (!profileError) {
@@ -333,7 +335,7 @@ export const ProfileModal = ({
   const handleToggleFavourite = useCallback(
     async (target: Status) => {
       if (!account) {
-        setItemsError("계정을 선택해 주세요.");
+        setItemsError(t("errors.accountRequired"));
         return;
       }
       setItemsError(null);
@@ -343,16 +345,16 @@ export const ProfileModal = ({
           : await api.favourite(account, target.id);
         updateItem(updated);
       } catch (error) {
-        setItemsError(error instanceof Error ? error.message : "좋아요 처리에 실패했습니다.");
+        setItemsError(error instanceof Error ? error.message : t("errors.likeFailed"));
       }
     },
-    [account, api, updateItem]
+    [account, api, t, updateItem]
   );
 
   const handleToggleReblog = useCallback(
     async (target: Status) => {
       if (!account) {
-        setItemsError("계정을 선택해 주세요.");
+        setItemsError(t("errors.accountRequired"));
         return;
       }
       setItemsError(null);
@@ -362,16 +364,16 @@ export const ProfileModal = ({
           : await api.reblog(account, target.id);
         updateItem(updated);
       } catch (error) {
-        setItemsError(error instanceof Error ? error.message : "부스트 처리에 실패했습니다.");
+        setItemsError(error instanceof Error ? error.message : t("errors.boostFailed"));
       }
     },
-    [account, api, updateItem]
+    [account, api, t, updateItem]
   );
 
   const handleToggleBookmark = useCallback(
     async (target: Status) => {
       if (!account) {
-        setItemsError("계정을 선택해 주세요.");
+        setItemsError(t("errors.accountRequired"));
         return;
       }
       setItemsError(null);
@@ -381,12 +383,12 @@ export const ProfileModal = ({
           ? await api.unbookmark(account, target.id)
           : await api.bookmark(account, target.id);
         updateItem(updated);
-        showToast(isBookmarking ? "북마크했습니다." : "북마크를 취소했습니다.");
+        showToast(isBookmarking ? t("toast.bookmarkAdded") : t("toast.bookmarkRemoved"));
       } catch (error) {
-        setItemsError(error instanceof Error ? error.message : "북마크 처리에 실패했습니다.");
+        setItemsError(error instanceof Error ? error.message : t("errors.bookmarkFailed"));
       }
     },
-    [account, api, updateItem, showToast]
+    [account, api, showToast, t, updateItem]
   );
 
   const handleDeleteStatus = useCallback(
@@ -399,24 +401,24 @@ export const ProfileModal = ({
         await api.deleteStatus(account, target.id);
         removeItem(target.id);
       } catch (error) {
-        setItemsError(error instanceof Error ? error.message : "게시글 삭제에 실패했습니다.");
+        setItemsError(error instanceof Error ? error.message : t("errors.statusDeleteFailed"));
       }
     },
-    [account, api, removeItem]
+    [account, api, removeItem, t]
   );
 
   const handleReact = useCallback(
     async (target: Status, reaction: ReactionInput) => {
       if (!account) {
-        setItemsError("계정을 선택해 주세요.");
+        setItemsError(t("errors.accountRequired"));
         return;
       }
       if (account.platform !== "misskey") {
-        setItemsError("리액션은 미스키 계정에서만 사용할 수 있습니다.");
+        setItemsError(t("errors.reactionMisskeyOnly"));
         return;
       }
       if (target.myReaction && target.myReaction !== reaction.name) {
-        setItemsError("다른 리액션을 선택했습니다. 먼저 취소해 주세요.");
+        setItemsError(t("errors.reactionAlreadyExists"));
         return;
       }
       setItemsError(null);
@@ -427,10 +429,10 @@ export const ProfileModal = ({
             : await api.createReaction(account, target.id, reaction.name);
         updateItem(updated);
       } catch (error) {
-        setItemsError(error instanceof Error ? error.message : "리액션 처리에 실패했습니다.");
+        setItemsError(error instanceof Error ? error.message : t("errors.reactionFailed"));
       }
     },
-    [account, api, updateItem]
+    [account, api, t, updateItem]
   );
 
   const loadMore = useCallback(async () => {
@@ -450,11 +452,11 @@ export const ProfileModal = ({
         setHasMore(false);
       }
     } catch (error) {
-      setItemsError(error instanceof Error ? error.message : "게시글을 불러오지 못했습니다.");
+      setItemsError(error instanceof Error ? error.message : t("errors.statusesLoadFailed"));
     } finally {
       setItemsLoadingMore(false);
     }
-  }, [account, api, targetAccountId, hasMore, items, itemsLoading, itemsLoadingMore]);
+  }, [account, api, hasMore, items, itemsLoading, itemsLoadingMore, t, targetAccountId]);
 
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
@@ -601,20 +603,20 @@ export const ProfileModal = ({
   const canOpenProfileMenu = Boolean(profileOriginUrl) || canInteractFollow;
   const followLabel =
     followState === "following"
-      ? "팔로잉"
+      ? t("profile.following")
       : followState === "requested"
-        ? "요청됨"
+        ? t("profile.requested")
         : displayProfile.locked
-          ? "팔로우 요청"
-          : "팔로우";
+          ? t("profile.followRequest")
+          : t("profile.follow");
   const followAriaLabel =
     followState === "requested"
-      ? "팔로우 요청됨"
+      ? t("profile.followAriaRequested")
       : followState === "following"
-        ? "언팔로우"
+        ? t("profile.unfollow")
         : displayProfile.locked
-          ? "팔로우 요청 보내기"
-          : "팔로우하기";
+          ? t("profile.followRequestSend")
+          : t("profile.followAction");
 
   const buildNextRelationship = useCallback(
     (updates: Partial<AccountRelationship>): AccountRelationship => ({
@@ -635,7 +637,7 @@ export const ProfileModal = ({
       successTone: "success" | "info" = "success"
     ) => {
       if (!account || !targetAccountId) {
-        setFollowError("계정을 선택해 주세요.");
+        setFollowError(t("errors.accountRequired"));
         return;
       }
       const previous = relationship;
@@ -657,7 +659,7 @@ export const ProfileModal = ({
         setFollowLoading(false);
       }
     },
-    [account, relationship, showToast, targetAccountId]
+    [account, relationship, showToast, t, targetAccountId]
   );
 
   const handleFollowClick = useCallback(() => {
@@ -665,7 +667,7 @@ export const ProfileModal = ({
       return;
     }
     if (!account || !targetAccountId) {
-      setFollowError("계정을 선택해 주세요.");
+      setFollowError(t("errors.accountRequired"));
       return;
     }
     if (followState === "following") {
@@ -676,8 +678,8 @@ export const ProfileModal = ({
       updateRelationshipOptimistically(
         buildNextRelationship({ following: false, requested: false }),
         () => api.cancelFollowRequest(account, targetAccountId),
-        "팔로우 요청을 취소하지 못했습니다.",
-        "팔로우 요청을 취소했습니다."
+        t("errors.followRequestCancelFailed"),
+        t("toast.followRequestCancelled")
       );
       return;
     }
@@ -685,8 +687,8 @@ export const ProfileModal = ({
     updateRelationshipOptimistically(
       buildNextRelationship({ following: !shouldRequest, requested: shouldRequest }),
       () => api.followAccount(account, targetAccountId),
-      "팔로우에 실패했습니다.",
-      shouldRequest ? "팔로우 요청을 보냈습니다." : "팔로우했습니다."
+      t("errors.followFailed"),
+      shouldRequest ? t("toast.followRequestSent") : t("toast.followed")
     );
   }, [
     account,
@@ -695,6 +697,7 @@ export const ProfileModal = ({
     canInteractFollow,
     displayProfile.locked,
     followState,
+    t,
     targetAccountId,
     updateRelationshipOptimistically
   ]);
@@ -704,23 +707,23 @@ export const ProfileModal = ({
       return;
     }
     if (!account || !targetAccountId) {
-      setFollowError("계정을 선택해 주세요.");
+      setFollowError(t("errors.accountRequired"));
       return;
     }
     updateRelationshipOptimistically(
       buildNextRelationship({ following: false, requested: false }),
       () => api.unfollowAccount(account, targetAccountId),
-      "언팔로우에 실패했습니다.",
-      "언팔로우했습니다."
+      t("errors.unfollowFailed"),
+      t("toast.unfollowed")
     );
-  }, [account, api, buildNextRelationship, canInteractFollow, targetAccountId, updateRelationshipOptimistically]);
+  }, [account, api, buildNextRelationship, canInteractFollow, t, targetAccountId, updateRelationshipOptimistically]);
 
   const handleMuteToggle = useCallback(() => {
     if (!canInteractFollow) {
       return;
     }
     if (!account || !targetAccountId) {
-      setFollowError("계정을 선택해 주세요.");
+      setFollowError(t("errors.accountRequired"));
       return;
     }
     const next = buildNextRelationship({ muting: !isMuted });
@@ -730,8 +733,8 @@ export const ProfileModal = ({
         isMuted
           ? api.unmuteAccount(account, targetAccountId)
           : api.muteAccount(account, targetAccountId),
-      isMuted ? "뮤트 해제에 실패했습니다." : "뮤트에 실패했습니다.",
-      isMuted ? "뮤트를 해제했습니다." : "뮤트했습니다."
+      isMuted ? t("errors.unmuteFailed") : t("errors.muteFailed"),
+      isMuted ? t("toast.unmuted") : t("toast.muted")
     );
     setProfileMenuOpen(false);
   }, [
@@ -740,6 +743,7 @@ export const ProfileModal = ({
     buildNextRelationship,
     canInteractFollow,
     isMuted,
+    t,
     targetAccountId,
     updateRelationshipOptimistically
   ]);
@@ -749,7 +753,7 @@ export const ProfileModal = ({
       return;
     }
     if (!account || !targetAccountId) {
-      setFollowError("계정을 선택해 주세요.");
+      setFollowError(t("errors.accountRequired"));
       return;
     }
     const next = buildNextRelationship({
@@ -763,8 +767,8 @@ export const ProfileModal = ({
         isBlocked
           ? api.unblockAccount(account, targetAccountId)
           : api.blockAccount(account, targetAccountId),
-      isBlocked ? "차단 해제에 실패했습니다." : "차단에 실패했습니다.",
-      isBlocked ? "차단을 해제했습니다." : "차단했습니다."
+      isBlocked ? t("errors.unblockFailed") : t("errors.blockFailed"),
+      isBlocked ? t("toast.unblocked") : t("toast.blocked")
     );
     setProfileMenuOpen(false);
   }, [
@@ -773,6 +777,7 @@ export const ProfileModal = ({
     buildNextRelationship,
     canInteractFollow,
     isBlocked,
+    t,
     targetAccountId,
     updateRelationshipOptimistically
   ]);
@@ -802,18 +807,18 @@ export const ProfileModal = ({
       className="profile-modal"
       role="dialog"
       aria-modal="true"
-      aria-label="사용자 프로필"
+      aria-label={t("profile.aria")}
       style={zIndex ? { zIndex } : undefined}
     >
       <div className="profile-modal-backdrop" onClick={onClose} />
       <div className="profile-modal-content" ref={scrollRef} onScroll={handleScroll}>
         <div className="profile-modal-header">
-          <h3 className="profile-modal-title">프로필</h3>
+          <h3 className="profile-modal-title">{t("profile.title")}</h3>
           <button
             type="button"
             className="icon-button"
             onClick={onClose}
-            aria-label="프로필 닫기"
+            aria-label={t("profile.closeAria")}
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <line x1="6" y1="6" x2="18" y2="18" />
@@ -832,7 +837,11 @@ export const ProfileModal = ({
               <div className="profile-hero-main">
                 <div className="profile-avatar">
                   {displayProfile.avatarUrl ? (
-                    <img src={displayProfile.avatarUrl} alt={`${displayName} 프로필 이미지`} loading="lazy" />
+                    <img
+                      src={displayProfile.avatarUrl}
+                      alt={t("profile.imageAlt", { name: displayName })}
+                      loading="lazy"
+                    />
                   ) : (
                     <span className="profile-avatar-fallback" aria-hidden="true" />
                   )}
@@ -883,9 +892,9 @@ export const ProfileModal = ({
                           className="follow-confirm-tooltip"
                           role="dialog"
                           aria-modal="true"
-                          aria-label="언팔로우 확인"
+                          aria-label={t("profile.unfollowConfirmAria")}
                         >
-                          <p>정말 언팔로우할까요?</p>
+                          <p>{t("profile.unfollowConfirmMessage")}</p>
                           <div className="follow-confirm-actions">
                             <button
                               type="button"
@@ -893,7 +902,7 @@ export const ProfileModal = ({
                               onClick={() => setShowUnfollowConfirm(false)}
                               disabled={followLoading}
                             >
-                              취소
+                              {t("actions.cancel")}
                             </button>
                             <button
                               type="button"
@@ -901,7 +910,7 @@ export const ProfileModal = ({
                               onClick={handleUnfollowConfirmed}
                               disabled={followLoading}
                             >
-                              언팔로우
+                              {t("profile.unfollow")}
                             </button>
                           </div>
                         </div>
@@ -914,7 +923,7 @@ export const ProfileModal = ({
                       ref={profileMenuButtonRef}
                       type="button"
                       className="icon-button"
-                      aria-label="프로필 메뉴 열기"
+                      aria-label={t("profile.menuOpenAria")}
                       aria-haspopup="menu"
                       aria-expanded={profileMenuOpen}
                       onClick={() => {
@@ -934,10 +943,10 @@ export const ProfileModal = ({
                         <div className="overlay-backdrop profile-menu-backdrop" aria-hidden="true" />
                         <div ref={profileMenuRef} className="section-menu-panel profile-menu-panel" role="menu">
                           <button type="button" onClick={handleOpenProfileOrigin} disabled={!profileOriginUrl}>
-                            원본 사이트에서 보기
+                            {t("profile.openOrigin")}
                           </button>
                           <button type="button" onClick={handleMuteToggle} disabled={!canInteractFollow}>
-                            {isMuted ? "뮤트 해제" : "뮤트하기"}
+                            {isMuted ? t("profile.unmute") : t("profile.mute")}
                           </button>
                           <button
                             type="button"
@@ -945,7 +954,7 @@ export const ProfileModal = ({
                             onClick={handleBlockToggle}
                             disabled={!canInteractFollow}
                           >
-                            {isBlocked ? "차단 해제" : "차단하기"}
+                            {isBlocked ? t("profile.unblock") : t("profile.block")}
                           </button>
                         </div>
                       </>
@@ -955,7 +964,7 @@ export const ProfileModal = ({
               ) : null}
             </div>
           </div>
-          {profileLoading ? <p className="empty">프로필을 불러오는 중...</p> : null}
+          {profileLoading ? <p className="empty">{t("profile.loading")}</p> : null}
           {bioContent
             ? bioContent.type === "html"
               ? <div className="profile-bio" dangerouslySetInnerHTML={{ __html: bioContent.value }} />
@@ -973,9 +982,9 @@ export const ProfileModal = ({
           ) : null}
         </section>
         <section className="profile-posts">
-          <h4>작성한 글</h4>
-          {itemsLoading && items.length === 0 ? <p className="empty">게시글을 불러오는 중...</p> : null}
-          {!itemsLoading && items.length === 0 ? <p className="empty">표시할 글이 없습니다.</p> : null}
+          <h4>{t("profile.postsTitle")}</h4>
+          {itemsLoading && items.length === 0 ? <p className="empty">{t("profile.postsLoading")}</p> : null}
+          {!itemsLoading && items.length === 0 ? <p className="empty">{t("timeline.empty.default")}</p> : null}
           {items.length > 0 ? (
             <div className="timeline">
               {items.map((item) => (
@@ -1003,7 +1012,7 @@ export const ProfileModal = ({
               ))}
             </div>
           ) : null}
-          {itemsLoadingMore ? <p className="empty">더 불러오는 중...</p> : null}
+          {itemsLoadingMore ? <p className="empty">{t("timeline.loadingMore")}</p> : null}
         </section>
       </div>
     </div>

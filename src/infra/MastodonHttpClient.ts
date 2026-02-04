@@ -10,6 +10,7 @@ import type {
 } from "../domain/types";
 import type { CreateStatusInput, MastodonApi } from "../services/MastodonApi";
 import { mapAccountProfile, mapAccountRelationship, mapNotificationToStatus, mapStatus } from "./mastodonMapper";
+import i18n from "../i18n";
 
 const buildHeaders = (account: Account): HeadersInit => ({
   Authorization: `Bearer ${account.accessToken}`,
@@ -53,7 +54,7 @@ export class MastodonHttpClient implements MastodonApi {
       headers: buildHeaders(account)
     });
     if (!response.ok) {
-      throw new Error("계정 인증에 실패했습니다.");
+      throw new Error(i18n.t("errors.api.accountVerifyFailed"));
     }
     const data = (await response.json()) as Record<string, unknown>;
     return {
@@ -74,7 +75,7 @@ export class MastodonHttpClient implements MastodonApi {
       headers: buildHeaders(account)
     });
     if (!response.ok) {
-      throw new Error("타임라인을 불러오지 못했습니다.");
+      throw new Error(i18n.t("errors.timelineLoadFailed"));
     }
     const data = (await response.json()) as unknown[];
     return data.map(mapStatus);
@@ -104,7 +105,7 @@ export class MastodonHttpClient implements MastodonApi {
       headers: buildHeaders(account)
     });
     if (!response.ok) {
-      throw new Error("타임라인을 불러오지 못했습니다.");
+      throw new Error(i18n.t("errors.timelineLoadFailed"));
     }
     const data = (await response.json()) as unknown[];
     return data.map(mapStatus);
@@ -120,7 +121,7 @@ export class MastodonHttpClient implements MastodonApi {
       headers: buildHeaders(account)
     });
     if (!response.ok) {
-      throw new Error("북마크를 불러오지 못했습니다.");
+      throw new Error(i18n.t("errors.api.bookmarksLoadFailed"));
     }
     const data = (await response.json()) as unknown[];
     return data.map(mapStatus);
@@ -131,7 +132,7 @@ export class MastodonHttpClient implements MastodonApi {
       headers: buildHeaders(account)
     });
     if (!response.ok) {
-      throw new Error("이모지를 불러오지 못했습니다.");
+      throw new Error(i18n.t("errors.api.customEmojisLoadFailed"));
     }
     const data = (await response.json()) as unknown;
     return mapCustomEmojis(data);
@@ -171,7 +172,7 @@ export class MastodonHttpClient implements MastodonApi {
       headers: buildHeaders(account)
     });
     if (!v1Response.ok) {
-      throw new Error("인스턴스 정보를 불러오지 못했습니다.");
+      throw new Error(i18n.t("errors.api.instanceInfoLoadFailed"));
     }
     const data = (await v1Response.json()) as Record<string, unknown>;
     
@@ -203,7 +204,7 @@ export class MastodonHttpClient implements MastodonApi {
       headers: buildHeaders(account)
     });
     if (!response.ok) {
-      throw new Error("프로필 정보를 불러오지 못했습니다.");
+      throw new Error(i18n.t("errors.api.profileLoadFailed"));
     }
     const data = (await response.json()) as unknown;
     return mapAccountProfile(data);
@@ -216,7 +217,7 @@ export class MastodonHttpClient implements MastodonApi {
       headers: buildHeaders(account)
     });
     if (!response.ok) {
-      throw new Error("관계 정보를 불러오지 못했습니다.");
+      throw new Error(i18n.t("errors.api.relationshipLoadFailed"));
     }
     const data = (await response.json()) as unknown[];
     const relationship = data[0];
@@ -229,7 +230,7 @@ export class MastodonHttpClient implements MastodonApi {
       headers: buildHeaders(account)
     });
     if (!response.ok) {
-      throw new Error("팔로우에 실패했습니다.");
+      throw new Error(i18n.t("errors.api.followFailed"));
     }
     const data = (await response.json()) as unknown;
     return mapAccountRelationship(data);
@@ -241,7 +242,7 @@ export class MastodonHttpClient implements MastodonApi {
       headers: buildHeaders(account)
     });
     if (!response.ok) {
-      throw new Error("언팔로우에 실패했습니다.");
+      throw new Error(i18n.t("errors.api.unfollowFailed"));
     }
     const data = (await response.json()) as unknown;
     return mapAccountRelationship(data);
@@ -257,7 +258,7 @@ export class MastodonHttpClient implements MastodonApi {
       headers: buildHeaders(account)
     });
     if (!response.ok) {
-      throw new Error("뮤트에 실패했습니다.");
+      throw new Error(i18n.t("errors.api.muteFailed"));
     }
     const data = (await response.json()) as unknown;
     return mapAccountRelationship(data);
@@ -269,7 +270,7 @@ export class MastodonHttpClient implements MastodonApi {
       headers: buildHeaders(account)
     });
     if (!response.ok) {
-      throw new Error("뮤트 해제에 실패했습니다.");
+      throw new Error(i18n.t("errors.api.unmuteFailed"));
     }
     const data = (await response.json()) as unknown;
     return mapAccountRelationship(data);
@@ -281,7 +282,7 @@ export class MastodonHttpClient implements MastodonApi {
       headers: buildHeaders(account)
     });
     if (!response.ok) {
-      throw new Error("차단에 실패했습니다.");
+      throw new Error(i18n.t("errors.api.blockFailed"));
     }
     const data = (await response.json()) as unknown;
     return mapAccountRelationship(data);
@@ -293,7 +294,7 @@ export class MastodonHttpClient implements MastodonApi {
       headers: buildHeaders(account)
     });
     if (!response.ok) {
-      throw new Error("차단 해제에 실패했습니다.");
+      throw new Error(i18n.t("errors.api.unblockFailed"));
     }
     const data = (await response.json()) as unknown;
     return mapAccountRelationship(data);
@@ -318,7 +319,7 @@ export class MastodonHttpClient implements MastodonApi {
       headers: buildHeaders(account)
     });
     if (!response.ok) {
-      throw new Error("게시글을 불러오지 못했습니다.");
+      throw new Error(i18n.t("errors.api.statusesLoadFailed"));
     }
     const data = (await response.json()) as unknown[];
     return data.map(mapStatus);
@@ -335,12 +336,12 @@ export class MastodonHttpClient implements MastodonApi {
       body: formData
     });
     if (!response.ok) {
-      throw new Error("이미지 업로드에 실패했습니다.");
+      throw new Error(i18n.t("errors.api.mediaUploadFailed"));
     }
     const data = (await response.json()) as Record<string, unknown>;
     const id = String(data.id ?? "");
     if (!id) {
-      throw new Error("업로드된 미디어 정보를 찾을 수 없습니다.");
+      throw new Error(i18n.t("errors.api.mediaUploadNotFound"));
     }
     return id;
   }
@@ -350,7 +351,7 @@ export class MastodonHttpClient implements MastodonApi {
       headers: buildHeaders(account)
     });
     if (!response.ok) {
-      throw new Error("스레드 컨텍스트를 불러오지 못했습니다.");
+      throw new Error(i18n.t("errors.threadLoadFailed"));
     }
     const data = (await response.json()) as Record<string, unknown>;
     
@@ -382,7 +383,7 @@ export class MastodonHttpClient implements MastodonApi {
       })
     });
     if (!response.ok) {
-      throw new Error("글 작성에 실패했습니다.");
+      throw new Error(i18n.t("errors.composeFailed"));
     }
     const data = (await response.json()) as unknown;
     return mapStatus(data);
@@ -394,7 +395,7 @@ export class MastodonHttpClient implements MastodonApi {
       headers: buildHeaders(account)
     });
     if (!response.ok) {
-      throw new Error("게시글 삭제에 실패했습니다.");
+      throw new Error(i18n.t("errors.statusDeleteFailed"));
     }
   }
 
@@ -415,11 +416,11 @@ export class MastodonHttpClient implements MastodonApi {
   }
 
   async createReaction(_account: Account, _statusId: string, _reaction: string): Promise<Status> {
-    throw new Error("리액션은 미스키 계정에서만 사용할 수 있습니다.");
+    throw new Error(i18n.t("errors.reactionMisskeyOnly"));
   }
 
   async deleteReaction(_account: Account, _statusId: string): Promise<Status> {
-    throw new Error("리액션은 미스키 계정에서만 사용할 수 있습니다.");
+    throw new Error(i18n.t("errors.reactionMisskeyOnly"));
   }
 
   async fetchNoteState(
@@ -432,7 +433,7 @@ export class MastodonHttpClient implements MastodonApi {
       }
     });
     if (!response.ok) {
-      throw new Error("게시물 상태를 불러오지 못했습니다.");
+      throw new Error(i18n.t("errors.api.noteStateLoadFailed"));
     }
     const data = (await response.json()) as unknown;
     const status = mapStatus(data);
@@ -449,7 +450,7 @@ export class MastodonHttpClient implements MastodonApi {
       headers: buildHeaders(account)
     });
     if (!response.ok) {
-      throw new Error("번역에 실패했습니다.");
+      throw new Error(i18n.t("errors.api.translationFailed"));
     }
     const data = (await response.json()) as Record<string, unknown>;
     const htmlContent = typeof data.content === "string" ? data.content : "";
@@ -488,7 +489,7 @@ export class MastodonHttpClient implements MastodonApi {
       headers: buildHeaders(account)
     });
     if (!response.ok) {
-      throw new Error("알림을 불러오지 못했습니다.");
+      throw new Error(i18n.t("errors.api.notificationsLoadFailed"));
     }
     const data = (await response.json()) as unknown[];
     return data
@@ -514,7 +515,7 @@ export class MastodonHttpClient implements MastodonApi {
           throw new Error(errorBody);
         }
       }
-      throw new Error("요청에 실패했습니다.");
+      throw new Error(i18n.t("errors.api.requestFailed"));
     }
     const data = (await response.json()) as unknown;
     return mapStatus(data);

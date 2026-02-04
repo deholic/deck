@@ -4,6 +4,7 @@ import type {
   OAuthClient,
   RegisteredApp
 } from "../services/OAuthClient";
+import i18n from "../i18n";
 
 const APP_NAME = "Deck";
 const MIAUTH_PERMISSIONS = [
@@ -35,7 +36,7 @@ export class MisskeyOAuthClient implements OAuthClient {
 
   buildAuthorizeUrl(app: RegisteredApp, state: string): string {
     if (app.platform !== "misskey") {
-      throw new Error("미스키 OAuth 정보가 필요합니다.");
+      throw new Error(i18n.t("errors.oauth.misskeyInfoRequired"));
     }
     const authorizeUrl = new URL(`${normalizeInstanceUrl(app.instanceUrl)}/miauth/${app.sessionId}`);
     const callbackUrl = new URL(app.redirectUri);
@@ -48,11 +49,11 @@ export class MisskeyOAuthClient implements OAuthClient {
 
   async exchangeToken(params: { app: RegisteredApp; callback: OAuthCallbackParams }): Promise<string> {
     if (params.app.platform !== "misskey") {
-      throw new Error("미스키 OAuth 정보가 필요합니다.");
+      throw new Error(i18n.t("errors.oauth.misskeyInfoRequired"));
     }
     const sessionId = params.callback.session ?? params.app.sessionId;
     if (!sessionId) {
-      throw new Error("미스키 세션 정보를 찾지 못했습니다.");
+      throw new Error(i18n.t("errors.oauth.misskeySessionMissing"));
     }
     const response = await fetch(
       `${normalizeInstanceUrl(params.app.instanceUrl)}/api/miauth/${sessionId}/check`,
@@ -65,11 +66,11 @@ export class MisskeyOAuthClient implements OAuthClient {
       }
     );
     if (!response.ok) {
-      throw new Error("미스키 토큰을 받지 못했습니다.");
+      throw new Error(i18n.t("errors.oauth.misskeyTokenMissing"));
     }
     const data = (await response.json()) as { ok?: boolean; token?: string };
     if (!data.ok || !data.token) {
-      throw new Error("미스키 토큰 응답이 올바르지 않습니다.");
+      throw new Error(i18n.t("errors.oauth.misskeyTokenInvalid"));
     }
     return data.token;
   }

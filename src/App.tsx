@@ -1260,9 +1260,7 @@ export const App = () => {
                     <div className="pomodoro-focus-message-content">
                       <h2>{t("pomodoro.focusSession.title")}</h2>
                       <p>
-                        <Trans i18nKey="pomodoro.focusSession.description">
-                          뽀모도로 타이머가 동작 중입니다.<br />타임라인은 집중이 끝날 때까지 숨겨집니다.
-                        </Trans>
+                      <Trans i18nKey="pomodoro.focusSession.description" components={{ br: <br /> }} />
                       </p>
                     </div>
                   </div>

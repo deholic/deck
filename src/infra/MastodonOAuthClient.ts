@@ -4,6 +4,7 @@ import type {
   OAuthClient,
   RegisteredApp
 } from "../services/OAuthClient";
+import i18n from "../i18n";
 
 const OAUTH_SCOPE = "read write follow";
 
@@ -26,14 +27,14 @@ export class MastodonOAuthClient implements OAuthClient {
     });
 
     if (!response.ok) {
-      throw new Error("앱 등록에 실패했습니다.");
+      throw new Error(i18n.t("errors.oauth.appRegisterFailed"));
     }
 
     const data = (await response.json()) as Record<string, unknown>;
     const clientId = String(data.client_id ?? "");
     const clientSecret = String(data.client_secret ?? "");
     if (!clientId || !clientSecret) {
-      throw new Error("앱 등록 정보가 올바르지 않습니다.");
+      throw new Error(i18n.t("errors.oauth.appRegisterInvalid"));
     }
     return {
       platform: "mastodon",
@@ -47,7 +48,7 @@ export class MastodonOAuthClient implements OAuthClient {
 
   buildAuthorizeUrl(app: RegisteredApp, state: string): string {
     if (app.platform !== "mastodon") {
-      throw new Error("마스토돈 OAuth 정보가 필요합니다.");
+      throw new Error(i18n.t("errors.oauth.mastodonInfoRequired"));
     }
     const authorizeUrl = new URL(`${app.instanceUrl}/oauth/authorize`);
     authorizeUrl.searchParams.set("client_id", app.clientId);
@@ -61,10 +62,10 @@ export class MastodonOAuthClient implements OAuthClient {
 
   async exchangeToken(params: { app: RegisteredApp; callback: OAuthCallbackParams }): Promise<string> {
     if (params.app.platform !== "mastodon") {
-      throw new Error("마스토돈 OAuth 정보가 필요합니다.");
+      throw new Error(i18n.t("errors.oauth.mastodonInfoRequired"));
     }
     if (!params.callback.code) {
-      throw new Error("OAuth 코드를 찾지 못했습니다.");
+      throw new Error(i18n.t("errors.oauth.missingCode"));
     }
     const body = new URLSearchParams({
       client_id: params.app.clientId,
@@ -83,13 +84,13 @@ export class MastodonOAuthClient implements OAuthClient {
     });
 
     if (!response.ok) {
-      throw new Error("토큰 교환에 실패했습니다.");
+      throw new Error(i18n.t("errors.oauth.tokenExchangeFailed"));
     }
 
     const data = (await response.json()) as Record<string, unknown>;
     const token = String(data.access_token ?? "");
     if (!token) {
-      throw new Error("토큰을 받지 못했습니다.");
+      throw new Error(i18n.t("errors.oauth.tokenMissing"));
     }
     return token;
   }

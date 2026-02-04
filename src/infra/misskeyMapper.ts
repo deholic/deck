@@ -9,6 +9,7 @@ import type {
   UserProfile,
   Visibility
 } from "../domain/types";
+import i18n from "../i18n";
 
 const mapVisibility = (visibility: string): Visibility => {
   switch (visibility) {
@@ -598,23 +599,23 @@ const getExportEntityLabel = (value: Record<string, unknown>): string => {
   const entity = typeof value.exportedEntity === "string" ? value.exportedEntity : "";
   switch (entity) {
     case "antenna":
-      return "안테나";
+      return i18n.t("notifications.export.antenna");
     case "blocking":
-      return "차단";
+      return i18n.t("notifications.export.blocking");
     case "clip":
-      return "클립";
+      return i18n.t("notifications.export.clip");
     case "customEmoji":
-      return "커스텀 이모지";
+      return i18n.t("notifications.export.customEmoji");
     case "favorite":
-      return "즐겨찾기";
+      return i18n.t("notifications.export.favorite");
     case "following":
-      return "팔로잉";
+      return i18n.t("notifications.export.following");
     case "muting":
-      return "뮤트";
+      return i18n.t("notifications.export.muting");
     case "note":
-      return "노트";
+      return i18n.t("notifications.export.note");
     case "userList":
-      return "사용자 리스트";
+      return i18n.t("notifications.export.userList");
     default:
       return entity;
   }
@@ -629,10 +630,10 @@ const getLoginDetail = (value: Record<string, unknown>): string => {
     parts.push(`IP: ${ip}`);
   }
   if (location) {
-    parts.push(`위치: ${location}`);
+    parts.push(i18n.t("notifications.login.location", { value: location }));
   }
   if (userAgent) {
-    parts.push(`브라우저: ${userAgent}`);
+    parts.push(i18n.t("notifications.login.browser", { value: userAgent }));
   }
   return parts.join(", ");
 };
@@ -644,113 +645,172 @@ const getNotificationDescriptor = (
 ): { label: string; fallback: string } => {
   switch (type) {
     case "follow":
-      return { label: "팔로우함", fallback: "팔로우했습니다." };
+      return {
+        label: i18n.t("notifications.misskey.follow.label"),
+        fallback: i18n.t("notifications.misskey.follow.fallback")
+      };
     case "receiveFollowRequest":
-      return { label: "팔로우 요청함", fallback: "팔로우 요청을 보냈습니다." };
+      return {
+        label: i18n.t("notifications.misskey.receiveFollowRequest.label"),
+        fallback: i18n.t("notifications.misskey.receiveFollowRequest.fallback")
+      };
     case "followRequestAccepted": {
       const followMessage = pickTextField(value, ["message"]);
       return {
-        label: "팔로우 요청 승인함",
+        label: i18n.t("notifications.misskey.followRequestAccepted.label"),
         fallback: followMessage
-          ? `팔로우 요청이 승인되었습니다. ${followMessage}`
-          : "팔로우 요청이 승인되었습니다."
+          ? i18n.t("notifications.misskey.followRequestAccepted.fallbackWithMessage", {
+              message: followMessage
+            })
+          : i18n.t("notifications.misskey.followRequestAccepted.fallback")
       };
     }
     case "renote":
-      return { label: "리노트함", fallback: "리노트했습니다." };
+      return {
+        label: i18n.t("notifications.misskey.renote.label"),
+        fallback: i18n.t("notifications.misskey.renote.fallback")
+      };
     case "reaction":
       return {
-        label: reaction ? `리액션함 ${reaction}` : "리액션함",
-        fallback: reaction ? `리액션했습니다. ${reaction}` : "리액션했습니다."
+        label: reaction
+          ? i18n.t("notifications.misskey.reaction.labelWithReaction", { reaction })
+          : i18n.t("notifications.misskey.reaction.label"),
+        fallback: reaction
+          ? i18n.t("notifications.misskey.reaction.fallbackWithReaction", { reaction })
+          : i18n.t("notifications.misskey.reaction.fallback")
       };
     case "pollEnded":
-      return { label: "투표 종료됨", fallback: "투표가 종료되었습니다." };
+      return {
+        label: i18n.t("notifications.misskey.pollEnded.label"),
+        fallback: i18n.t("notifications.misskey.pollEnded.fallback")
+      };
     case "pollVote":
-      return { label: "투표함", fallback: "투표했습니다." };
+      return {
+        label: i18n.t("notifications.misskey.pollVote.label"),
+        fallback: i18n.t("notifications.misskey.pollVote.fallback")
+      };
     case "note":
-      return { label: "글 작성함", fallback: "새 글을 올렸습니다." };
+      return {
+        label: i18n.t("notifications.misskey.note.label"),
+        fallback: i18n.t("notifications.misskey.note.fallback")
+      };
     case "quote":
-      return { label: "인용함", fallback: "인용했습니다." };
+      return {
+        label: i18n.t("notifications.misskey.quote.label"),
+        fallback: i18n.t("notifications.misskey.quote.fallback")
+      };
     case "reply":
-      return { label: "답글 남김", fallback: "답글을 남겼습니다." };
+      return {
+        label: i18n.t("notifications.misskey.reply.label"),
+        fallback: i18n.t("notifications.misskey.reply.fallback")
+      };
     case "mention":
-      return { label: "멘션함", fallback: "멘션했습니다." };
+      return {
+        label: i18n.t("notifications.misskey.mention.label"),
+        fallback: i18n.t("notifications.misskey.mention.fallback")
+      };
     case "scheduledNotePosted":
-      return { label: "예약 글 게시됨", fallback: "예약 글이 게시되었습니다." };
+      return {
+        label: i18n.t("notifications.misskey.scheduledNotePosted.label"),
+        fallback: i18n.t("notifications.misskey.scheduledNotePosted.fallback")
+      };
     case "scheduledNotePostFailed": {
       const preview = getNoteDraftPreview(value);
       return {
-        label: "예약 글 게시 실패",
-        fallback: preview ? `예약 글 게시에 실패했습니다: ${preview}` : "예약 글 게시에 실패했습니다."
+        label: i18n.t("notifications.misskey.scheduledNotePostFailed.label"),
+        fallback: preview
+          ? i18n.t("notifications.misskey.scheduledNotePostFailed.fallbackWithPreview", { preview })
+          : i18n.t("notifications.misskey.scheduledNotePostFailed.fallback")
       };
     }
     case "achievementEarned": {
       const detail = getAchievementDetail(value) || getNotificationMessage(value);
       return {
-        label: "도전과제 달성함",
-        fallback: detail ? `도전과제를 달성했습니다: ${detail}` : "도전과제를 달성했습니다."
+        label: i18n.t("notifications.misskey.achievementEarned.label"),
+        fallback: detail
+          ? i18n.t("notifications.misskey.achievementEarned.fallbackWithDetail", { detail })
+          : i18n.t("notifications.misskey.achievementEarned.fallback")
       };
     }
     case "login": {
       const detail = getLoginDetail(value) || getNotificationMessage(value);
       return {
-        label: "로그인 알림",
-        fallback: detail ? `로그인 알림입니다. ${detail}` : "로그인 알림입니다."
+        label: i18n.t("notifications.misskey.login.label"),
+        fallback: detail
+          ? i18n.t("notifications.misskey.login.fallbackWithDetail", { detail })
+          : i18n.t("notifications.misskey.login.fallback")
       };
     }
     case "test": {
       const message = getNotificationMessage(value);
       return {
-        label: "테스트 알림",
-        fallback: message || "테스트 알림입니다."
+        label: i18n.t("notifications.misskey.test.label"),
+        fallback: message || i18n.t("notifications.misskey.test.fallback")
       };
     }
     case "roleAssigned": {
       const roleName = getRoleName(value) || getNotificationMessage(value);
       return {
-        label: "역할 부여됨",
-        fallback: roleName ? `새 역할이 부여되었습니다: ${roleName}` : "새 역할이 부여되었습니다."
+        label: i18n.t("notifications.misskey.roleAssigned.label"),
+        fallback: roleName
+          ? i18n.t("notifications.misskey.roleAssigned.fallbackWithRole", { role: roleName })
+          : i18n.t("notifications.misskey.roleAssigned.fallback")
       };
     }
     case "announcement":
     case "unreadAnnouncement": {
       const announcement = getAnnouncementMessage(value) || getNotificationMessage(value);
       return {
-        label: "공지 알림",
-        fallback: announcement ? `공지: ${announcement}` : "새 공지가 있습니다."
+        label: i18n.t("notifications.misskey.announcement.label"),
+        fallback: announcement
+          ? i18n.t("notifications.misskey.announcement.fallbackWithAnnouncement", { announcement })
+          : i18n.t("notifications.misskey.announcement.fallback")
       };
     }
     case "app": {
       const message = getNotificationMessage(value);
       return {
-        label: "앱 알림",
-        fallback: message || "앱 알림이 도착했습니다."
+        label: i18n.t("notifications.misskey.app.label"),
+        fallback: message || i18n.t("notifications.misskey.app.fallback")
       };
     }
     case "chatRoomInvitationReceived": {
       const roomName = getChatRoomInvitationDetail(value) || getNotificationMessage(value);
       return {
-        label: "채팅방 초대됨",
-        fallback: roomName ? `채팅방에 초대되었습니다: ${roomName}` : "채팅방에 초대되었습니다."
+        label: i18n.t("notifications.misskey.chatRoomInvitationReceived.label"),
+        fallback: roomName
+          ? i18n.t("notifications.misskey.chatRoomInvitationReceived.fallbackWithRoom", { room: roomName })
+          : i18n.t("notifications.misskey.chatRoomInvitationReceived.fallback")
       };
     }
     case "exportCompleted": {
       const entity = getExportEntityLabel(value);
       return {
-        label: "내보내기 완료됨",
-        fallback: entity ? `내보내기가 완료되었습니다: ${entity}` : "내보내기가 완료되었습니다."
+        label: i18n.t("notifications.misskey.exportCompleted.label"),
+        fallback: entity
+          ? i18n.t("notifications.misskey.exportCompleted.fallbackWithEntity", { entity })
+          : i18n.t("notifications.misskey.exportCompleted.fallback")
       };
     }
     case "createToken":
-      return { label: "토큰 생성됨", fallback: "새 토큰이 생성되었습니다." };
+      return {
+        label: i18n.t("notifications.misskey.createToken.label"),
+        fallback: i18n.t("notifications.misskey.createToken.fallback")
+      };
     case "reaction:grouped":
-      return { label: "리액션 모음", fallback: "여러 명이 리액션했습니다." };
+      return {
+        label: i18n.t("notifications.misskey.reactionGrouped.label"),
+        fallback: i18n.t("notifications.misskey.reactionGrouped.fallback")
+      };
     case "renote:grouped":
-      return { label: "리노트 모음", fallback: "여러 명이 리노트했습니다." };
+      return {
+        label: i18n.t("notifications.misskey.renoteGrouped.label"),
+        fallback: i18n.t("notifications.misskey.renoteGrouped.fallback")
+      };
     default:
       return {
-        label: "알림",
-        fallback: getNotificationMessage(value) || "알림이 도착했습니다."
+        label: i18n.t("notifications.labels.default"),
+        fallback: getNotificationMessage(value) || i18n.t("notifications.fallback.default")
       };
   }
 };
@@ -781,8 +841,8 @@ export const mapMisskeyNotification = (raw: unknown, instanceUrl?: string): Stat
   const appHeader = pickTextField(value, ["header"]);
   const appIcon = typeof value.icon === "string" ? value.icon : null;
   const isGroupedNotification = type === "reaction:grouped" || type === "renote:grouped";
-  const systemActorName = isGroupedNotification ? "여러 사용자" : "시스템";
-  const appActorName = appHeader || "앱";
+  const systemActorName = isGroupedNotification ? i18n.t("notifications.system.grouped") : i18n.t("notifications.system.default");
+  const appActorName = appHeader || i18n.t("notifications.system.app");
   const actor = isSystemNotification
     ? {
         name: type === "app" ? appActorName : systemActorName,
@@ -796,7 +856,7 @@ export const mapMisskeyNotification = (raw: unknown, instanceUrl?: string): Stat
         url: accountUrl,
         avatarUrl: accountAvatarUrl
       };
-  const normalizedAccountName = isSystemNotification ? actor.name || "시스템" : accountName;
+  const normalizedAccountName = isSystemNotification ? actor.name || i18n.t("notifications.system.default") : accountName;
   const systemAccountHandle = type === "app" ? "app" : isGroupedNotification ? "grouped" : "system";
   const normalizedAccountHandle = isSystemNotification ? systemAccountHandle : accountHandle;
   const normalizedAccountUrl = isSystemNotification ? null : accountUrl;

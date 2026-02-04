@@ -1,4 +1,5 @@
 import type { AccountRelationship, MediaAttachment, ProfileField, Reaction, Status, UserProfile } from "../domain/types";
+import i18n from "../i18n";
 
 const htmlToText = (html: string): string => {
   // Preserve links as "text (url)" format before DOM parsing
@@ -308,23 +309,26 @@ const STATUS_LIKE_NOTIFICATION_TYPES = new Set<string>(["mention", "status", "up
 const getNotificationDescriptor = (type: string): { label: string; fallback: string } => {
   switch (type) {
     case "follow":
-      return { label: "팔로우함", fallback: "팔로우했습니다." };
+      return { label: i18n.t("notifications.labels.follow"), fallback: i18n.t("notifications.fallback.follow") };
     case "follow_request":
-      return { label: "팔로우 요청함", fallback: "팔로우 요청을 보냈습니다." };
+      return {
+        label: i18n.t("notifications.labels.followRequest"),
+        fallback: i18n.t("notifications.fallback.followRequest")
+      };
     case "favourite":
-      return { label: "좋아요함", fallback: "좋아요를 눌렀습니다." };
+      return { label: i18n.t("notifications.labels.favourite"), fallback: i18n.t("notifications.fallback.favourite") };
     case "reblog":
-      return { label: "부스트함", fallback: "부스트했습니다." };
+      return { label: i18n.t("notifications.labels.reblog"), fallback: i18n.t("notifications.fallback.reblog") };
     case "poll":
-      return { label: "투표함", fallback: "투표했습니다." };
+      return { label: i18n.t("notifications.labels.poll"), fallback: i18n.t("notifications.fallback.poll") };
     case "status":
-      return { label: "글 작성함", fallback: "새 글을 올렸습니다." };
+      return { label: i18n.t("notifications.labels.status"), fallback: i18n.t("notifications.fallback.status") };
     case "update":
-      return { label: "게시글 수정함", fallback: "게시글을 수정했습니다." };
+      return { label: i18n.t("notifications.labels.update"), fallback: i18n.t("notifications.fallback.update") };
     case "mention":
-      return { label: "멘션함", fallback: "멘션했습니다." };
+      return { label: i18n.t("notifications.labels.mention"), fallback: i18n.t("notifications.fallback.mention") };
     default:
-      return { label: "알림", fallback: "알림이 도착했습니다." };
+      return { label: i18n.t("notifications.labels.default"), fallback: i18n.t("notifications.fallback.default") };
   }
 };
 

@@ -5,6 +5,7 @@
     "close": "Close",
     "reload": "Reload",
     "remove": "Remove",
+    "reply": "Reply",
     "selectHint": "Select (Enter)",
     "send": "Send"
   },
@@ -114,23 +115,99 @@
     "symbols": "Symbols",
     "travel": "Travel & Places"
   },
+  "emoji": {
+    "alt": "{{label}} emoji"
+  },
+  "favourite": {
+    "addLabel": "Favorite",
+    "added": "Added to favorites.",
+    "error": "Failed to process favorite.",
+    "loading": "Loading...",
+    "removeLabel": "Unfavorite",
+    "removed": "Removed from favorites."
+  },
+  "bookmark": {
+    "label": "Bookmark",
+    "removeLabel": "Remove bookmark"
+  },
+  "like": {
+    "add": "Like",
+    "remove": "Unlike"
+  },
+  "boost": {
+    "add": "Boost",
+    "remove": "Undo boost"
+  },
+  "media": {
+    "attachment": "Attachment",
+    "floatingCloseAria": "Close floating player",
+    "imageAttachment": "Attached image",
+    "nextImage": "Next image",
+    "openAttachment": "Open attachment",
+    "prevImage": "Previous image",
+    "selectedImageOriginalAlt": "Original selected image",
+    "videoAttachment": "Attached video",
+    "viewImage": "View image",
+    "viewImageWithDescription": "View image: {{description}}"
+  },
   "errors": {
     "accountAlreadyRegistered": "This account is already registered.",
     "accountReauthNotFound": "Couldn't find the account to reauthenticate.",
     "accountRequired": "Please select an account.",
     "appContextRequired": "AppContext provider is required.",
     "appRegistrationLoadFailed": "Couldn't load app registration details.",
+    "api": {
+      "accountVerifyFailed": "Account verification failed.",
+      "bookmarksLoadFailed": "Couldn't load bookmarks.",
+      "conversationLoadFailed": "Couldn't load the conversation.",
+      "createdNoteNotFound": "Couldn't find the created note.",
+      "customEmojisLoadFailed": "Failed to load emojis.",
+      "followFailed": "Failed to follow.",
+      "instanceInfoLoadFailed": "Couldn't load instance information.",
+      "mediaUploadFailed": "Failed to upload media.",
+      "mediaUploadNotFound": "Couldn't find uploaded media info.",
+      "muteFailed": "Failed to mute.",
+      "noteStateLoadFailed": "Couldn't load post state.",
+      "notificationsLoadFailed": "Couldn't load notifications.",
+      "profileLoadFailed": "Couldn't load profile information.",
+      "relationshipLoadFailed": "Couldn't load relationship information.",
+      "renoteNotFound": "Couldn't find the renote to undo.",
+      "replyLoadFailed": "Couldn't load replies.",
+      "requestFailed": "Request failed.",
+      "statusInfoLoadFailed": "Couldn't load post details.",
+      "statusesLoadFailed": "Couldn't load posts.",
+      "translationFailed": "Translation failed.",
+      "translationResultMissing": "Couldn't read translation results.",
+      "unblockFailed": "Failed to unblock.",
+      "unfollowFailed": "Failed to unfollow.",
+      "unmuteFailed": "Failed to unmute.",
+      "blockFailed": "Failed to block."
+    },
     "bookmarkFailed": "Failed to process bookmark.",
     "boostFailed": "Failed to process boost.",
     "characterLimitExceeded": "Character limit ({{limit}} chars) exceeded.",
     "composeFailed": "Failed to publish the post.",
     "emojisLoadFailed": "Failed to load emojis.",
+    "followFailed": "Failed to follow.",
+    "followRequestCancelFailed": "Failed to cancel follow request.",
     "likeFailed": "Failed to process like.",
+    "blockFailed": "Failed to block.",
+    "muteFailed": "Failed to mute.",
+    "unblockFailed": "Failed to unblock.",
+    "unfollowFailed": "Failed to unfollow.",
+    "unmuteFailed": "Failed to unmute.",
     "oauth": {
+      "appRegisterFailed": "App registration failed.",
+      "appRegisterInvalid": "App registration info is invalid.",
       "failed": "OAuth processing failed.",
       "invalidState": "OAuth state is invalid. Please try again.",
+      "mastodonInfoRequired": "Mastodon OAuth info is required.",
+      "misskeyInfoRequired": "Misskey OAuth info is required.",
       "misskeyMissingSession": "Couldn't receive Misskey session info. Please try again.",
+      "misskeySessionMissing": "Couldn't find Misskey session info.",
       "misskeySessionMismatch": "Misskey session info doesn't match. Please try again.",
+      "misskeyTokenInvalid": "Misskey token response is invalid.",
+      "misskeyTokenMissing": "Couldn't receive Misskey token.",
       "missingCode": "Couldn't receive the OAuth code. Please try again."
     },
     "oauthConnectFailed": "Failed to connect via OAuth.",
@@ -138,7 +215,10 @@
     "reactionFailed": "Failed to process reaction.",
     "reactionMisskeyOnly": "Reactions are only available on Misskey accounts.",
     "serverAddressRequired": "Please enter a server address.",
+    "statusesLoadFailed": "Couldn't load posts.",
     "statusDeleteFailed": "Failed to delete the post.",
+    "relationshipLoadFailed": "Couldn't load relationship information.",
+    "profileLoadFailed": "Couldn't load profile information.",
     "threadLoadFailed": "Couldn't load the thread.",
     "timelineLoadFailed": "Couldn't load the timeline.",
     "timelineLoadMoreFailed": "Couldn't load more posts."
@@ -166,6 +246,7 @@
     "title": "Menu"
   },
   "notifications": {
+    "actorAction": "<actor></actor> {{action}}",
     "badgeCount": "{{count}}",
     "badgeOver": "99+",
     "close": "Close notifications",
@@ -215,10 +296,40 @@
       "removeAria": "Remove todo: {{text}}"
     }
   },
+  "profile": {
+    "aria": "User profile",
+    "block": "Block",
+    "closeAria": "Close profile",
+    "follow": "Follow",
+    "followAction": "Follow",
+    "followAriaRequested": "Follow request pending",
+    "followRequest": "Request to follow",
+    "followRequestSend": "Send follow request",
+    "following": "Following",
+    "imageAlt": "{{name}} profile image",
+    "loading": "Loading profile...",
+    "menuOpenAria": "Open profile menu",
+    "mute": "Mute",
+    "openOrigin": "View on origin site",
+    "postsLoading": "Loading posts...",
+    "postsTitle": "Posts",
+    "requested": "Requested",
+    "title": "Profile",
+    "unblock": "Unblock",
+    "unfollow": "Unfollow",
+    "unfollowConfirmAria": "Confirm unfollow",
+    "unfollowConfirmMessage": "Unfollow this account?",
+    "unmute": "Unmute",
+    "unknownUser": "Unknown user",
+    "viewAria": "View profile: {{name}}"
+  },
   "reactions": {
     "add": "Reaction",
     "addAria": "Add reaction",
-    "panelAria": "Select reaction"
+    "panelAria": "Select reaction",
+    "receivedAria": "Received reactions",
+    "countTitle": "{{label}} {{count}}",
+    "toggleAria": "{{label}} reaction {{action}}"
   },
   "sectionMenu": {
     "addLeft": "Add section to the left",
@@ -364,9 +475,21 @@
   },
   "status": {
     "boostedBy": "Boosted by <name></name>",
+    "boostedByInline": "Boosted by <name></name>",
+    "boostedByMe": "Boosted by me",
+    "boostDisabled": "Private posts cannot be boosted.",
+    "deleteTitle": "Delete post",
+    "hideContent": "Hide",
+    "menuOpenAria": "Open post menu",
+    "noContent": "(No content)",
+    "openOrigin": "View on origin server",
+    "replyTo": "Reply sent to {{name}}",
+    "showContent": "Show content",
     "threadLoading": "Loading thread...",
     "title": "Post",
-    "viewAria": "View post"
+    "viewAria": "View post",
+    "viewBoostThread": "View boosted post thread",
+    "viewReplyThread": "View reply thread"
   },
   "themes": {
     "christmas": "Christmas",
@@ -374,6 +497,22 @@
     "matchaCore": "Matcha Core",
     "monochrome": "Monochrome",
     "skyPink": "Sky Pink"
+  },
+  "translation": {
+    "completed": "Translation completed.",
+    "failed": "Translation failed.",
+    "hide": "Hide translation",
+    "hideAria": "Hide translation",
+    "inProgress": "Translating...",
+    "label": "Translation",
+    "meta": {
+      "detected": "Detected language: {{language}}",
+      "provider": "Provider: {{provider}}",
+      "target": "Target language: {{language}}"
+    },
+    "noContent": "(No content)",
+    "resultAria": "Translation result",
+    "retry": "Retry translation"
   },
   "timeline": {
     "accountRequired": "Select an account to load the timeline.",
@@ -407,6 +546,14 @@
     "bookmarkAdded": "Bookmarked.",
     "bookmarkRemoved": "Bookmark removed.",
     "close": "Close",
-    "closeAria": "Close toast"
+    "closeAria": "Close toast",
+    "followRequestCancelled": "Follow request cancelled.",
+    "followRequestSent": "Follow request sent.",
+    "followed": "Followed.",
+    "unfollowed": "Unfollowed.",
+    "muted": "Muted.",
+    "unmuted": "Unmuted.",
+    "blocked": "Blocked.",
+    "unblocked": "Unblocked."
   }
 }
