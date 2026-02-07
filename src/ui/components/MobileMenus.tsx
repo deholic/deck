@@ -18,7 +18,7 @@ type MobileComposeMenuProps = {
     files: File[];
     spoilerText: string;
   }) => Promise<boolean>;
-  replyingTo: { id: string; summary: string } | null;
+  replyingTo: { id: string; summary: string; spoilerText: string } | null;
   onCancelReply: () => void;
   mentionText: string | null;
 };

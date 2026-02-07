@@ -49,7 +49,7 @@ export const ComposeBox = ({
     files: File[];
     spoilerText: string;
   }) => Promise<boolean>;
-  replyingTo: { id: string; summary: string } | null;
+  replyingTo: { id: string; summary: string; spoilerText: string } | null;
   onCancelReply: () => void;
   mentionText: string | null;
   accountSelector?: React.ReactNode;
@@ -301,6 +301,21 @@ export const ComposeBox = ({
       });
     }
   }, [mentionText]);
+
+  useEffect(() => {
+    if (!replyingTo) {
+      setCwEnabled(false);
+      setCwText("");
+      return;
+    }
+    if (!replyingTo.spoilerText) {
+      setCwEnabled(false);
+      setCwText("");
+      return;
+    }
+    setCwEnabled(true);
+    setCwText(replyingTo.spoilerText);
+  }, [replyingTo?.id, replyingTo?.spoilerText]);
 
   // 이모지 패널이 열리면 이모지 로드
   useEffect(() => {

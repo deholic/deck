@@ -1151,7 +1151,11 @@ export const App = () => {
                 account={composeAccount}
                 api={services.api}
                 onSubmit={handleSubmit}
-                replyingTo={replyTarget ? { id: replyTarget.id, summary: replySummary ?? "" } : null}
+                replyingTo={
+                  replyTarget
+                    ? { id: replyTarget.id, summary: replySummary ?? "", spoilerText: replyTarget.spoilerText }
+                    : null
+                }
                 onCancelReply={() => {
                   setReplyTarget(null);
                   setMentionSeed(null);
@@ -1343,7 +1347,11 @@ export const App = () => {
         composeAccountSelector={composeAccountSelector}
         api={services.api}
         onSubmit={handleSubmit}
-        replyingTo={replyTarget ? { id: replyTarget.id, summary: replySummary ?? "" } : null}
+        replyingTo={
+          replyTarget
+            ? { id: replyTarget.id, summary: replySummary ?? "", spoilerText: replyTarget.spoilerText }
+            : null
+        }
         onCancelReply={() => {
           setReplyTarget(null);
           setMentionSeed(null);
