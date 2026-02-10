@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Account, Visibility } from "../../domain/types";
 import type { MastodonApi } from "../../services/MastodonApi";
+import type { ReplyingTo } from "../types/compose";
 import { useEmojiManager, type EmojiItem } from "../hooks/useEmojiManager";
 import { useImageZoom } from "../hooks/useImageZoom";
 import { useClickOutside } from "../hooks/useClickOutside";
@@ -49,7 +50,7 @@ export const ComposeBox = ({
     files: File[];
     spoilerText: string;
   }) => Promise<boolean>;
-  replyingTo: { id: string; summary: string; spoilerText: string } | null;
+  replyingTo: ReplyingTo | null;
   onCancelReply: () => void;
   mentionText: string | null;
   accountSelector?: React.ReactNode;

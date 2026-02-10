@@ -19,6 +19,7 @@ import { normalizeTimelineType } from "./ui/utils/timeline";
 import { buildOptimisticReactionStatus, hasSameReactions } from "./ui/utils/reactions";
 import { ColorScheme, ThemeMode, getStoredColorScheme, getStoredTheme, isColorScheme, isThemeMode } from "./ui/utils/theme";
 import type { InfoModalType } from "./ui/types/info";
+import type { ReplyingTo } from "./ui/types/compose";
 import type { SectionDisplaySettings } from "./ui/types/section";
 import logoUrl from "./ui/assets/textodon-icon-blue.png";
 
@@ -187,6 +188,9 @@ export const App = () => {
   );
   const replySummary = replyTarget
     ? `@${formatReplyHandle(replyTarget.accountHandle, replyTarget.accountUrl, composeAccount?.instanceUrl ?? "")} · ${replyTarget.content.slice(0, 80)}`
+    : null;
+  const replyingTo: ReplyingTo | null = replyTarget
+    ? { id: replyTarget.id, summary: replySummary ?? "", spoilerText: replyTarget.spoilerText }
     : null;
   const [route, setRoute] = useState<Route>(() => parseRoute());
   const timelineListeners = useRef<Map<string, Set<(status: Status) => void>>>(new Map());
@@ -1151,11 +1155,7 @@ export const App = () => {
                 account={composeAccount}
                 api={services.api}
                 onSubmit={handleSubmit}
-                replyingTo={
-                  replyTarget
-                    ? { id: replyTarget.id, summary: replySummary ?? "", spoilerText: replyTarget.spoilerText }
-                    : null
-                }
+                replyingTo={replyingTo}
                 onCancelReply={() => {
                   setReplyTarget(null);
                   setMentionSeed(null);
@@ -1347,11 +1347,7 @@ export const App = () => {
         composeAccountSelector={composeAccountSelector}
         api={services.api}
         onSubmit={handleSubmit}
-        replyingTo={
-          replyTarget
-            ? { id: replyTarget.id, summary: replySummary ?? "", spoilerText: replyTarget.spoilerText }
-            : null
-        }
+        replyingTo={replyingTo}
         onCancelReply={() => {
           setReplyTarget(null);
           setMentionSeed(null);

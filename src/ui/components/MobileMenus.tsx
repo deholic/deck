@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { Account, Visibility } from "../../domain/types";
 import type { MastodonApi } from "../../services/MastodonApi";
 import type { OAuthClient } from "../../services/OAuthClient";
+import type { ReplyingTo } from "../types/compose";
 import { AccountAdd } from "./AccountAdd";
 import { ComposeBox } from "./ComposeBox";
 
@@ -18,7 +19,7 @@ type MobileComposeMenuProps = {
     files: File[];
     spoilerText: string;
   }) => Promise<boolean>;
-  replyingTo: { id: string; summary: string; spoilerText: string } | null;
+  replyingTo: ReplyingTo | null;
   onCancelReply: () => void;
   mentionText: string | null;
 };
