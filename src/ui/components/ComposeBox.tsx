@@ -90,6 +90,8 @@ export const ComposeBox = ({
   const emojiToggleRef = useRef<HTMLButtonElement | null>(null);
   const cwToggleRef = useRef<HTMLButtonElement | null>(null);
   const emojiPanelRef = useRef<HTMLDivElement | null>(null);
+  const submitFocusTargetRef = useRef<"textarea" | "cw" | null>(null);
+  const skipReplyResetRef = useRef(false);
 
   // useImageZoom 훅 사용
   const {
@@ -265,6 +267,10 @@ export const ComposeBox = ({
       return;
     }
 
+    const activeElement = document.activeElement;
+    submitFocusTargetRef.current = activeElement === cwInputRef.current ? "cw" : "textarea";
+    const shouldKeepCwOpen = cwEnabled;
+
     setIsSubmitting(true);
     try {
       const ok = await onSubmit({
@@ -276,8 +282,9 @@ export const ComposeBox = ({
       });
       if (ok) {
         setText("");
-        setCwText("");
-        setCwEnabled(false);
+        if (shouldKeepCwOpen) {
+          skipReplyResetRef.current = true;
+        }
         setAttachments((current) => {
           current.forEach((item) => URL.revokeObjectURL(item.previewUrl));
           return [];
@@ -286,6 +293,14 @@ export const ComposeBox = ({
       }
     } finally {
       setIsSubmitting(false);
+      requestAnimationFrame(() => {
+        if (submitFocusTargetRef.current === "cw" && cwEnabled) {
+          cwInputRef.current?.focus();
+        } else {
+          textareaRef.current?.focus();
+        }
+        submitFocusTargetRef.current = null;
+      });
     }
   };
 
@@ -305,10 +320,15 @@ export const ComposeBox = ({
 
   useEffect(() => {
     if (!replyingTo) {
+      if (skipReplyResetRef.current) {
+        skipReplyResetRef.current = false;
+        return;
+      }
       setCwEnabled(false);
       setCwText("");
       return;
     }
+    skipReplyResetRef.current = false;
     if (!replyingTo.spoilerText) {
       setCwEnabled(false);
       setCwText("");
