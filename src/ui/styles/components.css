@@ -1218,6 +1218,7 @@ button.ghost {
 .timeline-column {
   flex: 0 0 var(--timeline-column-width);
   max-width: var(--timeline-column-max-width);
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: var(--height-timeline-column-gap);
@@ -1682,6 +1683,8 @@ button.ghost {
   font-size: 15px;
   line-height: 1.5;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   user-select: none;
 }
 
@@ -1690,6 +1693,8 @@ button.ghost {
   font-size: 15px;
   line-height: 1.5;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   user-select: none;
 }
 
