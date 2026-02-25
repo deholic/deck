@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import type { AccountsState } from "../state/AppContext";
 import type { ColorScheme, ThemeMode } from "../utils/theme";
 import { AccountSelector } from "./AccountSelector";
@@ -24,6 +25,8 @@ type SettingsModalProps = {
   onPomodoroFocusChange: (value: number) => void;
   onPomodoroBreakChange: (value: number) => void;
   onPomodoroLongBreakChange: (value: number) => void;
+  customCss: string;
+  onCustomCssApply: (value: string) => void;
 };
 
 export const SettingsModal = ({
@@ -47,8 +50,12 @@ export const SettingsModal = ({
   pomodoroLongBreak,
   onPomodoroFocusChange,
   onPomodoroBreakChange,
-  onPomodoroLongBreakChange
+  onPomodoroLongBreakChange,
+  customCss,
+  onCustomCssApply
 }: SettingsModalProps) => {
+  const [localCustomCss, setLocalCustomCss] = useState(customCss);
+
   if (!open) {
     return null;
   }
@@ -207,6 +214,28 @@ export const SettingsModal = ({
               모두 삭제
             </button>
           </div>
+          <div className="settings-item-divider" />
+          <details className="settings-custom-css">
+            <summary>
+              <strong>Custom CSS</strong>
+              <p>직접 CSS를 작성하여 스타일을 커스텀합니다.</p>
+            </summary>
+            <div className="settings-custom-css-content">
+              <textarea
+                value={localCustomCss}
+                onChange={(e) => setLocalCustomCss(e.target.value)}
+                placeholder="/* 여기에 CSS를 입력하세요 */"
+                rows={10}
+              />
+              <button
+                type="button"
+                className="settings-apply-button"
+                onClick={() => onCustomCssApply(localCustomCss)}
+              >
+                적용 (페이지 새로고침)
+              </button>
+            </div>
+          </details>
         </div>
       </div>
     </div>
