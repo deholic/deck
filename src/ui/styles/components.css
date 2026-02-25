@@ -775,6 +775,7 @@
   border: none !important;
   border-radius: 0 !important;
   font-family: inherit;
+  font-size: 15px;
   resize: vertical !important;
   background: transparent !important;
   min-height: 80px;
@@ -856,6 +857,7 @@
   background: var(--color-input-bg);
   color: var(--color-input-text);
   font-family: inherit;
+  font-size: 15px;
 }
 
 .compose-actions {
