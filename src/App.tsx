@@ -77,6 +77,9 @@ export const App = () => {
   });
   const [pomodoroSessionType, setPomodoroSessionType] = useState<"focus" | "break" | "longBreak">("focus");
   const [pomodoroIsRunning, setPomodoroIsRunning] = useState(false);
+  const [customCss, setCustomCss] = useState(() => {
+    return localStorage.getItem("textodon.customCss") || "";
+  });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsAccountId, setSettingsAccountId] = useState<string | null>(null);
   const [reauthLoading, setReauthLoading] = useState(false);
@@ -425,7 +428,19 @@ export const App = () => {
     localStorage.setItem("textodon.pomodoro.longBreak", String(pomodoroLongBreak));
   }, [pomodoroLongBreak]);
 
-
+  useEffect(() => {
+    let styleTag = document.getElementById("textodon-custom-css");
+    if (customCss.trim()) {
+      if (!styleTag) {
+        styleTag = document.createElement("style");
+        styleTag.id = "textodon-custom-css";
+        document.head.appendChild(styleTag);
+      }
+      styleTag.textContent = customCss;
+    } else if (styleTag) {
+      styleTag.remove();
+    }
+  }, [customCss]);
 
   const closeMobileMenu = useCallback(() => {
     setMobileMenuOpen(false);
@@ -1347,6 +1362,11 @@ export const App = () => {
         onPomodoroFocusChange={setPomodoroFocus}
         onPomodoroBreakChange={setPomodoroBreak}
         onPomodoroLongBreakChange={setPomodoroLongBreak}
+        customCss={customCss}
+        onCustomCssApply={(value) => {
+          localStorage.setItem("textodon.customCss", value);
+          window.location.reload();
+        }}
       />
       
       {profileTargets.map((target, index) => (
