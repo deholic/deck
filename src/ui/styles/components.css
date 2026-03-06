@@ -3284,11 +3284,25 @@ button.ghost {
   border: 1px solid var(--color-panel-border);
   color: var(--color-text);
   font-size: 13px;
+  cursor: grab;
+}
+
+.pomodoro-todo-item:active {
+  cursor: grabbing;
 }
 
 .pomodoro-todo-item.is-selected {
   border-color: transparent;
   box-shadow: 0 0 0 2px var(--color-action-active-bg) inset;
+}
+
+.pomodoro-todo-item.is-dragging {
+  opacity: 0.55;
+}
+
+.pomodoro-todo-item.is-drag-over {
+  border-color: var(--color-action-bg);
+  box-shadow: 0 0 0 1px var(--color-action-bg) inset;
 }
 
 .pomodoro-todo-item.is-completed .pomodoro-todo-text {
