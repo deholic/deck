@@ -54,12 +54,26 @@ const extractFirstUrl = (text: string): string | null => {
 };
 
 const decodeHtmlEntities = (value: string): string => {
-  if (typeof document === "undefined") {
-    return value;
-  }
-  const textarea = document.createElement("textarea");
-  textarea.innerHTML = value;
-  return textarea.value;
+  const decodeCodePoint = (match: string, input: string, radix: number): string => {
+    const codePoint = Number.parseInt(input, radix);
+    if (!Number.isFinite(codePoint) || codePoint < 0 || codePoint > 0x10ffff) {
+      return match;
+    }
+    try {
+      return String.fromCodePoint(codePoint);
+    } catch {
+      return match;
+    }
+  };
+
+  return value
+    .replace(/&#(\d+);/g, (match, decimal) => decodeCodePoint(match, decimal, 10))
+    .replace(/&#x([0-9a-fA-F]+);/g, (match, hexadecimal) => decodeCodePoint(match, hexadecimal, 16))
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
 };
 
 const normalizePreviewText = (value: string | null | undefined): string | null => {
