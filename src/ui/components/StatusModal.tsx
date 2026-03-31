@@ -4,6 +4,7 @@ import type { MastodonApi } from "../../services/MastodonApi";
 import { TimelineItem } from "./TimelineItem";
 import BoostIcon from "../assets/boost-icon.svg?react";
 import { useToast } from "../state/ToastContext";
+import type { SectionDisplaySettings } from "../types/section";
 
 export const StatusModal = ({
   status,
@@ -24,7 +25,8 @@ export const StatusModal = ({
   activeAccountUrl,
   showProfileImage,
   showCustomEmojis,
-  showReactions
+  showReactions,
+  sectionSettings
 }: {
   status: Status;
   account: Account | null;
@@ -37,7 +39,7 @@ export const StatusModal = ({
   onToggleReblog: (status: Status) => void;
   onToggleBookmark: (status: Status) => void;
   onDelete?: (status: Status) => void;
-  onProfileClick?: (status: Status, account: Account | null) => void;
+  onProfileClick?: (status: Status, account: Account | null, settings: SectionDisplaySettings) => void;
   onUpdateStatus?: (status: Status) => void;
   activeHandle: string;
   activeAccountHandle: string;
@@ -45,6 +47,7 @@ export const StatusModal = ({
   showProfileImage: boolean;
   showCustomEmojis: boolean;
   showReactions: boolean;
+  sectionSettings: SectionDisplaySettings;
 }) => {
   const displayStatus = status.reblog ?? status;
   const boostedBy = status.reblog ? status.boostedBy : null;
@@ -116,9 +119,9 @@ export const StatusModal = ({
       if (!onProfileClick) {
         return;
       }
-      onProfileClick(target, threadAccount ?? account ?? null);
+      onProfileClick(target, threadAccount ?? account ?? null, sectionSettings);
     },
-    [account, onProfileClick, threadAccount]
+    [account, onProfileClick, sectionSettings, threadAccount]
   );
   
   // 스레드 컨텍스트 상태

@@ -37,9 +37,11 @@ const renderEmojiTag = (shortcode: string, url: string): string => {
   return `<img src="${safeUrl}" alt="${safeAlt}" class="custom-emoji" loading="lazy" />`;
 };
 
+const bareUrlPattern = /https?:\/\/[^\s<]+[^\s<\])"'.,;:!?]/g;
+
 // Linkify plain URLs while excluding trailing punctuation.
 const linkifyBareUrls = (text: string): string => {
-  return text.replace(/https?:\/\/[^\s<]+[^\s<\])"'.,;:!?]/g, (match) => {
+  return text.replace(bareUrlPattern, (match) => {
     if (!isSafeUrl(match)) {
       return match;
     }
@@ -102,6 +104,11 @@ const formatInline = (
       }
     );
   }
+  const bareUrls: string[] = [];
+  tokenized = tokenized.replace(bareUrlPattern, (match) => {
+    bareUrls.push(match);
+    return `\u0005${bareUrls.length - 1}\u0005`;
+  });
   const emojis: string[] = [];
   if (emojiMap && emojiMap.size > 0) {
     tokenized = tokenized.replace(/:([a-zA-Z0-9_]+):/g, (_match, shortcode) => {
@@ -114,6 +121,7 @@ const formatInline = (
       return `\u0002${emojis.length - 1}\u0002`;
     });
   }
+  tokenized = tokenized.replace(/\u0005(\d+)\u0005/g, (_match, index) => bareUrls[Number(index)] ?? "");
   let out = escapeHtml(tokenized);
   out = out.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
   out = out.replace(/\*([^*]+)\*/g, "<em>$1</em>");

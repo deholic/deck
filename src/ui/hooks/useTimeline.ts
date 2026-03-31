@@ -3,6 +3,23 @@ import type { Account, Status, TimelineType } from "../../domain/types";
 import type { MastodonApi } from "../../services/MastodonApi";
 import type { StreamingClient } from "../../services/StreamingClient";
 
+const TIMELINE_POLICY: Record<TimelineType, { maxItems: number; flushInterval: number; maxPending: number }> = {
+  home: { maxItems: 400, flushInterval: 300, maxPending: 200 },
+  local: { maxItems: 600, flushInterval: 400, maxPending: 240 },
+  federated: { maxItems: 800, flushInterval: 500, maxPending: 260 },
+  social: { maxItems: 600, flushInterval: 400, maxPending: 220 },
+  global: { maxItems: 800, flushInterval: 500, maxPending: 260 },
+  notifications: { maxItems: 300, flushInterval: 400, maxPending: 120 },
+  bookmarks: { maxItems: 500, flushInterval: 400, maxPending: 0 }
+};
+
+const capItems = (items: Status[], maxItems: number): Status[] => {
+  if (items.length <= maxItems) {
+    return items;
+  }
+  return items.slice(0, maxItems);
+};
+
 const mergeStatus = (items: Status[], next: Status): Status[] => {
   const index = items.findIndex((item) => item.id === next.id);
   if (index >= 0) {
@@ -42,20 +59,64 @@ export const useTimeline = (params: {
   timelineType: TimelineType;
   onNotification?: () => void;
   enableStreaming?: boolean;
+  pauseUpdates?: boolean;
+  maxItems?: number;
+  flushInterval?: number;
+  maxPending?: number;
 }) => {
-  const { account, api, streaming, timelineType, onNotification, enableStreaming = true } = params;
+  const {
+    account,
+    api,
+    streaming,
+    timelineType,
+    onNotification,
+    enableStreaming = true,
+    pauseUpdates = false,
+    maxItems,
+    flushInterval,
+    maxPending
+  } = params;
+  const policy = TIMELINE_POLICY[timelineType];
+  const resolvedMaxItems = maxItems ?? policy.maxItems;
+  const resolvedFlushInterval = flushInterval ?? policy.flushInterval;
+  const resolvedMaxPending = maxPending ?? policy.maxPending;
   const [items, setItems] = useState<Status[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
+  const [pendingCount, setPendingCount] = useState(0);
   const disconnectRef = useRef<null | (() => void)>(null);
   const notificationDisconnectRef = useRef<null | (() => void)>(null);
   const notificationRef = useRef<(() => void) | null>(null);
+  const pauseUpdatesRef = useRef(pauseUpdates);
+  const pendingUpdatesRef = useRef<Status[]>([]);
+  const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingCountTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     notificationRef.current = onNotification ?? null;
   }, [onNotification]);
+
+  useEffect(() => {
+    pauseUpdatesRef.current = pauseUpdates;
+  }, [pauseUpdates]);
+
+  const clearFlushTimer = useCallback(() => {
+    if (flushTimerRef.current === null) {
+      return;
+    }
+    clearTimeout(flushTimerRef.current);
+    flushTimerRef.current = null;
+  }, []);
+
+  const clearPendingCountTimer = useCallback(() => {
+    if (pendingCountTimerRef.current === null) {
+      return;
+    }
+    clearTimeout(pendingCountTimerRef.current);
+    pendingCountTimerRef.current = null;
+  }, []);
 
   const refresh = useCallback(async () => {
     if (!account) {
@@ -64,6 +125,10 @@ export const useTimeline = (params: {
     setLoading(true);
     setError(null);
     setItems([]);
+    setPendingCount(0);
+    pendingUpdatesRef.current = [];
+    clearFlushTimer();
+    clearPendingCountTimer();
     try {
       let timeline: Status[];
       if (timelineType === "bookmarks") {
@@ -71,14 +136,14 @@ export const useTimeline = (params: {
       } else {
         timeline = await api.fetchTimeline(account, timelineType, 30);
       }
-      setItems(timeline);
+      setItems(capItems(timeline, resolvedMaxItems));
       setHasMore(timeline.length > 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : "타임라인을 불러오지 못했습니다.");
     } finally {
       setLoading(false);
     }
-  }, [account, api, timelineType]);
+  }, [account, api, clearFlushTimer, clearPendingCountTimer, resolvedMaxItems, timelineType]);
 
   const loadMore = useCallback(async () => {
     if (!account || loadingMore || loading) {
@@ -96,7 +161,7 @@ export const useTimeline = (params: {
       } else {
         next = await api.fetchTimeline(account, timelineType, 20, lastId);
       }
-      setItems((current) => appendStatuses(current, next));
+      setItems((current) => capItems(appendStatuses(current, next), resolvedMaxItems));
       if (next.length === 0) {
         setHasMore(false);
       }
@@ -105,16 +170,99 @@ export const useTimeline = (params: {
     } finally {
       setLoadingMore(false);
     }
-  }, [account, api, hasMore, items, loading, loadingMore, timelineType]);
+  }, [account, api, hasMore, items, loading, loadingMore, resolvedMaxItems, timelineType]);
 
   useEffect(() => {
     if (!account) {
       setItems([]);
       setHasMore(false);
+      setPendingCount(0);
+      pendingUpdatesRef.current = [];
+      clearFlushTimer();
+      clearPendingCountTimer();
       return;
     }
     refresh();
-  }, [account, refresh]);
+  }, [account, clearFlushTimer, clearPendingCountTimer, refresh]);
+
+  const syncPendingCount = useCallback(() => {
+    setPendingCount(pendingUpdatesRef.current.length);
+  }, []);
+
+  const schedulePendingCountSync = useCallback(() => {
+    clearPendingCountTimer();
+    pendingCountTimerRef.current = setTimeout(() => {
+      pendingCountTimerRef.current = null;
+      syncPendingCount();
+    }, resolvedFlushInterval);
+  }, [clearPendingCountTimer, resolvedFlushInterval, syncPendingCount]);
+
+  const flushPendingUpdates = useCallback(() => {
+    const batch = pendingUpdatesRef.current;
+    if (batch.length === 0) {
+      return;
+    }
+    pendingUpdatesRef.current = [];
+    clearPendingCountTimer();
+    setPendingCount(0);
+    setItems((current) => {
+      let next = current;
+      for (const status of batch) {
+        next = mergeStatus(next, status);
+      }
+      return capItems(next, resolvedMaxItems);
+    });
+  }, [clearPendingCountTimer, resolvedMaxItems]);
+
+  const scheduleFlush = useCallback(() => {
+    if (flushTimerRef.current !== null) {
+      return;
+    }
+    flushTimerRef.current = setTimeout(() => {
+      flushTimerRef.current = null;
+      flushPendingUpdates();
+    }, resolvedFlushInterval);
+  }, [flushPendingUpdates, resolvedFlushInterval]);
+
+  const enqueuePendingUpdate = useCallback(
+    (status: Status) => {
+      if (resolvedMaxPending === 0) {
+        return;
+      }
+      const existingIndex = pendingUpdatesRef.current.findIndex((item) => item.id === status.id);
+      if (existingIndex >= 0) {
+        pendingUpdatesRef.current[existingIndex] = status;
+      } else {
+        pendingUpdatesRef.current.push(status);
+        if (pendingUpdatesRef.current.length > resolvedMaxPending) {
+          pendingUpdatesRef.current = pendingUpdatesRef.current.slice(-resolvedMaxPending);
+        }
+      }
+      if (pauseUpdatesRef.current) {
+        schedulePendingCountSync();
+        return;
+      }
+      scheduleFlush();
+    },
+    [resolvedMaxPending, scheduleFlush, schedulePendingCountSync]
+  );
+
+  const dropPendingUpdate = useCallback(
+    (statusId: string) => {
+      if (pendingUpdatesRef.current.length === 0) {
+        return;
+      }
+      const next = pendingUpdatesRef.current.filter((item) => item.id !== statusId);
+      if (next.length === pendingUpdatesRef.current.length) {
+        return;
+      }
+      pendingUpdatesRef.current = next;
+      if (pauseUpdatesRef.current) {
+        syncPendingCount();
+      }
+    },
+    [syncPendingCount]
+  );
 
   useEffect(() => {
     disconnectRef.current?.();
@@ -128,11 +276,12 @@ export const useTimeline = (params: {
     disconnectRef.current = streaming.connect(account, timelineType, (event) => {
       if (event.type === "update") {
         if (timelineType !== "notifications") {
-          setItems((current) => mergeStatus(current, event.status));
+          enqueuePendingUpdate(event.status);
         }
       } else if (event.type === "delete") {
         if (timelineType !== "notifications") {
           setItems((current) => current.filter((item) => item.id !== event.id));
+          dropPendingUpdate(event.id);
         }
       } else if (event.type === "notification") {
         notificationRef.current?.();
@@ -152,8 +301,39 @@ export const useTimeline = (params: {
       disconnectRef.current = null;
       notificationDisconnectRef.current?.();
       notificationDisconnectRef.current = null;
+      pendingUpdatesRef.current = [];
+      setPendingCount(0);
+      clearFlushTimer();
+      clearPendingCountTimer();
     };
-  }, [account, enableStreaming, onNotification, streaming, timelineType]);
+  }, [
+    account,
+    clearFlushTimer,
+    clearPendingCountTimer,
+    dropPendingUpdate,
+    enableStreaming,
+    enqueuePendingUpdate,
+    onNotification,
+    streaming,
+    timelineType
+  ]);
+
+  useEffect(() => {
+    if (!pauseUpdates && pendingUpdatesRef.current.length > 0) {
+      clearFlushTimer();
+      clearPendingCountTimer();
+      flushPendingUpdates();
+    }
+    if (pauseUpdates) {
+      clearFlushTimer();
+    }
+  }, [clearFlushTimer, clearPendingCountTimer, flushPendingUpdates, pauseUpdates]);
+
+  const flushPending = useCallback(() => {
+    clearFlushTimer();
+    clearPendingCountTimer();
+    flushPendingUpdates();
+  }, [clearFlushTimer, clearPendingCountTimer, flushPendingUpdates]);
 
   const updateItem = useCallback((status: Status) => {
     setItems((current) => replaceStatus(current, status));
@@ -164,8 +344,20 @@ export const useTimeline = (params: {
   }, []);
 
   const timeline = useMemo(
-    () => ({ items, loading, loadingMore, error, hasMore, refresh, loadMore, updateItem, removeItem }),
-    [items, loading, loadingMore, error, hasMore, refresh, loadMore, updateItem, removeItem]
+    () => ({
+      items,
+      loading,
+      loadingMore,
+      error,
+      hasMore,
+      refresh,
+      loadMore,
+      updateItem,
+      removeItem,
+      pendingCount,
+      flushPending
+    }),
+    [items, loading, loadingMore, error, hasMore, refresh, loadMore, updateItem, removeItem, pendingCount, flushPending]
   );
 
   return timeline;

@@ -19,14 +19,55 @@ import { normalizeTimelineType } from "./ui/utils/timeline";
 import { buildOptimisticReactionStatus, hasSameReactions } from "./ui/utils/reactions";
 import { ColorScheme, ThemeMode, getStoredColorScheme, getStoredTheme, isColorScheme, isThemeMode } from "./ui/utils/theme";
 import type { InfoModalType } from "./ui/types/info";
+import type { ReplyingTo } from "./ui/types/compose";
+import type { SectionDisplaySettings } from "./ui/types/section";
 import logoUrl from "./ui/assets/textodon-icon-blue.png";
 
 type Route = "home" | "terms" | "license" | "oss" | "shortcuts";
 type SelectedTimelineStatus = { sectionId: string; statusId: string };
-type ProfileTarget = { status: Status; account: Account | null; zIndex: number };
+type ProfileTarget = { status: Status; account: Account | null; settings: SectionDisplaySettings; zIndex: number };
 
 const SECTION_STORAGE_KEY = "textodon.sections";
 const COMPOSE_ACCOUNT_KEY = "textodon.compose.accountId";
+
+const getStoredSectionSize = (): SectionDisplaySettings["sectionSize"] => {
+  try {
+    const stored = localStorage.getItem("textodon.sectionSize");
+    if (stored === "medium" || stored === "large" || stored === "small") {
+      return stored;
+    }
+  } catch {
+    /* noop */
+  }
+  return "small";
+};
+
+const getDefaultSectionSettings = (): SectionDisplaySettings => {
+  let showProfileImages = true;
+  let showCustomEmojis = true;
+  let showReactions = true;
+  try {
+    showProfileImages = localStorage.getItem("textodon.profileImages") !== "off";
+  } catch {
+    /* noop */
+  }
+  try {
+    showCustomEmojis = localStorage.getItem("textodon.customEmojis") !== "off";
+  } catch {
+    /* noop */
+  }
+  try {
+    showReactions = localStorage.getItem("textodon.reactions") !== "off";
+  } catch {
+    /* noop */
+  }
+  return {
+    showProfileImages,
+    showCustomEmojis,
+    showReactions,
+    sectionSize: getStoredSectionSize()
+  };
+};
 
 const parseRoute = (): Route => {
   const hash = window.location.hash.replace(/^#/, "");
@@ -44,22 +85,6 @@ const parseRoute = (): Route => {
 export const App = () => {
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => getStoredTheme());
   const [colorScheme, setColorScheme] = useState<ColorScheme>(() => getStoredColorScheme());
-  const [sectionSize, setSectionSize] = useState<"small" | "medium" | "large">(() => {
-    const stored = localStorage.getItem("textodon.sectionSize");
-    if (stored === "medium" || stored === "large" || stored === "small") {
-      return stored;
-    }
-    return "small";
-  });
-  const [showProfileImages, setShowProfileImages] = useState(() => {
-    return localStorage.getItem("textodon.profileImages") !== "off";
-  });
-  const [showCustomEmojis, setShowCustomEmojis] = useState(() => {
-    return localStorage.getItem("textodon.customEmojis") !== "off";
-  });
-  const [showMisskeyReactions, setShowMisskeyReactions] = useState(() => {
-    return localStorage.getItem("textodon.reactions") !== "off";
-  });
   const [showPomodoro, setShowPomodoro] = useState(() => {
     return localStorage.getItem("textodon.pomodoro") === "on";
   });
@@ -91,6 +116,7 @@ export const App = () => {
       if (raw) {
         const parsed = JSON.parse(raw) as Array<Partial<TimelineSectionConfig>>;
         if (Array.isArray(parsed) && parsed.length > 0) {
+          const defaults = getDefaultSectionSettings();
           return parsed.map((item) => ({
             id: item.id || crypto.randomUUID(),
             accountId: item.accountId ?? null,
@@ -100,13 +126,20 @@ export const App = () => {
                 ? accountsState.accounts.find((account) => account.id === item.accountId)?.platform ?? null
                 : null,
               false
-            )
+            ),
+            settings: {
+              showProfileImages: item.settings?.showProfileImages ?? defaults.showProfileImages,
+              showCustomEmojis: item.settings?.showCustomEmojis ?? defaults.showCustomEmojis,
+              showReactions: item.settings?.showReactions ?? defaults.showReactions,
+              sectionSize: item.settings?.sectionSize ?? defaults.sectionSize
+            }
           }));
         }
       }
     } catch {
       /* noop */
     }
+    const defaults = getDefaultSectionSettings();
     if (accountsState.accounts.length === 0) {
       return [];
     }
@@ -114,7 +147,8 @@ export const App = () => {
       {
         id: crypto.randomUUID(),
         accountId: accountsState.activeAccountId ?? accountsState.accounts[0]?.id ?? null,
-        timelineType: "home"
+        timelineType: "home",
+        settings: { ...defaults }
       }
     ];
   });
@@ -135,6 +169,9 @@ export const App = () => {
   );
   const [replyTarget, setReplyTarget] = useState<Status | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<Status | null>(null);
+  const [selectedStatusSettings, setSelectedStatusSettings] = useState<SectionDisplaySettings>(() =>
+    getDefaultSectionSettings()
+  );
   const [selectedStatusThreadAccount, setSelectedStatusThreadAccount] = useState<Account | null>(null);
   const [selectedTimelineStatus, setSelectedTimelineStatus] = useState<SelectedTimelineStatus | null>(null);
   const [profileTargets, setProfileTargets] = useState<ProfileTarget[]>([]);
@@ -151,6 +188,9 @@ export const App = () => {
   );
   const replySummary = replyTarget
     ? `@${formatReplyHandle(replyTarget.accountHandle, replyTarget.accountUrl, composeAccount?.instanceUrl ?? "")} · ${replyTarget.content.slice(0, 80)}`
+    : null;
+  const replyingTo: ReplyingTo | null = replyTarget
+    ? { id: replyTarget.id, summary: replySummary ?? "", spoilerText: replyTarget.spoilerText }
     : null;
   const [route, setRoute] = useState<Route>(() => parseRoute());
   const timelineListeners = useRef<Map<string, Set<(status: Status) => void>>>(new Map());
@@ -381,11 +421,6 @@ export const App = () => {
   }, [colorScheme]);
 
   useEffect(() => {
-    document.documentElement.dataset.sectionSize = sectionSize;
-    localStorage.setItem("textodon.sectionSize", sectionSize);
-  }, [sectionSize]);
-
-  useEffect(() => {
     try {
       if (composeAccountId) {
         localStorage.setItem(COMPOSE_ACCOUNT_KEY, composeAccountId);
@@ -396,18 +431,6 @@ export const App = () => {
       /* noop */
     }
   }, [composeAccountId]);
-
-  useEffect(() => {
-    localStorage.setItem("textodon.profileImages", showProfileImages ? "on" : "off");
-  }, [showProfileImages]);
-
-  useEffect(() => {
-    localStorage.setItem("textodon.customEmojis", showCustomEmojis ? "on" : "off");
-  }, [showCustomEmojis]);
-
-  useEffect(() => {
-    localStorage.setItem("textodon.reactions", showMisskeyReactions ? "on" : "off");
-  }, [showMisskeyReactions]);
 
   useEffect(() => {
     localStorage.setItem("textodon.pomodoro", showPomodoro ? "on" : "off");
@@ -823,11 +846,17 @@ export const App = () => {
       (account) => !previousAccountIds.current.has(account.id)
     );
     if (addedAccounts.length > 0) {
+      const defaults = getDefaultSectionSettings();
       setSections((current) => {
         const next = [...current];
         addedAccounts.forEach((account) => {
           if (!next.some((section) => section.accountId === account.id)) {
-            next.push({ id: crypto.randomUUID(), accountId: account.id, timelineType: "home" });
+            next.push({
+              id: crypto.randomUUID(),
+              accountId: account.id,
+              timelineType: "home",
+              settings: { ...defaults }
+            });
           }
         });
         return next;
@@ -885,20 +914,31 @@ export const App = () => {
     setComposeAccountId(account.id);
     setReplyTarget(status);
     const formattedHandle = formatReplyHandle(status.accountHandle, status.accountUrl, account.instanceUrl);
-    setMentionSeed(`@${formattedHandle}`);
+    setMentionSeed(`@${formattedHandle} `);
     setSelectedStatus(null);
   };
 
-  const handleStatusClick = (status: Status, columnAccount: Account | null) => {
+  const handleStatusClick = (
+    status: Status,
+    columnAccount: Account | null,
+    settings: SectionDisplaySettings
+  ) => {
     setSelectedStatus(status);
     setStatusModalZIndex(nextModalZIndexRef.current++);
     setSelectedStatusThreadAccount(columnAccount);
+    setSelectedStatusSettings(settings);
   };
 
-  const handleProfileOpen = useCallback((target: Status, columnAccount: Account | null) => {
-    const zIndex = nextModalZIndexRef.current++;
-    setProfileTargets((current) => [...current, { status: target, account: columnAccount, zIndex }]);
-  }, []);
+  const handleProfileOpen = useCallback(
+    (target: Status, columnAccount: Account | null, settings: SectionDisplaySettings) => {
+      const zIndex = nextModalZIndexRef.current++;
+      setProfileTargets((current) => [
+        ...current,
+        { status: target, account: columnAccount, settings, zIndex }
+      ]);
+    },
+    []
+  );
 
   const handleCloseProfileModal = useCallback((index?: number) => {
     setProfileTargets((current) => {
@@ -961,15 +1001,17 @@ export const App = () => {
     />
   );
 
-  const addSectionAt = (index: number) => {
+  const addSectionAt = (index: number, baseSettings?: SectionDisplaySettings) => {
     const defaultAccountId = composeAccountId ?? accountsState.accounts[0]?.id ?? null;
+    const settings = baseSettings ?? getDefaultSectionSettings();
     setSections((current) => {
       const next = [...current];
       const insertIndex = Math.max(0, Math.min(index, next.length));
       next.splice(insertIndex, 0, {
         id: crypto.randomUUID(),
         accountId: defaultAccountId,
-        timelineType: "home"
+        timelineType: "home",
+        settings: { ...settings }
       });
       return next;
     });
@@ -984,7 +1026,8 @@ export const App = () => {
       addSectionAt(sections.length);
       return;
     }
-    addSectionAt(direction === "left" ? index : index + 1);
+    const baseSettings = sections[index]?.settings;
+    addSectionAt(direction === "left" ? index : index + 1, baseSettings);
   };
 
   const moveSection = (sectionId: string, direction: "left" | "right") => {
@@ -1040,6 +1083,19 @@ export const App = () => {
       })
     );
   };
+
+  const updateSectionSettings = useCallback(
+    (sectionId: string, updates: Partial<SectionDisplaySettings>) => {
+      setSections((current) =>
+        current.map((section) =>
+          section.id === sectionId
+            ? { ...section, settings: { ...section.settings, ...updates } }
+            : section
+        )
+      );
+    },
+    []
+  );
 
   useEffect(() => {
     try {
@@ -1099,7 +1155,7 @@ export const App = () => {
                 account={composeAccount}
                 api={services.api}
                 onSubmit={handleSubmit}
-                replyingTo={replyTarget ? { id: replyTarget.id, summary: replySummary ?? "" } : null}
+                replyingTo={replyingTo}
                 onCancelReply={() => {
                   setReplyTarget(null);
                   setMentionSeed(null);
@@ -1217,17 +1273,16 @@ export const App = () => {
                     className="timeline-board"
                     ref={timelineBoardRef}
                   >
-                    {sections.map((section, index) => {
-                      const sectionAccount =
-                        section.accountId
-                          ? accountsState.accounts.find((account) => account.id === section.accountId) ?? null
-                          : null;
-                      const shouldShowReactions = showMisskeyReactions;
-                      const selectedStatusId =
-                        selectedTimelineStatus?.sectionId === section.id
-                          ? selectedTimelineStatus.statusId
-                          : null;
-                      return (
+                      {sections.map((section, index) => {
+                        const sectionAccount =
+                          section.accountId
+                            ? accountsState.accounts.find((account) => account.id === section.accountId) ?? null
+                            : null;
+                        const selectedStatusId =
+                          selectedTimelineStatus?.sectionId === section.id
+                            ? selectedTimelineStatus.statusId
+                            : null;
+                        return (
                           <TimelineSection
                             key={section.id}
                             section={section}
@@ -1256,13 +1311,11 @@ export const App = () => {
                             onMoveSection={moveSection}
                             onTimelineItemsChange={handleTimelineItemsChange}
                             onSelectStatus={handleSelectStatus}
+                            onUpdateSectionSettings={updateSectionSettings}
                             canMoveLeft={index > 0}
                             canMoveRight={index < sections.length - 1}
                             canRemoveSection={sections.length > 1}
                             timelineType={section.timelineType}
-                            showProfileImage={showProfileImages}
-                            showCustomEmojis={showCustomEmojis}
-                            showReactions={shouldShowReactions}
                             registerTimelineListener={registerTimelineListener}
                             unregisterTimelineListener={unregisterTimelineListener}
                             registerTimelineShortcutHandler={registerTimelineShortcutHandler}
@@ -1294,7 +1347,7 @@ export const App = () => {
         composeAccountSelector={composeAccountSelector}
         api={services.api}
         onSubmit={handleSubmit}
-        replyingTo={replyTarget ? { id: replyTarget.id, summary: replySummary ?? "" } : null}
+        replyingTo={replyingTo}
         onCancelReply={() => {
           setReplyTarget(null);
           setMentionSeed(null);
@@ -1331,14 +1384,6 @@ export const App = () => {
             setColorScheme(value);
           }
         }}
-        showProfileImages={showProfileImages}
-        onToggleProfileImages={setShowProfileImages}
-        showCustomEmojis={showCustomEmojis}
-        onToggleCustomEmojis={setShowCustomEmojis}
-        showMisskeyReactions={showMisskeyReactions}
-        onToggleMisskeyReactions={setShowMisskeyReactions}
-        sectionSize={sectionSize}
-        onSectionSizeChange={setSectionSize}
         showPomodoro={showPomodoro}
         onTogglePomodoro={setShowPomodoro}
         pomodoroFocus={pomodoroFocus}
@@ -1359,11 +1404,12 @@ export const App = () => {
           isTopmost={index === profileTargets.length - 1}
           onClose={() => handleCloseProfileModal(index)}
           onReply={handleReply}
-          onStatusClick={(status) => handleStatusClick(status, target.account)}
+          onStatusClick={(status, account, settings) => handleStatusClick(status, account, settings)}
           onProfileClick={handleProfileOpen}
-          showProfileImage={showProfileImages}
-          showCustomEmojis={showCustomEmojis}
-          showReactions={showMisskeyReactions}
+          showProfileImage={target.settings.showProfileImages}
+          showCustomEmojis={target.settings.showCustomEmojis}
+          showReactions={target.settings.showReactions}
+          sectionSettings={target.settings}
         />
       ))}
 
@@ -1451,9 +1497,10 @@ export const App = () => {
           }
           activeAccountHandle={composeAccount?.handle ?? ""}
           activeAccountUrl={composeAccount?.url ?? null}
-          showProfileImage={showProfileImages}
-          showCustomEmojis={showCustomEmojis}
-          showReactions={showMisskeyReactions}
+          showProfileImage={selectedStatusSettings.showProfileImages}
+          showCustomEmojis={selectedStatusSettings.showCustomEmojis}
+          showReactions={selectedStatusSettings.showReactions}
+          sectionSettings={selectedStatusSettings}
         />
       ) : null}
     </div>

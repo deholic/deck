@@ -316,6 +316,30 @@ export class MisskeyHttpClient implements MastodonApi {
     return data.map((item) => mapMisskeyStatusWithInstance(item, account.instanceUrl));
   }
 
+  async fetchBookmarks(account: Account, limit: number = 20, maxId?: string): Promise<Status[]> {
+    const response = await fetch(`${normalizeInstanceUrl(account.instanceUrl)}/api/i/favorites`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(
+        buildBody(account, {
+          limit,
+          untilId: maxId
+        })
+      )
+    });
+    if (!response.ok) {
+      throw new Error("북마크를 불러오지 못했습니다.");
+    }
+    const data = (await response.json()) as unknown[];
+    return data.map((item) => {
+      const typed = item && typeof item === "object" ? (item as Record<string, unknown>) : null;
+      const note = typed && typed.note ? typed.note : item;
+      return mapMisskeyStatusWithInstance(note, account.instanceUrl);
+    });
+  }
+
   async uploadMedia(account: Account, file: File): Promise<string> {
     const formData = new FormData();
     formData.append("i", account.accessToken);
@@ -336,6 +360,10 @@ export class MisskeyHttpClient implements MastodonApi {
       throw new Error("업로드된 미디어 정보를 찾을 수 없습니다.");
     }
     return id;
+  }
+
+  async fetchThreadContext(account: Account, statusId: string): Promise<ThreadContext> {
+    return this.fetchConversation(account, statusId);
   }
 
   async fetchConversation(account: Account, noteId: string): Promise<ThreadContext> {
@@ -421,23 +449,22 @@ export class MisskeyHttpClient implements MastodonApi {
   }
 
   async favourite(account: Account, statusId: string): Promise<Status> {
-    try {
-      await this.postSimple(account, "/api/notes/reactions/create", {
-        noteId: statusId,
-        reaction: DEFAULT_REACTION
-      });
-    } catch {
-      await this.postSimple(account, "/api/notes/favorites/create", { noteId: statusId });
-    }
+    await this.postSimple(account, "/api/notes/favorites/create", { noteId: statusId });
+    return this.fetchNote(account, statusId);
+  }
+
+  async bookmark(account: Account, statusId: string): Promise<Status> {
+    await this.postSimple(account, "/api/notes/favorites/create", { noteId: statusId });
+    return this.fetchNote(account, statusId);
+  }
+
+  async unbookmark(account: Account, statusId: string): Promise<Status> {
+    await this.postSimple(account, "/api/notes/favorites/delete", { noteId: statusId });
     return this.fetchNote(account, statusId);
   }
 
   async unfavourite(account: Account, statusId: string): Promise<Status> {
-    try {
-      await this.postSimple(account, "/api/notes/reactions/delete", { noteId: statusId });
-    } catch {
-      await this.postSimple(account, "/api/notes/favorites/delete", { noteId: statusId });
-    }
+    await this.postSimple(account, "/api/notes/favorites/delete", { noteId: statusId });
     return this.fetchNote(account, statusId);
   }
 
@@ -452,6 +479,77 @@ export class MisskeyHttpClient implements MastodonApi {
   async deleteReaction(account: Account, statusId: string): Promise<Status> {
     await this.postSimple(account, "/api/notes/reactions/delete", { noteId: statusId });
     return this.fetchNote(account, statusId);
+  }
+
+  async fetchNoteState(
+    account: Account,
+    noteId: string
+  ): Promise<{ isFavourited: boolean; isReblogged: boolean; bookmarked: boolean }> {
+    const response = await fetch(`${normalizeInstanceUrl(account.instanceUrl)}/api/notes/state`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(buildBody(account, { noteId }))
+    });
+    if (!response.ok) {
+      throw new Error("게시물 상태를 불러오지 못했습니다.");
+    }
+    const state = (await response.json()) as Record<string, unknown>;
+    const isFavorited = Boolean(state.isFavorited ?? false);
+    const isReblogged = Boolean(state.isRenoted ?? state.isReblogged ?? false);
+    return {
+      isFavourited: isFavorited,
+      isReblogged,
+      bookmarked: isFavorited
+    };
+  }
+
+  async translateStatus(account: Account, statusId: string) {
+    const response = await fetch(`${normalizeInstanceUrl(account.instanceUrl)}/api/notes/translate`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(buildBody(account, { noteId: statusId }))
+    });
+    if (!response.ok) {
+      throw new Error("번역에 실패했습니다.");
+    }
+    const data = (await response.json()) as Record<string, unknown>;
+    const content =
+      typeof data.text === "string"
+        ? data.text
+        : typeof data.translatedText === "string"
+          ? data.translatedText
+          : typeof data.content === "string"
+            ? data.content
+            : typeof data.translation === "string"
+              ? data.translation
+              : "";
+    if (!content) {
+      throw new Error("번역 결과를 확인할 수 없습니다.");
+    }
+    const sourceLanguage =
+      typeof data.sourceLang === "string"
+        ? data.sourceLang
+        : typeof data.detectedLanguage === "string"
+          ? data.detectedLanguage
+          : null;
+    const targetLanguage =
+      typeof data.targetLang === "string"
+        ? data.targetLang
+        : typeof data.targetLanguage === "string"
+          ? data.targetLanguage
+          : null;
+    const provider = typeof data.provider === "string" ? data.provider : null;
+    return {
+      content,
+      htmlContent: null,
+      sourceLanguage,
+      targetLanguage,
+      provider
+    };
   }
 
   async reblog(account: Account, statusId: string): Promise<Status> {

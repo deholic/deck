@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Account, Visibility } from "../../domain/types";
 import type { MastodonApi } from "../../services/MastodonApi";
+import type { ReplyingTo } from "../types/compose";
 import { useEmojiManager, type EmojiItem } from "../hooks/useEmojiManager";
 import { useImageZoom } from "../hooks/useImageZoom";
 import { useClickOutside } from "../hooks/useClickOutside";
@@ -49,7 +50,7 @@ export const ComposeBox = ({
     files: File[];
     spoilerText: string;
   }) => Promise<boolean>;
-  replyingTo: { id: string; summary: string } | null;
+  replyingTo: ReplyingTo | null;
   onCancelReply: () => void;
   mentionText: string | null;
   accountSelector?: React.ReactNode;
@@ -89,6 +90,8 @@ export const ComposeBox = ({
   const emojiToggleRef = useRef<HTMLButtonElement | null>(null);
   const cwToggleRef = useRef<HTMLButtonElement | null>(null);
   const emojiPanelRef = useRef<HTMLDivElement | null>(null);
+  const submitFocusTargetRef = useRef<"textarea" | "cw" | null>(null);
+  const skipReplyResetRef = useRef(false);
 
   // useImageZoom 훅 사용
   const {
@@ -264,6 +267,10 @@ export const ComposeBox = ({
       return;
     }
 
+    const activeElement = document.activeElement;
+    submitFocusTargetRef.current = activeElement === cwInputRef.current ? "cw" : "textarea";
+    const shouldKeepCwOpen = cwEnabled;
+
     setIsSubmitting(true);
     try {
       const ok = await onSubmit({
@@ -275,8 +282,9 @@ export const ComposeBox = ({
       });
       if (ok) {
         setText("");
-        setCwText("");
-        setCwEnabled(false);
+        if (shouldKeepCwOpen) {
+          skipReplyResetRef.current = true;
+        }
         setAttachments((current) => {
           current.forEach((item) => URL.revokeObjectURL(item.previewUrl));
           return [];
@@ -285,6 +293,14 @@ export const ComposeBox = ({
       }
     } finally {
       setIsSubmitting(false);
+      requestAnimationFrame(() => {
+        if (submitFocusTargetRef.current === "cw" && cwEnabled) {
+          cwInputRef.current?.focus();
+        } else {
+          textareaRef.current?.focus();
+        }
+        submitFocusTargetRef.current = null;
+      });
     }
   };
 
@@ -301,6 +317,26 @@ export const ComposeBox = ({
       });
     }
   }, [mentionText]);
+
+  useEffect(() => {
+    if (!replyingTo) {
+      if (skipReplyResetRef.current) {
+        skipReplyResetRef.current = false;
+        return;
+      }
+      setCwEnabled(false);
+      setCwText("");
+      return;
+    }
+    skipReplyResetRef.current = false;
+    if (!replyingTo.spoilerText) {
+      setCwEnabled(false);
+      setCwText("");
+      return;
+    }
+    setCwEnabled(true);
+    setCwText(replyingTo.spoilerText);
+  }, [replyingTo?.id, replyingTo?.spoilerText]);
 
   // 이모지 패널이 열리면 이모지 로드
   useEffect(() => {

@@ -186,6 +186,14 @@
   --color-pomodoro-focus: #ff6347;
   --color-pomodoro-break: #22c55e;
   --color-pomodoro-long-break: #3b82f6;
+  --height-app-paddingY: 16px;
+  --height-app-container: calc(100vh - var(--height-app-paddingY) * 2 - 10px); /* 10px은 브라우저 스크롤바 여유 공간 */
+  --height-panel-paddingY: 16px;
+  --height-timeline-column: calc(var(--height-app-container) - var(--height-panel-paddingY) * 2 - var(--height-timeline-column-paddingY) * 2);
+  --height-timeline-column-paddingY: 12px;
+  --height-timeline-column-gap: 12px;
+  --height-timeline-header: 48px;
+  --height-timeline-column-body: calc(var(--height-timeline-column) - var(--height-timeline-column-gap) - var(--height-timeline-header));
 }
 
 :root[data-color-scheme="light"] {
@@ -238,8 +246,5 @@ html,
 body,
 #root {
   height: 100%;
-}
-
-body {
   margin: 0;
 }

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Account, ReactionInput, Status, TimelineType } from "../../domain/types";
+import type { SectionDisplaySettings } from "../types/section";
 import type { AccountsState, AppServices } from "../state/AppContext";
 import { useTimeline } from "../hooks/useTimeline";
 import { useClickOutside } from "../hooks/useClickOutside";
@@ -9,7 +10,12 @@ import { TimelineItem } from "./TimelineItem";
 import { formatHandle, normalizeInstanceUrl } from "../utils/account";
 import { getTimelineLabel, getTimelineOptions } from "../utils/timeline";
 
-export type TimelineSectionConfig = { id: string; accountId: string | null; timelineType: TimelineType };
+export type TimelineSectionConfig = {
+  id: string;
+  accountId: string | null;
+  timelineType: TimelineType;
+  settings: SectionDisplaySettings;
+};
 
 type TimelineSectionProps = {
   section: TimelineSectionConfig;
@@ -22,27 +28,31 @@ type TimelineSectionProps = {
   onAddSectionRight: (sectionId: string) => void;
   onRemoveSection: (sectionId: string) => void;
   onReply: (status: Status, account: Account | null) => void;
-  onStatusClick: (status: Status, columnAccount: Account | null) => void;
+  onStatusClick: (status: Status, columnAccount: Account | null, settings: SectionDisplaySettings) => void;
   onReact: (account: Account | null, status: Status, reaction: ReactionInput) => void;
-  onProfileClick: (status: Status, account: Account | null) => void;
+  onProfileClick: (status: Status, account: Account | null, settings: SectionDisplaySettings) => void;
   onError: (message: string | null) => void;
   onMoveSection: (sectionId: string, direction: "left" | "right") => void;
   onScrollToSection: (sectionId: string) => void;
   onCloseStatusModal: () => void;
   onTimelineItemsChange: (sectionId: string, items: Status[]) => void;
   onSelectStatus: (sectionId: string, statusId: string) => void;
+  onUpdateSectionSettings: (sectionId: string, updates: Partial<SectionDisplaySettings>) => void;
   canMoveLeft: boolean;
   canMoveRight: boolean;
   canRemoveSection: boolean;
   timelineType: TimelineType;
-  showProfileImage: boolean;
-  showCustomEmojis: boolean;
-  showReactions: boolean;
   registerTimelineListener: (accountId: string, listener: (status: Status) => void) => void;
   unregisterTimelineListener: (accountId: string, listener: (status: Status) => void) => void;
   registerTimelineShortcutHandler: (sectionId: string, handler: ((event: KeyboardEvent) => boolean) | null) => void;
   columnRef?: React.Ref<HTMLDivElement>;
   selectedStatusId: string | null;
+};
+
+const SECTION_SIZE_MAP: Record<SectionDisplaySettings["sectionSize"], { width: number; maxWidth: number }> = {
+  small: { width: 440, maxWidth: 520 },
+  medium: { width: 550, maxWidth: 650 },
+  large: { width: 660, maxWidth: 780 }
 };
 
 const TimelineIcon = ({ timeline }: { timeline: TimelineType | string }) => {
@@ -133,12 +143,10 @@ export const TimelineSection = ({
   canMoveRight,
   canRemoveSection,
   timelineType,
-  showProfileImage,
-  showCustomEmojis,
-  showReactions,
   registerTimelineListener,
   unregisterTimelineListener,
   registerTimelineShortcutHandler,
+  onUpdateSectionSettings,
   columnRef,
   selectedStatusId
 }: TimelineSectionProps) => {
@@ -160,6 +168,7 @@ export const TimelineSection = ({
   const menuRef = useRef<HTMLDivElement | null>(null);
   const timelineMenuRef = useRef<HTMLDivElement | null>(null);
   const notificationMenuRef = useRef<HTMLDivElement | null>(null);
+  const settingsPanelRef = useRef<HTMLDivElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const notificationScrollRef = useRef<HTMLDivElement | null>(null);
   const accountSummaryRef = useRef<HTMLElement | null>(null);
@@ -167,11 +176,21 @@ export const TimelineSection = ({
   const [menuOpen, setMenuOpen] = useState(false);
   const [timelineMenuOpen, setTimelineMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
   const [isAtTop, setIsAtTop] = useState(true);
   const [highlightedTimelineIndex, setHighlightedTimelineIndex] = useState<number | null>(null);
   const [highlightedSectionMenuIndex, setHighlightedSectionMenuIndex] = useState<number | null>(null);
   const [highlightedNotificationIndex, setHighlightedNotificationIndex] = useState<number | null>(null);
+  const { showProfileImages, showCustomEmojis, showReactions, sectionSize } = section.settings;
+  const settingsIdPrefix = `section-settings-${section.id}`;
+  const columnStyle = useMemo(() => {
+    const sizeConfig = SECTION_SIZE_MAP[sectionSize];
+    return {
+      "--timeline-column-width": `${sizeConfig.width}px`,
+      "--timeline-column-max-width": `${sizeConfig.maxWidth}px`
+    } as React.CSSProperties;
+  }, [sectionSize]);
   const { showToast } = useToast();
   const timelineOptions = useMemo(() => getTimelineOptions(account?.platform, false), [account?.platform]);
   const actionableTimelineOptions = useMemo(
@@ -222,7 +241,8 @@ export const TimelineSection = ({
     api: services.api,
     streaming: services.streaming,
     timelineType,
-    onNotification: handleNotification
+    onNotification: handleNotification,
+    pauseUpdates: !isAtTop
   });
   const actionsDisabled = timelineType === "notifications" || timelineType === "bookmarks";
   const emptyMessage = timelineType === "notifications"
@@ -230,6 +250,9 @@ export const TimelineSection = ({
     : timelineType === "bookmarks"
       ? "북마크한 글이 없습니다."
       : "표시할 글이 없습니다.";
+  const pendingCount = timeline.pendingCount ?? 0;
+  const pendingCountLabel = pendingCount >= 99 ? "99+" : String(pendingCount);
+  const hasPendingUpdates = pendingCount > 0 && !isAtTop;
 
   useEffect(() => {
     onTimelineItemsChange(section.id, timeline.items);
@@ -276,6 +299,8 @@ export const TimelineSection = ({
   useClickOutside(timelineMenuRef, timelineMenuOpen, () => setTimelineMenuOpen(false));
 
   useClickOutside(notificationMenuRef, notificationsOpen, () => setNotificationsOpen(false));
+
+  useClickOutside(settingsPanelRef, settingsOpen, () => setSettingsOpen(false));
 
   useEffect(() => {
     if (!timelineMenuOpen) {
@@ -459,10 +484,16 @@ export const TimelineSection = ({
     }
   };
 
-  const scrollToTop = () => {
+  const scrollToTop = (behavior: ScrollBehavior = "smooth") => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTo({ top: 0, behavior: "smooth" });
+      scrollRef.current.scrollTo({ top: 0, behavior });
     }
+  };
+
+  const handleShowPending = () => {
+    timeline.flushPending();
+    setIsAtTop(true);
+    scrollToTop("auto");
   };
 
   const handleOpenInstanceOrigin = useCallback(() => {
@@ -486,6 +517,11 @@ export const TimelineSection = ({
         if (menuOpen) {
           event.preventDefault();
           setMenuOpen(false);
+          return true;
+        }
+        if (settingsOpen) {
+          event.preventDefault();
+          setSettingsOpen(false);
           return true;
         }
         if (notificationsOpen) {
@@ -568,7 +604,7 @@ export const TimelineSection = ({
         const status = notificationItems[highlightedNotificationIndex];
         if (status) {
           event.preventDefault();
-          onStatusClick(status, account);
+          onStatusClick(status, account, section.settings);
           return true;
         }
         return true;
@@ -660,12 +696,12 @@ export const TimelineSection = ({
       }
       if (key === "enter") {
         event.preventDefault();
-        onStatusClick(selectedStatus, account);
+        onStatusClick(selectedStatus, account, section.settings);
         return true;
       }
       if (key === "p") {
         event.preventDefault();
-        onProfileClick(selectedStatus, account);
+        onProfileClick(selectedStatus, account, section.settings);
         return true;
       }
       if (key === "a") {
@@ -693,6 +729,7 @@ export const TimelineSection = ({
         setTimelineMenuOpen(true);
         setMenuOpen(false);
         setNotificationsOpen(false);
+        setSettingsOpen(false);
         return true;
       }
       if (key === "g") {
@@ -704,6 +741,7 @@ export const TimelineSection = ({
         setNotificationsOpen((current) => !current);
         setTimelineMenuOpen(false);
         setMenuOpen(false);
+        setSettingsOpen(false);
         return true;
       }
       if (key === "m") {
@@ -711,6 +749,7 @@ export const TimelineSection = ({
         setMenuOpen(true);
         setTimelineMenuOpen(false);
         setNotificationsOpen(false);
+        setSettingsOpen(false);
         return true;
       }
       return false;
@@ -732,6 +771,8 @@ export const TimelineSection = ({
       onStatusClick,
       onTimelineChange,
       section.id,
+      section.settings,
+      settingsOpen,
       selectedStatusId,
       showReactions,
       timeline.items,
@@ -740,7 +781,7 @@ export const TimelineSection = ({
   );
 
   useEffect(() => {
-    if (!timelineMenuOpen && !notificationsOpen && !menuOpen) {
+    if (!timelineMenuOpen && !notificationsOpen && !menuOpen && !settingsOpen) {
       return;
     }
     const onKeyDown = (event: KeyboardEvent) => {
@@ -751,7 +792,7 @@ export const TimelineSection = ({
     };
     window.addEventListener("keydown", onKeyDown, { capture: true });
     return () => window.removeEventListener("keydown", onKeyDown, { capture: true });
-  }, [handleTimelineShortcuts, menuOpen, notificationsOpen, timelineMenuOpen]);
+  }, [handleTimelineShortcuts, menuOpen, notificationsOpen, settingsOpen, timelineMenuOpen]);
 
   useEffect(() => {
     registerTimelineShortcutHandler(section.id, handleTimelineShortcuts);
@@ -763,6 +804,7 @@ export const TimelineSection = ({
       className="timeline-column"
       ref={columnRef}
       data-section-id={section.id}
+      style={columnStyle}
     >
       <div className="timeline-column-header">
         <AccountSelector
@@ -789,6 +831,7 @@ export const TimelineSection = ({
                 setTimelineMenuOpen((current) => !current);
                 setMenuOpen(false);
                 setNotificationsOpen(false);
+                setSettingsOpen(false);
               }}
               disabled={!account}
               aria-label={timelineButtonLabel}
@@ -853,6 +896,7 @@ export const TimelineSection = ({
                 setMenuOpen(false);
                 setTimelineMenuOpen(false);
                 setNotificationsOpen((current) => !current);
+                setSettingsOpen(false);
               }}
               disabled={!account}
               aria-label={notificationBadgeLabel}
@@ -887,13 +931,13 @@ export const TimelineSection = ({
                   key={status.id}
                   status={status}
                             onReply={(item) => onReply(item, account)}
-                            onStatusClick={(currentStatus) => onStatusClick(currentStatus, account)}
+                            onStatusClick={(currentStatus) => onStatusClick(currentStatus, account, section.settings)}
                             onToggleFavourite={handleToggleFavourite}
                             onToggleReblog={handleToggleReblog}
                             onToggleBookmark={handleToggleBookmark}
                             onDelete={handleDeleteStatus}
                             onReact={handleReact}
-                            onProfileClick={(item) => onProfileClick(item, account)}
+                            onProfileClick={(item) => onProfileClick(item, account, section.settings)}
                             activeHandle={
                               account?.handle ? formatHandle(account.handle, account.instanceUrl) : account?.instanceUrl ?? ""
                             }
@@ -901,7 +945,7 @@ export const TimelineSection = ({
                             activeAccountUrl={account?.url ?? null}
                             account={account}
                             api={services.api}
-                            showProfileImage={showProfileImage}
+                            showProfileImage={showProfileImages}
                             showCustomEmojis={showCustomEmojis}
                             showReactions={showReactions}
                             disableActions
@@ -926,6 +970,7 @@ export const TimelineSection = ({
                 setMenuOpen((current) => !current);
                 setNotificationsOpen(false);
                 setTimelineMenuOpen(false);
+                setSettingsOpen(false);
               }}
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -952,6 +997,17 @@ export const TimelineSection = ({
                         label: "원본 서버에서 보기",
                         onClick: handleOpenInstanceOrigin,
                         disabled: !instanceOriginUrl
+                      },
+                      {
+                        label: "섹션 설정",
+                        onClick: () => {
+                          setMenuOpen(false);
+                          setSettingsOpen(true);
+                        },
+                        disabled: false
+                      },
+                      {
+                        type: "divider"
                       },
                       {
                         label: "왼쪽 섹션 추가",
@@ -996,6 +1052,51 @@ export const TimelineSection = ({
                       }
                     ]
                   ).map((item, index) => {
+                    if ("type" in item && item.type === "divider") {
+                      return <div key={`divider-${index}`} className="section-menu-divider" role="separator" />;
+                    }
+                    const icon = (() => {
+                      switch (item.label) {
+                        case "새로고침":
+                          return (
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path d="M20 11a8 8 0 1 1-3.5-5.9" />
+                              <path d="M21.5 2.5v6h-6" />
+                            </svg>
+                          );
+                        case "원본 서버에서 보기":
+                          return (
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path d="M4 5h16v10H4z" />
+                              <path d="M8 19h8" />
+                              <path d="M12 15v4" />
+                            </svg>
+                          );
+                        case "섹션 설정":
+                          return (
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path d="M4 6h16" />
+                              <circle cx="9" cy="6" r="2" />
+                              <path d="M4 12h16" />
+                              <circle cx="15" cy="12" r="2" />
+                              <path d="M4 18h16" />
+                              <circle cx="8" cy="18" r="2" />
+                            </svg>
+                          );
+                        case "왼쪽 섹션 추가":
+                          return null;
+                        case "왼쪽으로 이동":
+                          return null;
+                        case "오른쪽으로 이동":
+                          return null;
+                        case "오른쪽 섹션 추가":
+                          return null;
+                        case "섹션 삭제":
+                          return null;
+                        default:
+                          return null;
+                      }
+                    })();
                     const className = [
                       item.danger ? "danger" : "",
                       highlightedSectionMenuIndex === index ? "is-highlighted" : ""
@@ -1011,10 +1112,105 @@ export const TimelineSection = ({
                         onClick={item.onClick}
                         disabled={item.disabled}
                       >
-                        {item.label}
+                        {icon ? (
+                          <span
+                            className={`section-menu-icon${item.danger ? " is-danger" : ""}`}
+                            aria-hidden="true"
+                          >
+                            {icon}
+                          </span>
+                        ) : null}
+                        <span className="section-menu-label">{item.label}</span>
                       </button>
                     );
                   })}
+                </div>
+              </>
+            ) : null}
+            {settingsOpen ? (
+              <>
+                <div className="overlay-backdrop" aria-hidden="true" />
+                <div
+                  ref={settingsPanelRef}
+                  className="section-menu-panel section-settings-panel"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="섹션 설정"
+                >
+                  <div className="section-settings-item">
+                    <div className="section-settings-text">
+                      <strong id={`${settingsIdPrefix}-profile-label`}>프로필 이미지 표시</strong>
+                      <p id={`${settingsIdPrefix}-profile-hint`}>이 섹션에서만 프로필 이미지를 보여줍니다.</p>
+                    </div>
+                    <label className="switch">
+                      <input
+                        type="checkbox"
+                        checked={showProfileImages}
+                        aria-labelledby={`${settingsIdPrefix}-profile-label`}
+                        aria-describedby={`${settingsIdPrefix}-profile-hint`}
+                        onChange={(event) =>
+                          onUpdateSectionSettings(section.id, { showProfileImages: event.target.checked })
+                        }
+                      />
+                      <span className="slider" aria-hidden="true" />
+                    </label>
+                  </div>
+                  <div className="section-settings-item">
+                    <div className="section-settings-text">
+                      <strong id={`${settingsIdPrefix}-emoji-label`}>커스텀 이모지 표시</strong>
+                      <p id={`${settingsIdPrefix}-emoji-hint`}>사용자 이름과 본문에 커스텀 이모지를 표시합니다.</p>
+                    </div>
+                    <label className="switch">
+                      <input
+                        type="checkbox"
+                        checked={showCustomEmojis}
+                        aria-labelledby={`${settingsIdPrefix}-emoji-label`}
+                        aria-describedby={`${settingsIdPrefix}-emoji-hint`}
+                        onChange={(event) =>
+                          onUpdateSectionSettings(section.id, { showCustomEmojis: event.target.checked })
+                        }
+                      />
+                      <span className="slider" aria-hidden="true" />
+                    </label>
+                  </div>
+                  <div className="section-settings-item">
+                    <div className="section-settings-text">
+                      <strong id={`${settingsIdPrefix}-reaction-label`}>리액션 표시</strong>
+                      <p id={`${settingsIdPrefix}-reaction-hint`}>리액션을 지원하는 서버에서 받은 리액션을 보여줍니다.</p>
+                    </div>
+                    <label className="switch">
+                      <input
+                        type="checkbox"
+                        checked={showReactions}
+                        aria-labelledby={`${settingsIdPrefix}-reaction-label`}
+                        aria-describedby={`${settingsIdPrefix}-reaction-hint`}
+                        onChange={(event) =>
+                          onUpdateSectionSettings(section.id, { showReactions: event.target.checked })
+                        }
+                      />
+                      <span className="slider" aria-hidden="true" />
+                    </label>
+                  </div>
+                  <div className="section-settings-item">
+                    <div className="section-settings-text">
+                      <strong>섹션 폭</strong>
+                      <p>이 섹션의 가로 폭을 조절합니다.</p>
+                    </div>
+                    <select
+                      className="section-settings-select"
+                      value={sectionSize}
+                      onChange={(event) =>
+                        onUpdateSectionSettings(section.id, {
+                          sectionSize: event.target.value as SectionDisplaySettings["sectionSize"]
+                        })
+                      }
+                      aria-label="섹션 폭 설정"
+                    >
+                      <option value="small">소</option>
+                      <option value="medium">중</option>
+                      <option value="large">대</option>
+                    </select>
+                  </div>
                 </div>
               </>
             ) : null}
@@ -1022,6 +1218,23 @@ export const TimelineSection = ({
         </div>
       </div>
       <div className="timeline-column-body" ref={scrollRef}>
+        {hasPendingUpdates ? (
+          <>
+            <span className="sr-only" aria-live="polite">
+              새 글 {pendingCountLabel}개가 새로 도착했습니다.
+            </span>
+            <button
+              type="button"
+              className="timeline-pending-banner"
+              onClick={handleShowPending}
+              aria-label={`새 글 ${pendingCountLabel}개 표시`}
+              title="새 글 표시"
+            >
+              <span>새 글 {pendingCountLabel}개</span>
+              <span className="timeline-pending-action">보기</span>
+            </button>
+          </>
+        ) : null}
         {!account ? <p className="empty">계정을 선택하면 타임라인을 불러옵니다.</p> : null}
         {account && timeline.items.length === 0 && !timeline.loading ? (
           <p className="empty">{emptyMessage}</p>
@@ -1033,7 +1246,7 @@ export const TimelineSection = ({
                 key={status.id}
                 status={status}
                 onReply={(item) => onReply(item, account)}
-                onStatusClick={(currentStatus) => onStatusClick(currentStatus, account)}
+                onStatusClick={(currentStatus) => onStatusClick(currentStatus, account, section.settings)}
                   onSelect={(statusId) => onSelectStatus(section.id, statusId)}
                   isSelected={selectedStatusId === status.id}
                   onUpdateStatus={timeline.updateItem}
@@ -1042,7 +1255,7 @@ export const TimelineSection = ({
                 onToggleBookmark={handleToggleBookmark}
                 onDelete={handleDeleteStatus}
                 onReact={handleReact}
-                onProfileClick={(item) => onProfileClick(item, account)}
+                onProfileClick={(item) => onProfileClick(item, account, section.settings)}
                 activeHandle={
                   account?.handle ? formatHandle(account.handle, account.instanceUrl) : account?.instanceUrl ?? ""
                 }
@@ -1050,7 +1263,7 @@ export const TimelineSection = ({
                 activeAccountUrl={account?.url ?? null}
                 account={account}
                 api={services.api}
-                showProfileImage={showProfileImage}
+                showProfileImage={showProfileImages}
                 showCustomEmojis={showCustomEmojis}
                 showReactions={showReactions}
                 disableActions={actionsDisabled}
@@ -1063,7 +1276,7 @@ export const TimelineSection = ({
       <button
         type="button"
         className="icon-button scroll-top-fab"
-        onClick={scrollToTop}
+        onClick={() => scrollToTop()}
         disabled={isAtTop}
         aria-label="최상단으로 이동"
         title="최상단으로 이동"

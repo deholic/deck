@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Account, CustomEmoji, LinkCard, MediaAttachment, Mention, ReactionInput, Status } from "../../domain/types";
-import type { MastodonApi } from "../../services/MastodonApi";
+import type { MastodonApi, StatusTranslation } from "../../services/MastodonApi";
 import { sanitizeHtml } from "../utils/htmlSanitizer";
 import { renderMarkdown } from "../utils/markdown";
 import { renderTextWithLinks, type MentionLink } from "../utils/linkify";
@@ -51,6 +51,38 @@ const extractFirstUrl = (text: string): string | null => {
     return value;
   }
   return `https://${value}`;
+};
+
+const decodeHtmlEntities = (value: string): string => {
+  const decodeCodePoint = (match: string, input: string, radix: number): string => {
+    const codePoint = Number.parseInt(input, radix);
+    if (!Number.isFinite(codePoint) || codePoint < 0 || codePoint > 0x10ffff) {
+      return match;
+    }
+    try {
+      return String.fromCodePoint(codePoint);
+    } catch {
+      return match;
+    }
+  };
+
+  return value
+    .replace(/&#(\d+);/g, (match, decimal) => decodeCodePoint(match, decimal, 10))
+    .replace(/&#x([0-9a-fA-F]+);/g, (match, hexadecimal) => decodeCodePoint(match, hexadecimal, 16))
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+};
+
+const normalizePreviewText = (value: string | null | undefined): string | null => {
+  if (!value) {
+    return null;
+  }
+  const decoded = decodeHtmlEntities(value);
+  const normalized = decoded.replace(/\s+/g, " ").trim();
+  return normalized || null;
 };
 
 const MediaVideo = ({
@@ -336,9 +368,13 @@ export const TimelineItem = ({
   const [menuOpen, setMenuOpen] = useState(false);
   const [favouriteState, setFavouriteState] = useState<boolean | null>(false);
   const [previewCard, setPreviewCard] = useState<LinkCard | null>(displayStatus.card ?? null);
+  const [translation, setTranslation] = useState<StatusTranslation | null>(null);
+  const [translationError, setTranslationError] = useState<string | null>(null);
+  const [isTranslating, setIsTranslating] = useState(false);
   const imageContainerRef = useRef<HTMLDivElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const translationRequestId = useRef(0);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { showToast } = useToast();
   const handleSelect = useCallback(
@@ -380,6 +416,67 @@ export const TimelineItem = ({
       }
     }
   }, [menuOpen, account, api, displayStatus.id]);
+
+  const canTranslate = Boolean(displayStatus.content || displayStatus.htmlContent);
+  const isTranslationVisible = Boolean(translation);
+
+  const handleTranslate = useCallback(() => {
+    if (!account) {
+      return;
+    }
+    setMenuOpen(false);
+
+    if (!canTranslate) {
+      showToast("번역할 내용이 없습니다.", { tone: "error" });
+      return;
+    }
+
+    if (isTranslationVisible && !isTranslating) {
+      setTranslation(null);
+      setTranslationError(null);
+      return;
+    }
+
+    if (isTranslating) {
+      return;
+    }
+
+    const requestId = translationRequestId.current + 1;
+    translationRequestId.current = requestId;
+    setIsTranslating(true);
+    setTranslationError(null);
+
+    void (async () => {
+      try {
+        const result = await api.translateStatus(account, displayStatus.id);
+        if (translationRequestId.current !== requestId) {
+          return;
+        }
+        setTranslation(result);
+        showToast("번역이 완료되었습니다.", { tone: "success" });
+      } catch (error) {
+        if (translationRequestId.current !== requestId) {
+          return;
+        }
+        console.error("번역 실패:", error);
+        setTranslation(null);
+        setTranslationError("번역에 실패했습니다.");
+        showToast("번역에 실패했습니다.", { tone: "error" });
+      } finally {
+        if (translationRequestId.current === requestId) {
+          setIsTranslating(false);
+        }
+      }
+    })();
+  }, [
+    account,
+    api,
+    canTranslate,
+    displayStatus.id,
+    isTranslating,
+    isTranslationVisible,
+    showToast
+  ]);
 
   // useImageZoom 사용
   const {
@@ -439,6 +536,13 @@ export const TimelineItem = ({
   useEffect(() => {
     setPreviewCard(displayStatus.card ?? null);
   }, [displayStatus.card, displayStatus.id]);
+
+  useEffect(() => {
+    translationRequestId.current += 1;
+    setTranslation(null);
+    setTranslationError(null);
+    setIsTranslating(false);
+  }, [displayStatus.id]);
   const displayHandle = useMemo(() => {
     if (displayStatus.accountHandle.includes("@")) {
       return displayStatus.accountHandle;
@@ -947,99 +1051,121 @@ export const TimelineItem = ({
     return tokens;
   }, []);
 
+  const renderContentParts = useCallback(
+    (content: string, htmlContent: string | null | undefined, hasRichContent: boolean, keyPrefix: string) => {
+      const hasHtmlTags = htmlContent ? /<[^>]+>/g.test(htmlContent) : false;
 
-  const contentParts = useMemo(() => {
-    // Check if content actually contains HTML tags before rendering as HTML
-    const hasHtmlTags = displayStatus.htmlContent ? /<[^>]+>/g.test(displayStatus.htmlContent) : false;
-    
-    if (displayStatus.hasRichContent && hasHtmlTags) {
-      // Process HTML content to ensure custom emojis are properly rendered
-      let processedHtml = displayStatus.htmlContent || '';
-      
-      // If custom emojis should be shown and we have emoji data, replace any remaining shortcodes
-      if (showCustomEmojis && displayStatus.customEmojis.length > 0) {
-        const emojiMap = buildEmojiMap(displayStatus.customEmojis);
-        
-        // Replace any remaining :shortcode: patterns that weren't converted to <img> tags
-        processedHtml = processedHtml.replace(/:([a-zA-Z0-9_]+):/g, (match, shortcode) => {
-          const url = emojiMap.get(shortcode);
-          if (url) {
-            return `<img src="${url}" alt=":${shortcode}:" class="custom-emoji" loading="lazy" />`;
-          }
-          return match; // Keep original if no emoji found
-        });
-      }
-      
-      return (
-        <div 
-          dangerouslySetInnerHTML={{ __html: sanitizeHtml(processedHtml) }}
-          className="rich-content"
-          onClick={handleRichContentClick}
-        />
-      );
-    }
-    
-    if (account?.platform === "misskey") {
-      const emojiMap =
-        showCustomEmojis && displayStatus.customEmojis.length > 0
-          ? buildEmojiMap(displayStatus.customEmojis)
-          : undefined;
-      const markdownHtml = renderMarkdown(displayStatus.content, emojiMap, { mentionResolver: resolveMentionUrl });
-      return (
-        <div
-          dangerouslySetInnerHTML={{ __html: sanitizeHtml(markdownHtml) }}
-          className="rich-content"
-          onClick={handleRichContentClick}
-        />
-      );
-    }
+      if (hasRichContent && hasHtmlTags) {
+        let processedHtml = htmlContent || "";
 
-    // Fallback to plain text with link detection
-    const text = displayStatus.content;
-    if (!showCustomEmojis || displayStatus.customEmojis.length === 0) {
-      return renderTextWithLinks(text, "content", {
-        mentionResolver: resolveMention,
-        onMentionClick: handleMentionClick
-      });
-    }
-    const emojiMap = buildEmojiMap(displayStatus.customEmojis);
-    const tokens = tokenizeWithEmojis(text, emojiMap);
-    const parts: React.ReactNode[] = [];
-    tokens.forEach((token, index) => {
-      if (token.type === "text") {
-        parts.push(
-          ...renderTextWithLinks(token.value, `content-${index}`, {
-            mentionResolver: resolveMention,
-            onMentionClick: handleMentionClick
-          })
-        );
-      } else {
-        parts.push(
-          <img
-            key={`content-emoji-${index}`}
-            src={token.url}
-            alt={`:${token.name}:`}
-            className="custom-emoji"
-            loading="lazy"
+        if (showCustomEmojis && displayStatus.customEmojis.length > 0) {
+          const emojiMap = buildEmojiMap(displayStatus.customEmojis);
+          processedHtml = processedHtml.replace(/:([a-zA-Z0-9_]+):/g, (match, shortcode) => {
+            const url = emojiMap.get(shortcode);
+            if (url) {
+              return `<img src="${url}" alt=":${shortcode}:" class="custom-emoji" loading="lazy" />`;
+            }
+            return match;
+          });
+        }
+
+        return (
+          <div
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(processedHtml) }}
+            className="rich-content"
+            onClick={handleRichContentClick}
           />
         );
       }
-    });
-    return parts;
-  }, [
-    buildEmojiMap,
-    account?.platform,
-    displayStatus.content,
-    displayStatus.customEmojis,
-    displayStatus.hasRichContent,
-    displayStatus.htmlContent,
-    handleMentionClick,
-    handleRichContentClick,
-    resolveMention,
-    resolveMentionUrl,
-    showCustomEmojis,
-    tokenizeWithEmojis
-  ]);
+
+      if (account?.platform === "misskey") {
+        const emojiMap =
+          showCustomEmojis && displayStatus.customEmojis.length > 0
+            ? buildEmojiMap(displayStatus.customEmojis)
+            : undefined;
+        const markdownHtml = renderMarkdown(content, emojiMap, { mentionResolver: resolveMentionUrl });
+        return (
+          <div
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(markdownHtml) }}
+            className="rich-content"
+            onClick={handleRichContentClick}
+          />
+        );
+      }
+
+      if (!showCustomEmojis || displayStatus.customEmojis.length === 0) {
+        return renderTextWithLinks(content, keyPrefix, {
+          mentionResolver: resolveMention,
+          onMentionClick: handleMentionClick
+        });
+      }
+      const emojiMap = buildEmojiMap(displayStatus.customEmojis);
+      const tokens = tokenizeWithEmojis(content, emojiMap);
+      const parts: React.ReactNode[] = [];
+      tokens.forEach((token, index) => {
+        if (token.type === "text") {
+          parts.push(
+            ...renderTextWithLinks(token.value, `${keyPrefix}-${index}`, {
+              mentionResolver: resolveMention,
+              onMentionClick: handleMentionClick
+            })
+          );
+        } else {
+          parts.push(
+            <img
+              key={`${keyPrefix}-emoji-${index}`}
+              src={token.url}
+              alt={`:${token.name}:`}
+              className="custom-emoji"
+              loading="lazy"
+            />
+          );
+        }
+      });
+      return parts;
+    },
+    [
+      account?.platform,
+      buildEmojiMap,
+      displayStatus.customEmojis,
+      handleMentionClick,
+      handleRichContentClick,
+      resolveMention,
+      resolveMentionUrl,
+      showCustomEmojis,
+      tokenizeWithEmojis
+    ]
+  );
+
+  const contentParts = useMemo(
+    () => renderContentParts(displayStatus.content, displayStatus.htmlContent, displayStatus.hasRichContent, "content"),
+    [displayStatus.content, displayStatus.hasRichContent, displayStatus.htmlContent, renderContentParts]
+  );
+
+  const translationParts = useMemo(() => {
+    if (!translation) {
+      return null;
+    }
+    const hasRichContent = Boolean(translation.htmlContent);
+    return renderContentParts(translation.content, translation.htmlContent, hasRichContent, "translation");
+  }, [renderContentParts, translation]);
+
+  const translationMeta = useMemo(() => {
+    if (!translation) {
+      return null;
+    }
+    const items: string[] = [];
+    if (translation.sourceLanguage) {
+      items.push(`감지 언어: ${translation.sourceLanguage}`);
+    }
+    if (translation.targetLanguage) {
+      items.push(`번역 대상: ${translation.targetLanguage}`);
+    }
+    if (translation.provider) {
+      items.push(`제공: ${translation.provider}`);
+    }
+    return items.length > 0 ? items : null;
+  }, [translation]);
 
   const accountLabel = displayStatus.accountName || displayStatus.accountHandle;
   const accountNameNode = useMemo(() => {
@@ -1209,14 +1335,16 @@ export const TimelineItem = ({
         const data = (await response.json()) as
           | { url?: string; title?: string; description?: string | null; image?: string | null; error?: string }
           | undefined;
-        if (!data || data.error || !data.title || !data.url) {
+        const title = normalizePreviewText(data?.title);
+        const description = normalizePreviewText(data?.description);
+        if (!data || data.error || !title || !data.url) {
           previewCache.set(previewCandidate, null);
           return;
         }
         const card: LinkCard = {
           url: data.url,
-          title: data.title,
-          description: data.description ?? null,
+          title,
+          description,
           image: data.image ?? null
         };
         previewCache.set(previewCandidate, card);
@@ -1386,24 +1514,38 @@ export const TimelineItem = ({
                       setMenuOpen(false);
 
                       void (async () => {
+                        const previousState = favouriteState;
+                        if (previousState === null) {
+                          return;
+                        }
+                        const nextState = !previousState;
                         try {
-                          if (favouriteState) {
+                          if (previousState) {
                             await api.unfavourite(account, displayStatus.id);
                           } else {
                             await api.favourite(account, displayStatus.id);
                           }
-
-                          const state = await api.fetchNoteState(account, displayStatus.id);
-                          const newFavouriteState = state.isFavourited;
-                          setFavouriteState(newFavouriteState);
-                          showToast(
-                            newFavouriteState ? "즐겨찾기에 추가했습니다." : "즐겨찾기에서 해제했습니다.",
-                            { tone: "success" }
-                          );
+                          setFavouriteState(nextState);
                         } catch (error) {
                           console.error("즐겨찾기 처리 실패:", error);
+                          setFavouriteState(previousState);
                           showToast("즐겨찾기 처리에 실패했습니다.", { tone: "error" });
+                          return;
                         }
+                        let finalState = nextState;
+                        try {
+                          const state = await api.fetchNoteState(account, displayStatus.id);
+                          if (state.isFavourited !== nextState) {
+                            setFavouriteState(state.isFavourited);
+                            finalState = state.isFavourited;
+                          }
+                        } catch (error) {
+                          console.error("즐겨찾기 상태 확인 실패:", error);
+                        }
+                        showToast(
+                          finalState ? "즐겨찾기에 추가했습니다." : "즐겨찾기에서 해제했습니다.",
+                          { tone: "success" }
+                        );
                       })();
                     }}
                   >
@@ -1421,6 +1563,21 @@ export const TimelineItem = ({
                     {displayStatus.bookmarked ? "북마크 취소" : "북마크"}
                   </button>
                 )}
+                {account ? (
+                  <button
+                    type="button"
+                    onClick={handleTranslate}
+                    disabled={isTranslating || !canTranslate}
+                  >
+                    {isTranslating
+                      ? "번역 중..."
+                      : isTranslationVisible
+                        ? "번역 숨기기"
+                        : translationError
+                          ? "번역 다시하기"
+                          : "번역"}
+                  </button>
+                ) : null}
                 <button type="button" onClick={handleOpenOrigin} disabled={!originUrl}>
                   원본 서버에서 보기
                 </button>
@@ -1439,7 +1596,35 @@ export const TimelineItem = ({
       ) : null}
       {showContent ? (
         <>
-          <p className="status-text">{displayStatus.content ? contentParts : "(내용 없음)"}</p>
+          <div className="status-text">{displayStatus.content ? contentParts : "(내용 없음)"}</div>
+          {translation ? (
+            <div className="status-translation" role="region" aria-label="번역 결과">
+              <div className="status-translation-header">
+                <span>번역</span>
+                <button
+                  type="button"
+                  className="text-link"
+                  onClick={() => {
+                    setTranslation(null);
+                    setTranslationError(null);
+                  }}
+                  aria-label="번역 숨기기"
+                >
+                  번역 숨기기
+                </button>
+              </div>
+              <div className="status-translation-content">
+                {translationParts ?? "(내용 없음)"}
+              </div>
+              {translationMeta ? (
+                <div className="status-translation-meta">
+                  {translationMeta.map((item) => (
+                    <span key={item}>{item}</span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           {previewCard ? (
             <a
               className={`link-preview${previewCard.image ? "" : " no-image"}`}

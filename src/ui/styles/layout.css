@@ -1,6 +1,6 @@
 .app {
-  padding: 16px 32px 8px;
-  min-height: 100%;
+  padding: var(--height-app-paddingY) 16px;
+  min-height: var(--height-app-container);
 }
 
 .app-header {
@@ -81,9 +81,8 @@
 .layout {
   display: grid;
   grid-template-columns: minmax(260px, 320px) 1fr;
-  gap: 24px;
+  gap: 16px;
   align-items: start;
-  min-height: calc(100vh - 24px);
 }
 
 .layout.layout-empty {
@@ -102,7 +101,7 @@ aside {
   background: var(--color-panel-bg);
   border: 1px solid var(--color-panel-border);
   border-radius: 16px;
-  padding: 16px;
+  padding: var(--height-panel-paddingY) 16px;
   box-shadow: var(--shadow-panel);
   position: relative;
 }
@@ -183,7 +182,6 @@ aside {
   flex-direction: column;
   gap: 24px;
   overflow: hidden;
-  min-height: 100%;
 }
 
 .mobile-blocker {
@@ -283,10 +281,6 @@ aside {
 
   aside {
     display: none;
-  }
-
-  .main-column {
-    gap: 12px;
   }
 
   .panel,

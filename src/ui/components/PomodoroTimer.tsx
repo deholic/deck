@@ -130,6 +130,8 @@ export const PomodoroTimer = ({
     }
   });
   const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null);
+  const [draggingTodoId, setDraggingTodoId] = useState<string | null>(null);
+  const [dragOverTodoId, setDragOverTodoId] = useState<string | null>(null);
   const todoListRef = useRef<HTMLDivElement | null>(null);
   const todoInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -461,6 +463,55 @@ export const PomodoroTimer = ({
 
   const displayedTodos = useMemo(() => todoItems, [todoItems]);
 
+  const moveTodoByIndex = useCallback((fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) {
+      return;
+    }
+    setTodoItems((prev) => {
+      if (fromIndex < 0 || toIndex < 0 || fromIndex >= prev.length || toIndex >= prev.length) {
+        return prev;
+      }
+      const next = [...prev];
+      const [movedItem] = next.splice(fromIndex, 1);
+      if (!movedItem) {
+        return prev;
+      }
+      next.splice(toIndex, 0, movedItem);
+      return next;
+    });
+  }, []);
+
+  const moveTodoById = useCallback((draggedId: string, targetId: string) => {
+    if (draggedId === targetId) {
+      return;
+    }
+    const fromIndex = displayedTodos.findIndex((item) => item.id === draggedId);
+    const toIndex = displayedTodos.findIndex((item) => item.id === targetId);
+    if (fromIndex === -1 || toIndex === -1) {
+      return;
+    }
+    moveTodoByIndex(fromIndex, toIndex);
+  }, [displayedTodos, moveTodoByIndex]);
+
+  const moveSelectedTodo = useCallback(
+    (direction: "up" | "down") => {
+      if (!selectedTodoId) {
+        return false;
+      }
+      const currentIndex = displayedTodos.findIndex((item) => item.id === selectedTodoId);
+      if (currentIndex === -1) {
+        return false;
+      }
+      const nextIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+      if (nextIndex < 0 || nextIndex >= displayedTodos.length) {
+        return false;
+      }
+      moveTodoByIndex(currentIndex, nextIndex);
+      return true;
+    },
+    [displayedTodos, moveTodoByIndex, selectedTodoId]
+  );
+
   const selectTodo = useCallback(
     (id: string) => {
       setSelectedTodoId(id);
@@ -468,6 +519,52 @@ export const PomodoroTimer = ({
     },
     [onRequestClearTimelineSelection]
   );
+
+  const handleTodoDragStart = useCallback(
+    (event: React.DragEvent<HTMLDivElement>, id: string) => {
+      setDraggingTodoId(id);
+      setDragOverTodoId(id);
+      setSelectedTodoId(id);
+      onRequestClearTimelineSelection?.();
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", id);
+    },
+    [onRequestClearTimelineSelection]
+  );
+
+  const handleTodoDragOver = useCallback(
+    (event: React.DragEvent<HTMLDivElement>, id: string) => {
+      if (!draggingTodoId) {
+        return;
+      }
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+      if (draggingTodoId !== id && dragOverTodoId !== id) {
+        setDragOverTodoId(id);
+      }
+    },
+    [dragOverTodoId, draggingTodoId]
+  );
+
+  const handleTodoDrop = useCallback(
+    (event: React.DragEvent<HTMLDivElement>, targetId: string) => {
+      event.preventDefault();
+      const draggedId = draggingTodoId;
+      if (!draggedId) {
+        return;
+      }
+      moveTodoById(draggedId, targetId);
+      setSelectedTodoId(draggedId);
+      setDraggingTodoId(null);
+      setDragOverTodoId(null);
+    },
+    [draggingTodoId, moveTodoById]
+  );
+
+  const handleTodoDragEnd = useCallback(() => {
+    setDraggingTodoId(null);
+    setDragOverTodoId(null);
+  }, []);
 
   const handleTodoKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -508,6 +605,20 @@ export const PomodoroTimer = ({
         return;
       }
 
+      if (
+        (key === "ArrowUp" || key === "ArrowDown") &&
+        event.altKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.shiftKey
+      ) {
+        const moved = moveSelectedTodo(key === "ArrowUp" ? "up" : "down");
+        if (moved) {
+          event.preventDefault();
+        }
+        return;
+      }
+
       if (key === "ArrowRight") {
         if (!selectedTodoId || !onRequestSelectTimelineAtY) {
           return;
@@ -545,7 +656,7 @@ export const PomodoroTimer = ({
       event.preventDefault();
       selectTodo(displayedTodos[nextIndex].id);
     },
-    [displayedTodos, handleRemoveTodo, handleToggleTodo, onRequestSelectTimelineAtY, selectTodo, selectedTodoId]
+    [displayedTodos, handleRemoveTodo, handleToggleTodo, moveSelectedTodo, onRequestSelectTimelineAtY, selectTodo, selectedTodoId]
   );
 
   const handleTodoInputKeyDown = useCallback(
@@ -623,18 +734,24 @@ export const PomodoroTimer = ({
             ref={todoListRef}
             tabIndex={displayedTodos.length > 0 ? 0 : -1}
             onKeyDownCapture={handleTodoKeyDown}
-            title="↑/↓ 이동 · Space 완료 · D 삭제 · → 타임라인 이동 · ESC 선택 해제"
+            title="↑/↓ 이동 · Alt+↑/↓ 순서 변경 · Space 완료 · D 삭제 · → 타임라인 이동 · ESC 선택 해제"
           >
             {displayedTodos.map((item) => (
               <div
                 key={item.id}
                 data-todo-id={item.id}
-                className={`pomodoro-todo-item${item.completed ? " is-completed" : ""}${selectedTodoId === item.id ? " is-selected" : ""}`}
+                className={`pomodoro-todo-item${item.completed ? " is-completed" : ""}${selectedTodoId === item.id ? " is-selected" : ""}${draggingTodoId === item.id ? " is-dragging" : ""}${dragOverTodoId === item.id && draggingTodoId !== item.id ? " is-drag-over" : ""}`}
                 aria-selected={selectedTodoId === item.id}
+                aria-grabbed={draggingTodoId === item.id}
+                draggable
                 onClick={() => {
                   selectTodo(item.id);
                   todoListRef.current?.focus();
                 }}
+                onDragStart={(event) => handleTodoDragStart(event, item.id)}
+                onDragOver={(event) => handleTodoDragOver(event, item.id)}
+                onDrop={(event) => handleTodoDrop(event, item.id)}
+                onDragEnd={handleTodoDragEnd}
               >
                 <input
                   type="checkbox"
