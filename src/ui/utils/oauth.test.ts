@@ -4,6 +4,7 @@ import {
   clearPendingOAuth,
   loadPendingOAuth,
   loadRegisteredApp,
+  type OAuthPending,
   saveRegisteredApp,
   storePendingOAuth
 } from "./oauth";
@@ -37,7 +38,7 @@ describe("oauth utils", () => {
   });
 
   it("stores and clears pending OAuth state", () => {
-    const pending = {
+    const pending: OAuthPending = {
       platform: "mastodon",
       instanceUrl: "https://social.example",
       clientId: "client",
