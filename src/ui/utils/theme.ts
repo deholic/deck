@@ -1,11 +1,20 @@
-export type ThemeMode = "default" | "christmas" | "sky-pink" | "monochrome" | "matcha-core";
+export type ThemeMode =
+  | "default"
+  | "christmas"
+  | "sky-pink"
+  | "monochrome"
+  | "matcha-core"
+  | "royal-purple"
+  | "summer-beach";
 
 export const isThemeMode = (value: string): value is ThemeMode =>
   value === "default" ||
   value === "christmas" ||
   value === "sky-pink" ||
   value === "monochrome" ||
-  value === "matcha-core";
+  value === "matcha-core" ||
+  value === "royal-purple" ||
+  value === "summer-beach";
 
 export const getStoredTheme = (): ThemeMode => {
   const storedTheme = localStorage.getItem("textodon.theme");
