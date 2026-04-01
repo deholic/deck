@@ -104,7 +104,7 @@ export const SettingsModal = ({
           <div className="settings-item">
             <div>
               <strong>테마</strong>
-              <p>기본, 크리스마스, 하늘핑크, 모노톤 테마를 선택합니다.</p>
+              <p>기본, 크리스마스, 하늘핑크, 모노톤, 말차코어, 로얄퍼플, 여름해변 테마를 선택합니다.</p>
             </div>
             <select
               value={themeMode}
@@ -118,6 +118,8 @@ export const SettingsModal = ({
               <option value="sky-pink">하늘핑크</option>
               <option value="monochrome">모노톤</option>
               <option value="matcha-core">말차코어</option>
+              <option value="royal-purple">로얄퍼플</option>
+              <option value="summer-beach">여름해변</option>
             </select>
           </div>
           <div className="settings-item">
