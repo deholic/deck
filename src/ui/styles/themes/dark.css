@@ -659,8 +659,8 @@
     --color-status-header: #d8c9e8;
     --color-app-header-text: #d8c9e8;
     --color-status-header-strong: #f1e9ff;
-    --color-status-meta: #e2bc69;
-    --color-status-time: #e2bc69;
+    --color-status-meta: #cdaa69;
+    --color-status-time: #cdaa69;
     --color-status-warning-bg: #21192f;
     --color-status-warning-text: #c9ade6;
     --color-status-link: #baa3f6;
@@ -674,7 +674,7 @@
     --color-reaction-active-bg: #251a37;
     --color-reaction-active-border: #3d2f53;
     --color-reaction-active-text: #f8f4ff;
-    --color-account-add-button-bg: #f5c84b;
+    --color-account-add-button-bg: #d8b062;
     --color-account-add-button-text: #2b1f06;
     --color-account-add-panel-bg: rgba(21, 16, 34, 0.9);
     --color-account-add-panel-text: #ede8f5;
@@ -736,7 +736,7 @@
 
     --color-attachment-add-border: #baa3f6;
     --color-attachment-add-text: #d8c9e8;
-    --color-action-bg: #f5c84b;
+    --color-action-bg: #d8b062;
     --color-action-text: #2b1f06;
     --color-action-danger-bg: #b34762;
     --color-action-danger-text: #fff3f6;
@@ -748,7 +748,7 @@
     --color-brand-text: #d8c9e8;
     --color-oss-list: #d8c9e8;
     --color-sidebar-description-link: #baa3f6;
-    --color-sidebar-link: #e2bc69;
+    --color-sidebar-link: #cdaa69;
     --color-sidebar-divider: #3d2f53;
     --color-settings-item-border: #3d2f53;
     --color-settings-item-text: #d8c9e8;
@@ -757,8 +757,8 @@
     --color-status-modal-border: #3d2f53;
     --color-status-modal-divider: #3d2f53;
     --color-status-modal-title: #ede8f5;
-    --color-boosted-by: #e2bc69;
-    --color-notification-actor: #e2bc69;
+    --color-boosted-by: #cdaa69;
+    --color-notification-actor: #cdaa69;
     --color-reply-info: #c9ade6;
     --color-character-count-normal: #d8c9e8;
     --color-delete-button-bg: #b34762;
@@ -1549,8 +1549,8 @@
   --color-status-header: #d8c9e8;
   --color-app-header-text: #d8c9e8;
   --color-status-header-strong: #f1e9ff;
-  --color-status-meta: #e2bc69;
-  --color-status-time: #e2bc69;
+  --color-status-meta: #cdaa69;
+  --color-status-time: #cdaa69;
   --color-status-warning-bg: #21192f;
   --color-status-warning-text: #c9ade6;
   --color-status-link: #baa3f6;
@@ -1564,7 +1564,7 @@
   --color-reaction-active-bg: #251a37;
   --color-reaction-active-border: #3d2f53;
   --color-reaction-active-text: #f8f4ff;
-  --color-account-add-button-bg: #f5c84b;
+  --color-account-add-button-bg: #d8b062;
   --color-account-add-button-text: #2b1f06;
   --color-account-add-panel-bg: rgba(21, 16, 34, 0.9);
   --color-account-add-panel-text: #ede8f5;
@@ -1626,7 +1626,7 @@
 
   --color-attachment-add-border: #baa3f6;
   --color-attachment-add-text: #d8c9e8;
-  --color-action-bg: #f5c84b;
+  --color-action-bg: #d8b062;
   --color-action-text: #2b1f06;
   --color-action-danger-bg: #b34762;
   --color-action-danger-text: #fff3f6;
@@ -1638,7 +1638,7 @@
   --color-brand-text: #d8c9e8;
   --color-oss-list: #d8c9e8;
   --color-sidebar-description-link: #baa3f6;
-  --color-sidebar-link: #e2bc69;
+  --color-sidebar-link: #cdaa69;
   --color-sidebar-divider: #3d2f53;
   --color-settings-item-border: #3d2f53;
   --color-settings-item-text: #d8c9e8;
@@ -1647,8 +1647,8 @@
   --color-status-modal-border: #3d2f53;
   --color-status-modal-divider: #3d2f53;
   --color-status-modal-title: #ede8f5;
-  --color-boosted-by: #e2bc69;
-  --color-notification-actor: #e2bc69;
+  --color-boosted-by: #cdaa69;
+  --color-notification-actor: #cdaa69;
   --color-reply-info: #c9ade6;
   --color-character-count-normal: #d8c9e8;
   --color-delete-button-bg: #b34762;
