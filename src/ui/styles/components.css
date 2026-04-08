@@ -1682,7 +1682,7 @@ button.ghost {
   font-size: 15px;
   line-height: 1.5;
   white-space: pre-wrap;
-  user-select: none;
+  user-select: text;
 }
 
 .rich-content {
@@ -1690,7 +1690,7 @@ button.ghost {
   font-size: 15px;
   line-height: 1.5;
   white-space: pre-wrap;
-  user-select: none;
+  user-select: text;
 }
 
 .status-translation {
