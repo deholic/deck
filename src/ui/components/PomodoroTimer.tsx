@@ -599,6 +599,20 @@ export const PomodoroTimer = ({
     [cancelTodoEditing, editingTodoId, selectTodo, selectedTodoId]
   );
 
+  const handleTodoItemDoubleClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>, id: string) => {
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        target.closest(".pomodoro-todo-checkbox, .pomodoro-todo-remove")
+      ) {
+        return;
+      }
+      startTodoEditing(id);
+    },
+    [startTodoEditing]
+  );
+
   const handleTodoDragStart = useCallback(
     (event: React.DragEvent<HTMLDivElement>, id: string) => {
       setDraggingTodoId(id);
@@ -833,7 +847,7 @@ export const PomodoroTimer = ({
                 tabIndex={-1}
                 draggable
                 onClick={() => handleTodoItemClick(item.id)}
-                onDoubleClick={() => startTodoEditing(item.id)}
+                onDoubleClick={(event) => handleTodoItemDoubleClick(event, item.id)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
