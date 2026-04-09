@@ -130,6 +130,7 @@ export const PomodoroTimer = ({
     }
   });
   const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null);
+  const [editingTodoId, setEditingTodoId] = useState<string | null>(null);
   const [draggingTodoId, setDraggingTodoId] = useState<string | null>(null);
   const [dragOverTodoId, setDragOverTodoId] = useState<string | null>(null);
   const todoListRef = useRef<HTMLDivElement | null>(null);
@@ -179,13 +180,27 @@ export const PomodoroTimer = ({
   }, [selectedTodoId, todoItems]);
 
   useEffect(() => {
+    if (!editingTodoId) {
+      return;
+    }
+    if (!todoItems.some((item) => item.id === editingTodoId)) {
+      setEditingTodoId(null);
+      setTodoInput("");
+    }
+  }, [editingTodoId, todoItems]);
+
+  useEffect(() => {
     if (!isTimelineItemSelected) {
       return;
     }
     if (selectedTodoId) {
       setSelectedTodoId(null);
     }
-  }, [isTimelineItemSelected, selectedTodoId]);
+    if (editingTodoId) {
+      setEditingTodoId(null);
+      setTodoInput("");
+    }
+  }, [editingTodoId, isTimelineItemSelected, selectedTodoId]);
 
 
   const playNotificationSound = useCallback(() => {
@@ -422,9 +437,42 @@ export const PomodoroTimer = ({
     }
   }, [isBlinking]);
 
-  const handleAddTodo = useCallback(() => {
+  const cancelTodoEditing = useCallback(() => {
+    setEditingTodoId(null);
+    setTodoInput("");
+  }, []);
+
+  const startTodoEditing = useCallback(
+    (id: string) => {
+      const targetItem = todoItems.find((item) => item.id === id);
+      if (!targetItem) {
+        return;
+      }
+      setEditingTodoId(id);
+      setSelectedTodoId(id);
+      setTodoInput(targetItem.text);
+      onRequestClearTimelineSelection?.();
+      window.setTimeout(() => {
+        todoInputRef.current?.focus();
+        todoInputRef.current?.select();
+      }, 0);
+    },
+    [onRequestClearTimelineSelection, todoItems]
+  );
+
+  const handleSubmitTodo = useCallback(() => {
     const trimmed = todoInput.trim();
     if (!trimmed) {
+      return;
+    }
+    if (editingTodoId) {
+      setTodoItems((prev) =>
+        prev.map((item) =>
+          item.id === editingTodoId ? { ...item, text: trimmed } : item
+        )
+      );
+      setEditingTodoId(null);
+      setTodoInput("");
       return;
     }
     const nextItem: PomodoroTodoItem = {
@@ -434,7 +482,7 @@ export const PomodoroTimer = ({
     };
     setTodoItems((prev) => [...prev, nextItem]);
     setTodoInput("");
-  }, [todoInput]);
+  }, [editingTodoId, todoInput]);
 
   const handleToggleTodo = useCallback((id: string) => {
     setTodoItems((prev) =>
@@ -455,10 +503,14 @@ export const PomodoroTimer = ({
           const nextId = prev[index + 1]?.id ?? prev[index - 1]?.id ?? null;
           setSelectedTodoId(nextId);
         }
+        if (editingTodoId === id) {
+          setEditingTodoId(null);
+          setTodoInput("");
+        }
         return prev.filter((item) => item.id !== id);
       });
     },
-    [selectedTodoId]
+    [editingTodoId, selectedTodoId]
   );
 
   const displayedTodos = useMemo(() => todoItems, [todoItems]);
@@ -518,6 +570,33 @@ export const PomodoroTimer = ({
       onRequestClearTimelineSelection?.();
     },
     [onRequestClearTimelineSelection]
+  );
+
+  const handleTodoItemClick = useCallback(
+    (id: string) => {
+      const isSameSelectedItem = selectedTodoId === id;
+
+      if (editingTodoId === id) {
+        cancelTodoEditing();
+        setSelectedTodoId(null);
+        todoListRef.current?.focus();
+        return;
+      }
+
+      if (editingTodoId && editingTodoId !== id) {
+        cancelTodoEditing();
+      }
+
+      if (isSameSelectedItem) {
+        setSelectedTodoId(null);
+        todoListRef.current?.focus();
+        return;
+      }
+
+      selectTodo(id);
+      todoListRef.current?.focus();
+    },
+    [cancelTodoEditing, editingTodoId, selectTodo, selectedTodoId]
   );
 
   const handleTodoDragStart = useCallback(
@@ -583,6 +662,9 @@ export const PomodoroTimer = ({
         if (selectedTodoId) {
           event.preventDefault();
           setSelectedTodoId(null);
+        }
+        if (editingTodoId) {
+          cancelTodoEditing();
         }
         return;
       }
@@ -656,13 +738,16 @@ export const PomodoroTimer = ({
       event.preventDefault();
       selectTodo(displayedTodos[nextIndex].id);
     },
-    [displayedTodos, handleRemoveTodo, handleToggleTodo, moveSelectedTodo, onRequestSelectTimelineAtY, selectTodo, selectedTodoId]
+    [cancelTodoEditing, displayedTodos, editingTodoId, handleRemoveTodo, handleToggleTodo, moveSelectedTodo, onRequestSelectTimelineAtY, selectTodo, selectedTodoId]
   );
 
   const handleTodoInputKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>) => {
       if (event.key === "Escape") {
         event.preventDefault();
+        if (editingTodoId) {
+          cancelTodoEditing();
+        }
         todoInputRef.current?.blur();
         return;
       }
@@ -680,13 +765,13 @@ export const PomodoroTimer = ({
       selectTodo(lastTodo.id);
       todoListRef.current?.focus();
     },
-    [displayedTodos, selectTodo]
+    [cancelTodoEditing, displayedTodos, editingTodoId, selectTodo]
   );
 
   return (
     <section
       className={`panel pomodoro-panel${isBlinking ? " blinking" : ""}`}
-      onClick={handlePanelClick}
+      onPointerDown={handlePanelClick}
     >
       <div className="pomodoro-row">
         <button
@@ -727,11 +812,13 @@ export const PomodoroTimer = ({
         </div>
       </div>
       <div className="compose-emoji-divider pomodoro-divider" />
-      <div className="pomodoro-todos" aria-label="뽀모도로 투두">
+      <fieldset className="pomodoro-todos" aria-label="뽀모도로 투두">
         {displayedTodos.length > 0 ? (
           <div
             className="pomodoro-todo-list"
             ref={todoListRef}
+            role="listbox"
+            aria-label="할 일 목록"
             tabIndex={displayedTodos.length > 0 ? 0 : -1}
             onKeyDownCapture={handleTodoKeyDown}
             title="↑/↓ 이동 · Alt+↑/↓ 순서 변경 · Space 완료 · D 삭제 · → 타임라인 이동 · ESC 선택 해제"
@@ -740,13 +827,18 @@ export const PomodoroTimer = ({
               <div
                 key={item.id}
                 data-todo-id={item.id}
-                className={`pomodoro-todo-item${item.completed ? " is-completed" : ""}${selectedTodoId === item.id ? " is-selected" : ""}${draggingTodoId === item.id ? " is-dragging" : ""}${dragOverTodoId === item.id && draggingTodoId !== item.id ? " is-drag-over" : ""}`}
+                className={`pomodoro-todo-item${item.completed ? " is-completed" : ""}${selectedTodoId === item.id ? " is-selected" : ""}${editingTodoId === item.id ? " is-editing" : ""}${draggingTodoId === item.id ? " is-dragging" : ""}${dragOverTodoId === item.id && draggingTodoId !== item.id ? " is-drag-over" : ""}`}
+                role="option"
                 aria-selected={selectedTodoId === item.id}
-                aria-grabbed={draggingTodoId === item.id}
+                tabIndex={-1}
                 draggable
-                onClick={() => {
-                  selectTodo(item.id);
-                  todoListRef.current?.focus();
+                onClick={() => handleTodoItemClick(item.id)}
+                onDoubleClick={() => startTodoEditing(item.id)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    handleTodoItemClick(item.id);
+                  }
                 }}
                 onDragStart={(event) => handleTodoDragStart(event, item.id)}
                 onDragOver={(event) => handleTodoDragOver(event, item.id)}
@@ -780,7 +872,7 @@ export const PomodoroTimer = ({
           className="pomodoro-todo-input"
           onSubmit={(event) => {
             event.preventDefault();
-            handleAddTodo();
+            handleSubmitTodo();
           }}
         >
           <input
@@ -789,16 +881,20 @@ export const PomodoroTimer = ({
             value={todoInput}
             onChange={(event) => setTodoInput(event.target.value)}
             onKeyDown={handleTodoInputKeyDown}
-            onFocus={() => setSelectedTodoId(null)}
-            placeholder="할 일 추가"
+            onFocus={() => {
+              if (!editingTodoId) {
+                setSelectedTodoId(null);
+              }
+            }}
+            placeholder={editingTodoId ? "할 일 수정" : "할 일 추가"}
             aria-label="뽀모도로 투두 입력"
-            title="할 일 추가 (F) · ↑ 목록 이동 · ESC 포커스 해제"
+            title={editingTodoId ? "할 일 수정 · ESC 수정 취소" : "할 일 추가 (F) · ↑ 목록 이동 · ESC 포커스 해제"}
           />
-          <button type="submit" aria-label="투두 추가">
-            추가
+          <button type="submit" aria-label={editingTodoId ? "투두 수정" : "투두 추가"}>
+            {editingTodoId ? "수정" : "추가"}
           </button>
         </form>
-      </div>
+      </fieldset>
     </section>
   );
 };
