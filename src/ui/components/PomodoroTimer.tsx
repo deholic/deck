@@ -599,20 +599,6 @@ export const PomodoroTimer = ({
     [cancelTodoEditing, editingTodoId, selectTodo, selectedTodoId]
   );
 
-  const handleTodoItemDoubleClick = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>, id: string) => {
-      const target = event.target;
-      if (
-        target instanceof HTMLElement &&
-        target.closest(".pomodoro-todo-checkbox, .pomodoro-todo-remove")
-      ) {
-        return;
-      }
-      startTodoEditing(id);
-    },
-    [startTodoEditing]
-  );
-
   const handleTodoDragStart = useCallback(
     (event: React.DragEvent<HTMLDivElement>, id: string) => {
       setDraggingTodoId(id);
@@ -847,7 +833,6 @@ export const PomodoroTimer = ({
                 tabIndex={-1}
                 draggable
                 onClick={() => handleTodoItemClick(item.id)}
-                onDoubleClick={(event) => handleTodoItemDoubleClick(event, item.id)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
@@ -866,7 +851,12 @@ export const PomodoroTimer = ({
                   onChange={() => handleToggleTodo(item.id)}
                   aria-label={`할 일 완료: ${item.text}`}
                 />
-                <span className="pomodoro-todo-text">{item.text}</span>
+                <span
+                  className="pomodoro-todo-text"
+                  onDoubleClick={() => startTodoEditing(item.id)}
+                >
+                  {item.text}
+                </span>
               <button
                 type="button"
                 className="pomodoro-todo-remove"
