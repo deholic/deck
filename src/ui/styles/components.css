@@ -1815,7 +1815,6 @@ button.ghost {
 .status .custom-emoji,
 .status .status-reaction img {
   -webkit-user-drag: none;
-  user-drag: none;
 }
 
 .status-reaction-count {
@@ -3261,6 +3260,10 @@ button.ghost {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 
 .pomodoro-todo-list {
@@ -3294,6 +3297,11 @@ button.ghost {
 .pomodoro-todo-item.is-selected {
   border-color: transparent;
   box-shadow: 0 0 0 2px var(--color-action-active-bg) inset;
+}
+
+.pomodoro-todo-item.is-editing {
+  border-color: var(--color-action-bg);
+  box-shadow: 0 0 0 1px var(--color-action-bg) inset;
 }
 
 .pomodoro-todo-item.is-dragging {
