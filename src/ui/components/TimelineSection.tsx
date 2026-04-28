@@ -1,4 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import type { Account, ReactionInput, Status, TimelineType } from "../../domain/types";
 import type { SectionDisplaySettings } from "../types/section";
 import type { AccountsState, AppServices } from "../state/AppContext";
@@ -1142,74 +1151,61 @@ export const TimelineSection = ({
                       <strong id={`${settingsIdPrefix}-profile-label`}>프로필 이미지 표시</strong>
                       <p id={`${settingsIdPrefix}-profile-hint`}>이 섹션에서만 프로필 이미지를 보여줍니다.</p>
                     </div>
-                    <label className="switch">
-                      <input
-                        type="checkbox"
-                        checked={showProfileImages}
-                        aria-labelledby={`${settingsIdPrefix}-profile-label`}
-                        aria-describedby={`${settingsIdPrefix}-profile-hint`}
-                        onChange={(event) =>
-                          onUpdateSectionSettings(section.id, { showProfileImages: event.target.checked })
-                        }
-                      />
-                      <span className="slider" aria-hidden="true" />
-                    </label>
+                    <Switch
+                      checked={showProfileImages}
+                      aria-labelledby={`${settingsIdPrefix}-profile-label`}
+                      aria-describedby={`${settingsIdPrefix}-profile-hint`}
+                      onCheckedChange={(checked) => onUpdateSectionSettings(section.id, { showProfileImages: checked })}
+                    />
                   </div>
                   <div className="section-settings-item">
                     <div className="section-settings-text">
                       <strong id={`${settingsIdPrefix}-emoji-label`}>커스텀 이모지 표시</strong>
                       <p id={`${settingsIdPrefix}-emoji-hint`}>사용자 이름과 본문에 커스텀 이모지를 표시합니다.</p>
                     </div>
-                    <label className="switch">
-                      <input
-                        type="checkbox"
-                        checked={showCustomEmojis}
-                        aria-labelledby={`${settingsIdPrefix}-emoji-label`}
-                        aria-describedby={`${settingsIdPrefix}-emoji-hint`}
-                        onChange={(event) =>
-                          onUpdateSectionSettings(section.id, { showCustomEmojis: event.target.checked })
-                        }
-                      />
-                      <span className="slider" aria-hidden="true" />
-                    </label>
+                    <Switch
+                      checked={showCustomEmojis}
+                      aria-labelledby={`${settingsIdPrefix}-emoji-label`}
+                      aria-describedby={`${settingsIdPrefix}-emoji-hint`}
+                      onCheckedChange={(checked) => onUpdateSectionSettings(section.id, { showCustomEmojis: checked })}
+                    />
                   </div>
                   <div className="section-settings-item">
                     <div className="section-settings-text">
                       <strong id={`${settingsIdPrefix}-reaction-label`}>리액션 표시</strong>
                       <p id={`${settingsIdPrefix}-reaction-hint`}>리액션을 지원하는 서버에서 받은 리액션을 보여줍니다.</p>
                     </div>
-                    <label className="switch">
-                      <input
-                        type="checkbox"
-                        checked={showReactions}
-                        aria-labelledby={`${settingsIdPrefix}-reaction-label`}
-                        aria-describedby={`${settingsIdPrefix}-reaction-hint`}
-                        onChange={(event) =>
-                          onUpdateSectionSettings(section.id, { showReactions: event.target.checked })
-                        }
-                      />
-                      <span className="slider" aria-hidden="true" />
-                    </label>
+                    <Switch
+                      checked={showReactions}
+                      aria-labelledby={`${settingsIdPrefix}-reaction-label`}
+                      aria-describedby={`${settingsIdPrefix}-reaction-hint`}
+                      onCheckedChange={(checked) => onUpdateSectionSettings(section.id, { showReactions: checked })}
+                    />
                   </div>
                   <div className="section-settings-item">
                     <div className="section-settings-text">
                       <strong>섹션 폭</strong>
                       <p>이 섹션의 가로 폭을 조절합니다.</p>
                     </div>
-                    <select
-                      className="section-settings-select"
+                    <Select
                       value={sectionSize}
-                      onChange={(event) =>
+                      onValueChange={(value) =>
                         onUpdateSectionSettings(section.id, {
-                          sectionSize: event.target.value as SectionDisplaySettings["sectionSize"]
+                          sectionSize: value as SectionDisplaySettings["sectionSize"]
                         })
                       }
-                      aria-label="섹션 폭 설정"
                     >
-                      <option value="small">소</option>
-                      <option value="medium">중</option>
-                      <option value="large">대</option>
-                    </select>
+                      <SelectTrigger className="section-settings-select" aria-label="섹션 폭 설정">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectItem value="small">소</SelectItem>
+                          <SelectItem value="medium">중</SelectItem>
+                          <SelectItem value="large">대</SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </>

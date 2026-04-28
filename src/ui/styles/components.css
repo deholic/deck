@@ -882,7 +882,8 @@
   gap: 8px;
 }
 
-.compose-actions select {
+.compose-actions select,
+.compose-visibility-select {
   border-radius: 8px;
   border: 1px solid var(--color-input-border);
   background: var(--color-input-bg);

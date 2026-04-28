@@ -1,4 +1,4 @@
-import React from "react";
+import { Button } from "@/components/ui/button";
 import type { ToastTone } from "../state/ToastContext";
 
 type ToastItem = {
@@ -34,8 +34,10 @@ export const ToastHost = ({
           <span>{toast.message}</span>
           <div className="toast-actions">
             {toast.action ? (
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 className="toast-action"
                 onClick={() => {
                   toast.action?.onClick();
@@ -44,16 +46,18 @@ export const ToastHost = ({
                 aria-label={toast.action.ariaLabel ?? toast.action.label}
               >
                 {toast.action.label}
-              </button>
+              </Button>
             ) : null}
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               className="toast-close"
               onClick={() => onDismiss(toast.id)}
               aria-label="토스트 닫기"
             >
               닫기
-            </button>
+            </Button>
           </div>
         </div>
       ))}

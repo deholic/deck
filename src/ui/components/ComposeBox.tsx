@@ -1,4 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 import type { Account, Visibility } from "../../domain/types";
 import type { MastodonApi } from "../../services/MastodonApi";
 import type { ReplyingTo } from "../types/compose";
@@ -85,7 +93,7 @@ export const ComposeBox = ({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const cwInputRef = useRef<HTMLInputElement | null>(null);
   const composeRef = useRef<HTMLElement | null>(null);
-  const visibilitySelectRef = useRef<HTMLSelectElement | null>(null);
+  const visibilitySelectRef = useRef<HTMLButtonElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const emojiToggleRef = useRef<HTMLButtonElement | null>(null);
   const cwToggleRef = useRef<HTMLButtonElement | null>(null);
@@ -116,7 +124,7 @@ export const ComposeBox = ({
 
   // 문자 수 관련 상태
   const [characterLimit, setCharacterLimit] = useState<number | null>(null);
-  const [instanceLoading, setInstanceLoading] = useState(false);
+  const [, setInstanceLoading] = useState(false);
 
   // useEmojiManager 훅 사용
   const {
@@ -520,11 +528,11 @@ export const ComposeBox = ({
       }
 
       if (key === "o") {
-        const select = visibilitySelectRef.current;
-        if (select && !select.disabled) {
+        const selectTrigger = visibilitySelectRef.current;
+        if (selectTrigger && !selectTrigger.disabled) {
           event.preventDefault();
-          select.focus();
-          select.click();
+          selectTrigger.focus();
+          selectTrigger.click();
         }
         return;
       }
@@ -1052,19 +1060,24 @@ export const ComposeBox = ({
           </p>
         ) : null}
         <div className="compose-actions">
-          <select
-            ref={visibilitySelectRef}
+          <Select
             value={visibilityState.visibility}
-            onChange={(event) => setVisibilityState(prev => ({ ...prev, visibility: event.target.value as Visibility }))}
+            onValueChange={(value) => setVisibilityState((prev) => ({ ...prev, visibility: value as Visibility }))}
             disabled={isSubmitting}
-            title="공개 범위 (Ctrl+Shift+O)"
           >
-            {visibilityOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger ref={visibilitySelectRef} className="compose-visibility-select" title="공개 범위 (Ctrl+Shift+O)">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {visibilityOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
           
           <div className="compose-actions-right">
             <button
