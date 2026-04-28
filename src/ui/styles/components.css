@@ -1359,7 +1359,7 @@ button.ghost {
   min-width: 84px;
 }
 
-.section-menu-panel button {
+.section-menu-panel > button {
   background: none;
   color: var(--color-section-menu-text);
   padding: 6px 8px;
@@ -1394,7 +1394,7 @@ button.ghost {
   flex: 1;
 }
 
-.section-menu-panel button.is-highlighted {
+.section-menu-panel > button.is-highlighted {
   background: var(--color-account-selector-highlight);
 }
 

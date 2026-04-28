@@ -165,16 +165,20 @@
   background: var(--color-settings-backdrop);
 }
 
+[data-slot="switch"] {
+  padding: 0;
+}
+
 .settings-modal-content[data-slot="dialog-content"] {
+  position: fixed;
   z-index: 60;
-  top: 10vh;
+  top: 50%;
   left: 50%;
   width: min(92vw, 520px);
   height: 80vh;
-  max-height: 600px;
+  max-height: min(600px, calc(100dvh - 32px));
   margin: 0;
   padding: var(--height-panel-paddingY) 16px;
-  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -185,6 +189,7 @@
 }
 
 .info-modal-content[data-slot="dialog-content"] {
+  position: fixed;
   z-index: 60;
   width: min(92vw, 640px);
   max-height: 80vh;
@@ -200,12 +205,12 @@
 }
 
 .mobile-menu-panel[data-slot="dialog-content"] {
+  position: fixed;
   z-index: 60;
-  top: 10vh;
+  top: 50%;
   left: 50%;
   width: min(92vw, 520px);
   margin: 0;
-  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   gap: 12px;
