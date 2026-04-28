@@ -1,3 +1,10 @@
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
 import type { InfoModalType } from "../types/info";
 import { LicenseContent, OssContent, ShortcutsContent, TermsContent } from "../pages/InfoPages";
 
@@ -34,19 +41,20 @@ const InfoModalContent = ({ type }: { type: InfoModalType }) => {
 export const InfoModal = ({ type, onClose }: { type: InfoModalType; onClose: () => void }) => {
   const title = getInfoModalTitle(type);
   return (
-    <div className="info-modal" role="dialog" aria-modal="true" aria-label={title}>
-      <div className="info-modal-backdrop" onClick={onClose} />
-      <div className="info-modal-content">
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="info-modal-content" showCloseButton={false}>
         <div className="info-modal-header">
-          <h3 className="info-modal-title">{title}</h3>
-          <button type="button" className="ghost" onClick={onClose} aria-label={`${title} 닫기`}>
+          <DialogHeader>
+            <DialogTitle className="info-modal-title">{title}</DialogTitle>
+          </DialogHeader>
+          <Button type="button" variant="ghost" size="sm" onClick={onClose} aria-label={`${title} 닫기`}>
             닫기
-          </button>
+          </Button>
         </div>
         <div className="info-modal-body">
           <InfoModalContent type={type} />
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };

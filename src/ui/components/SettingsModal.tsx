@@ -1,3 +1,21 @@
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import type { AccountsState } from "../state/AppContext";
 import type { ColorScheme, ThemeMode } from "../utils/theme";
 import { AccountSelector } from "./AccountSelector";
@@ -49,23 +67,24 @@ export const SettingsModal = ({
   onPomodoroBreakChange,
   onPomodoroLongBreakChange
 }: SettingsModalProps) => {
-  if (!open) {
-    return null;
-  }
-
   return (
-    <div className="settings-modal">
-      <div className="settings-modal-backdrop" onClick={onClose} />
-      <div className="settings-modal-content panel">
+    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
+      <DialogContent className="settings-modal-content panel" showCloseButton={false}>
         <div className="settings-modal-header">
-          <h3>설정</h3>
-          <button
+          <DialogHeader>
+            <DialogTitle>설정</DialogTitle>
+            <DialogDescription>계정, 테마, 로컬 설정을 관리합니다.</DialogDescription>
+          </DialogHeader>
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             className="settings-close"
             onClick={onClose}
+            aria-label="설정 닫기"
           >
             닫기
-          </button>
+          </Button>
         </div>
         <div className="settings-modal-body">
           <div className="settings-item settings-item-account">
@@ -81,23 +100,25 @@ export const SettingsModal = ({
                 variant="inline"
               />
               <div className="settings-account-buttons">
-                <button
+                <Button
                   type="button"
+                  size="sm"
                   onClick={onReauth}
                   disabled={!settingsAccountId || reauthLoading}
                   aria-label="계정 재인증"
                 >
                   {reauthLoading ? "재인증 중..." : "재인증"}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  className="settings-danger-button"
+                  variant="destructive"
+                  size="sm"
                   onClick={onRemove}
                   disabled={!settingsAccountId}
                   aria-label="계정 삭제"
                 >
                   삭제
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -106,52 +127,53 @@ export const SettingsModal = ({
               <strong>테마</strong>
               <p>기본, 크리스마스, 하늘핑크, 모노톤, 말차코어, 로얄퍼플, 여름해변 테마를 선택합니다.</p>
             </div>
-            <select
+            <Select
               value={themeMode}
-              onChange={(event) => {
-                onThemeChange(event.target.value);
-              }}
-              aria-label="테마 선택"
+              onValueChange={onThemeChange}
             >
-              <option value="default">기본</option>
-              <option value="christmas">크리스마스</option>
-              <option value="sky-pink">하늘핑크</option>
-              <option value="monochrome">모노톤</option>
-              <option value="matcha-core">말차코어</option>
-              <option value="royal-purple">로얄퍼플</option>
-              <option value="summer-beach">여름해변</option>
-            </select>
+              <SelectTrigger aria-label="테마 선택">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="default">기본</SelectItem>
+                  <SelectItem value="christmas">크리스마스</SelectItem>
+                  <SelectItem value="sky-pink">하늘핑크</SelectItem>
+                  <SelectItem value="monochrome">모노톤</SelectItem>
+                  <SelectItem value="matcha-core">말차코어</SelectItem>
+                  <SelectItem value="royal-purple">로얄퍼플</SelectItem>
+                  <SelectItem value="summer-beach">여름해변</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
           <div className="settings-item">
             <div>
               <strong>색상 모드</strong>
               <p>시스템 설정을 따르거나 라이트/다크 모드를 고정합니다.</p>
             </div>
-            <select
+            <Select
               value={colorScheme}
-              onChange={(event) => {
-                onColorSchemeChange(event.target.value);
-              }}
-              aria-label="색상 모드 선택"
+              onValueChange={onColorSchemeChange}
             >
-              <option value="system">시스템</option>
-              <option value="light">라이트</option>
-              <option value="dark">다크</option>
-            </select>
+              <SelectTrigger aria-label="색상 모드 선택">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="system">시스템</SelectItem>
+                  <SelectItem value="light">라이트</SelectItem>
+                  <SelectItem value="dark">다크</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
           <div className="settings-item">
             <div>
               <strong>뽀모도로 타이머</strong>
               <p>사이드바에 뽀모도로 타이머를 표시합니다.</p>
             </div>
-            <label className="switch">
-              <input
-                type="checkbox"
-                checked={showPomodoro}
-                onChange={(event) => onTogglePomodoro(event.target.checked)}
-              />
-              <span className="slider" aria-hidden="true" />
-            </label>
+            <Switch checked={showPomodoro} onCheckedChange={onTogglePomodoro} aria-label="뽀모도로 타이머 표시" />
           </div>
           {showPomodoro ? (
             <>
@@ -163,7 +185,7 @@ export const SettingsModal = ({
                 <div className="pomodoro-time-inputs">
                   <label>
                     집중
-                    <input
+                    <Input
                       type="number"
                       min="1"
                       max="60"
@@ -173,7 +195,7 @@ export const SettingsModal = ({
                   </label>
                   <label>
                     휴식
-                    <input
+                    <Input
                       type="number"
                       min="1"
                       max="30"
@@ -183,7 +205,7 @@ export const SettingsModal = ({
                   </label>
                   <label>
                     긴 휴식
-                    <input
+                    <Input
                       type="number"
                       min="1"
                       max="60"
@@ -200,17 +222,18 @@ export const SettingsModal = ({
               <strong>로컬 저장소 초기화</strong>
               <p>계정과 설정을 포함한 모든 로컬 데이터를 삭제합니다.</p>
             </div>
-            <button
+            <Button
               type="button"
-              className="settings-danger-button"
+              variant="destructive"
+              size="sm"
               onClick={onClearLocalStorage}
               aria-label="로컬 저장소 초기화"
             >
               모두 삭제
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };

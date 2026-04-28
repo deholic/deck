@@ -1,4 +1,12 @@
 import type { ReactNode } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
 import type { Account, Visibility } from "../../domain/types";
 import type { MastodonApi } from "../../services/MastodonApi";
 import type { OAuthClient } from "../../services/OAuthClient";
@@ -35,24 +43,23 @@ export const MobileComposeMenu = ({
   onCancelReply,
   mentionText
 }: MobileComposeMenuProps) => {
-  if (!open) {
-    return null;
-  }
-
   return (
-    <div className="mobile-menu">
-      <div className="mobile-menu-backdrop" onClick={onClose} />
-      <div className="mobile-menu-panel panel">
+    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
+      <DialogContent className="mobile-menu-panel panel" showCloseButton={false}>
         <div className="mobile-menu-header">
-          <h3>글쓰기</h3>
-          <button
+          <DialogHeader>
+            <DialogTitle>글쓰기</DialogTitle>
+            <DialogDescription>선택한 계정으로 새 글을 작성합니다.</DialogDescription>
+          </DialogHeader>
+          <Button
             type="button"
-            className="ghost"
+            variant="ghost"
+            size="sm"
             onClick={onClose}
             aria-label="글쓰기 닫기"
           >
             닫기
-          </button>
+          </Button>
         </div>
         {composeAccount ? (
           <ComposeBox
@@ -65,8 +72,8 @@ export const MobileComposeMenu = ({
             mentionText={mentionText}
           />
         ) : null}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
@@ -78,22 +85,20 @@ type MobileMenuProps = {
 };
 
 export const MobileMenu = ({ open, onClose, onOpenSettings, oauth }: MobileMenuProps) => {
-  if (!open) {
-    return null;
-  }
-
   return (
-    <div className="mobile-menu">
-      <div className="mobile-menu-backdrop" onClick={onClose} />
-      <div className="mobile-menu-panel panel">
+    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
+      <DialogContent className="mobile-menu-panel panel" showCloseButton={false}>
         <div className="mobile-menu-header">
-          <h3>메뉴</h3>
-          <button type="button" className="ghost" onClick={onClose} aria-label="메뉴 닫기">
+          <DialogHeader>
+            <DialogTitle>메뉴</DialogTitle>
+            <DialogDescription>계정과 앱 설정을 관리합니다.</DialogDescription>
+          </DialogHeader>
+          <Button type="button" variant="ghost" size="sm" onClick={onClose} aria-label="메뉴 닫기">
             닫기
-          </button>
+          </Button>
         </div>
         <div className="mobile-menu-actions">
-          <button
+          <Button
             type="button"
             className="button-with-icon"
             onClick={() => {
@@ -110,12 +115,12 @@ export const MobileMenu = ({ open, onClose, onOpenSettings, oauth }: MobileMenuP
               <circle cx="8" cy="18" r="2" />
             </svg>
             설정 열기
-          </button>
+          </Button>
         </div>
         <div className="mobile-menu-section">
           <AccountAdd oauth={oauth} />
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };

@@ -1,4 +1,7 @@
 import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import type { OAuthClient } from "../../services/OAuthClient";
 import { normalizeInstanceUrl } from "../utils/account";
 import { createOauthState, loadRegisteredApp, saveRegisteredApp, storePendingOAuth } from "../utils/oauth";
@@ -50,7 +53,7 @@ export const AccountAdd = ({
 
   return (
     <div className="account-add-wrapper">
-      <button
+      <Button
         type="button"
         className="account-add-button header button-with-icon"
         onClick={() => setShowForm((prev) => !prev)}
@@ -69,26 +72,28 @@ export const AccountAdd = ({
           </svg>
         )}
         {showForm ? "계정 추가 닫기" : "계정 추가"}
-      </button>
+      </Button>
 
       {showForm ? (
-        <div className="account-add-panel">
-          <form className="account-form" onSubmit={handleSubmit}>
-            <label>
-              서버 주소
-              <input
-                type="text"
-                placeholder="mastodon.social"
-                value={instanceUrl}
-                onChange={(event) => setInstanceUrl(event.target.value)}
-              />
-            </label>
-            <button type="submit" disabled={loading}>
-              {loading ? "연결 중..." : "OAuth로 연결"}
-            </button>
-          </form>
-          <p className="hint">OAuth 승인 후 자동으로 돌아옵니다.</p>
-        </div>
+        <Card className="account-add-panel" size="sm">
+          <CardContent>
+            <form className="account-form" onSubmit={handleSubmit}>
+              <label>
+                서버 주소
+                <Input
+                  type="text"
+                  placeholder="mastodon.social"
+                  value={instanceUrl}
+                  onChange={(event) => setInstanceUrl(event.target.value)}
+                />
+              </label>
+              <Button type="submit" disabled={loading}>
+                {loading ? "연결 중..." : "OAuth로 연결"}
+              </Button>
+            </form>
+            <p className="hint">OAuth 승인 후 자동으로 돌아옵니다.</p>
+          </CardContent>
+        </Card>
       ) : null}
     </div>
   );
