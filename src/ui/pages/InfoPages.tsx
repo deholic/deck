@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import { sanitizeHtml } from "../utils/htmlSanitizer";
 import { renderMarkdown } from "../utils/markdown";
 import { shortcutSections } from "../content/shortcuts";
@@ -39,7 +40,9 @@ export const ShortcutsContent = () => (
         <ul className="shortcut-list">
           {section.items.map((item) => (
             <li key={`${section.title}-${item.keys}`} className="shortcut-item">
-              <span className="shortcut-key">{item.keys}</span>
+              <Badge className="shortcut-key" variant="outline">
+                {item.keys}
+              </Badge>
               <span className="shortcut-desc">{item.description}</span>
             </li>
           ))}
