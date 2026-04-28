@@ -58,6 +58,12 @@
   --color-action-active-bg: #9db6e3;
   --color-action-active-text: #1e2b45;
   --color-action-ghost-text: #3b5fa8;
+  --color-theme-accent: var(--color-action-bg);
+  --color-theme-accent-strong: var(--color-action-active-bg);
+  --color-theme-accent-text: var(--color-action-ghost-text);
+  --color-theme-accent-soft: color-mix(in srgb, var(--color-action-bg) 12%, transparent);
+  --color-theme-accent-border: color-mix(in srgb, var(--color-action-bg) 34%, var(--color-panel-border));
+  --color-theme-accent-shadow: color-mix(in srgb, var(--color-action-bg) 18%, transparent);
   --color-action-danger-bg: #9a2e1f;
   --color-action-danger-text: #fff6f0;
   --color-action-danger-strong-text: #fffaf2;

@@ -153,12 +153,35 @@
   --secondary-foreground: var(--color-secondary-button-text);
   --muted: var(--color-panel-bg);
   --muted-foreground: var(--color-text-muted);
-  --accent: var(--color-secondary-button-bg);
-  --accent-foreground: var(--color-secondary-button-text);
+  --accent: var(--color-theme-accent-soft);
+  --accent-foreground: var(--color-theme-accent-text);
   --destructive: var(--color-action-danger-bg);
   --border: var(--color-panel-border);
   --input: var(--color-input-border);
   --ring: var(--color-action-bg);
+  --select-trigger-bg: var(--color-settings-select-bg);
+  --select-trigger-border: var(--color-settings-select-border);
+  --select-content-bg: var(--color-section-menu-bg);
+  --select-content-border: var(--color-section-menu-border);
+  --select-highlight-bg: var(--color-theme-accent-soft);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-color-scheme="light"]) {
+    --select-trigger-bg: color-mix(in srgb, var(--color-settings-select-bg) 76%, var(--color-text-primary) 12%);
+    --select-trigger-border: color-mix(in srgb, var(--color-settings-select-border) 80%, var(--color-text-primary) 16%);
+    --select-content-bg: color-mix(in srgb, var(--color-section-menu-bg) 84%, var(--color-text-primary) 8%);
+    --select-content-border: color-mix(in srgb, var(--color-section-menu-border) 76%, var(--color-text-primary) 16%);
+    --select-highlight-bg: color-mix(in srgb, var(--color-account-selector-highlight) 72%, var(--color-text-primary) 12%);
+  }
+}
+
+:root[data-color-scheme="dark"] {
+  --select-trigger-bg: color-mix(in srgb, var(--color-settings-select-bg) 76%, var(--color-text-primary) 12%);
+  --select-trigger-border: color-mix(in srgb, var(--color-settings-select-border) 80%, var(--color-text-primary) 16%);
+  --select-content-bg: color-mix(in srgb, var(--color-section-menu-bg) 84%, var(--color-text-primary) 8%);
+  --select-content-border: color-mix(in srgb, var(--color-section-menu-border) 76%, var(--color-text-primary) 16%);
+  --select-highlight-bg: color-mix(in srgb, var(--color-account-selector-highlight) 72%, var(--color-text-primary) 12%);
 }
 
 [data-slot="dialog-overlay"] {
@@ -167,6 +190,145 @@
 
 [data-slot="switch"] {
   padding: 0;
+}
+
+[data-slot="button"] {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+[data-slot="button"][data-variant="default"] {
+  background: var(--color-action-bg);
+  color: var(--color-action-text);
+  border-color: var(--color-action-bg);
+}
+
+[data-slot="button"][data-variant="secondary"] {
+  background: var(--color-secondary-button-bg);
+  color: var(--color-secondary-button-text);
+  border-color: var(--color-theme-accent-border);
+}
+
+[data-slot="button"][data-variant="outline"] {
+  background: var(--color-input-bg);
+  color: var(--color-input-text);
+  border-color: var(--color-input-border);
+}
+
+[data-slot="button"][data-variant="ghost"] {
+  background: transparent;
+  color: var(--color-theme-accent-text);
+  border-color: transparent;
+}
+
+[data-slot="button"][data-variant="ghost"]:hover:not(:disabled),
+[data-slot="button"][data-variant="ghost"][aria-expanded="true"] {
+  background: var(--color-theme-accent-soft);
+  color: var(--color-theme-accent-text);
+}
+
+[data-slot="button"][data-variant="destructive"] {
+  background: var(--color-action-danger-bg);
+  color: var(--color-action-danger-text);
+  border-color: var(--color-action-danger-bg);
+}
+
+[data-slot="button"][data-variant="link"] {
+  background: transparent;
+  color: var(--color-link);
+  border-color: transparent;
+  padding-inline: 0;
+}
+
+[data-slot="button"].is-active {
+  background: var(--color-action-active-bg);
+  color: var(--color-action-active-text);
+  border-color: var(--color-action-active-bg);
+}
+
+[data-slot="button"].icon-button[data-variant="ghost"] {
+  background: transparent;
+  color: var(--color-theme-accent-text);
+}
+
+[data-slot="button"].icon-button[data-variant="ghost"]:hover:not(:disabled) {
+  background: var(--color-theme-accent-soft);
+  color: var(--color-theme-accent-text);
+}
+
+[data-slot="button"].account-add-button {
+  background: var(--color-account-add-button-bg);
+  color: var(--color-account-add-button-text);
+  border-color: var(--color-account-add-button-bg);
+}
+
+[data-slot="button"].delete-button,
+[data-slot="button"].image-modal-delete {
+  background: var(--color-delete-button-bg);
+  color: var(--color-delete-button-text);
+  border-color: var(--color-delete-button-bg);
+}
+
+.section-menu-panel > [data-slot="button"][data-variant="ghost"],
+.account-list [data-slot="button"][data-variant="ghost"] {
+  background: transparent;
+  color: var(--color-section-menu-text);
+  border-color: transparent;
+  justify-content: flex-start;
+  text-align: left;
+  width: 100%;
+}
+
+.section-menu-panel > [data-slot="button"][data-variant="ghost"]:hover:not(:disabled),
+.section-menu-panel > [data-slot="button"].is-highlighted,
+.account-list [data-slot="button"][data-variant="ghost"]:hover:not(:disabled),
+.account-list li.is-highlighted [data-slot="button"] {
+  background: var(--color-theme-accent-soft);
+  color: var(--color-section-menu-text);
+}
+
+.section-menu-panel > [data-slot="button"].danger,
+.section-menu-panel > [data-slot="button"][data-variant="destructive"] {
+  background: transparent;
+  color: var(--color-section-menu-danger);
+  border-color: transparent;
+  justify-content: flex-start;
+  text-align: left;
+  width: 100%;
+}
+
+.section-menu-panel > [data-slot="button"].danger:hover:not(:disabled),
+.section-menu-panel > [data-slot="button"][data-variant="destructive"]:hover:not(:disabled) {
+  background: var(--color-theme-accent-soft);
+  color: var(--color-section-menu-danger);
+}
+
+[data-slot="select-content"] {
+  z-index: 70;
+  background: var(--select-content-bg);
+  color: var(--color-section-menu-text);
+  border-color: var(--select-content-border);
+}
+
+[data-slot="select-trigger"] {
+  background: var(--select-trigger-bg);
+  color: var(--color-settings-select-text);
+  border-color: var(--select-trigger-border);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+[data-slot="select-trigger"] svg {
+  color: currentColor;
+  opacity: 0.65;
+}
+
+[data-slot="select-item"] {
+  color: var(--color-section-menu-text);
+}
+
+[data-slot="select-item"][data-highlighted] {
+  background: var(--select-highlight-bg);
+  color: var(--color-section-menu-text);
 }
 
 .settings-modal-content[data-slot="dialog-content"] {
