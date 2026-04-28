@@ -1718,12 +1718,13 @@ export const TimelineItem = ({
           <div className="status-actions">
             {actionsEnabled ? (
               <>
-                <Button type="button" size="sm" onClick={() => onReply(displayStatus)} data-action="reply">
+                <Button type="button" variant="secondary" size="sm" onClick={() => onReply(displayStatus)} data-action="reply">
                   답글
                 </Button>
                 {account?.platform !== "misskey" ? (
                   <Button
                     type="button"
+                    variant="secondary"
                     size="sm"
                     className={displayStatus.favourited ? "is-active" : undefined}
                     onClick={() => onToggleFavourite(displayStatus)}
@@ -1735,6 +1736,7 @@ export const TimelineItem = ({
                 ) : null}
                 <Button
                   type="button"
+                  variant="secondary"
                   size="sm"
                   className={displayStatus.reblogged ? "is-active" : undefined}
                   onClick={() => onToggleReblog(displayStatus)}

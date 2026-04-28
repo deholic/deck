@@ -832,8 +832,9 @@ export const TimelineSection = ({
           <div className="timeline-selector">
             <Button
               type="button"
-              variant="secondary"
-              className="timeline-selector-button"
+              variant="ghost"
+              size="lg"
+              className={`timeline-selector-button${timelineMenuOpen ? " is-active" : ""}`}
               onClick={() => {
                 if (!account) {
                   onError("계정을 선택해주세요.");

@@ -102,6 +102,7 @@ export const SettingsModal = ({
               <div className="settings-account-buttons">
                 <Button
                   type="button"
+                  variant="secondary"
                   size="sm"
                   onClick={onReauth}
                   disabled={!settingsAccountId || reauthLoading}
