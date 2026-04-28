@@ -166,6 +166,7 @@
 }
 
 .settings-modal-content[data-slot="dialog-content"] {
+  z-index: 60;
   top: 10vh;
   left: 50%;
   width: min(92vw, 520px);
@@ -184,6 +185,7 @@
 }
 
 .info-modal-content[data-slot="dialog-content"] {
+  z-index: 60;
   width: min(92vw, 640px);
   max-height: 80vh;
   padding: 0;
@@ -198,6 +200,7 @@
 }
 
 .mobile-menu-panel[data-slot="dialog-content"] {
+  z-index: 60;
   top: 10vh;
   left: 50%;
   width: min(92vw, 520px);
