@@ -52,7 +52,7 @@ export const AccountAdd = ({
   };
 
   return (
-    <div className="account-add-wrapper">
+    <>
       <Button
         type="button"
         className="account-add-button header button-with-icon"
@@ -95,6 +95,6 @@ export const AccountAdd = ({
           </CardContent>
         </Card>
       ) : null}
-    </div>
+    </>
   );
 };

@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import type { Account, ReactionInput, Status, TimelineType } from "./domain/types";
 import { AccountAdd } from "./ui/components/AccountAdd";
 import { AccountSelector } from "./ui/components/AccountSelector";
@@ -1189,8 +1190,9 @@ export const App = () => {
                 여러 계정을 전환하고 타임라인을 실시간으로 확인할 수 있습니다.
               </p>
               <div className="sidebar-actions">
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
                   className="settings-button button-with-icon"
                   onClick={() => setSettingsOpen(true)}
                 >
@@ -1203,7 +1205,7 @@ export const App = () => {
                     <circle cx="8" cy="18" r="2" />
                   </svg>
                   설정 열기
-                </button>
+                </Button>
                 <AccountAdd
                   oauth={services.oauth}
                 />
