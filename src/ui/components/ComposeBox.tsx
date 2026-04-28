@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -896,9 +897,9 @@ export const ComposeBox = ({
       {replyingTo ? (
         <div className="replying">
           <span>답글 대상: {replyingTo.summary}</span>
-          <button type="button" className="ghost" onClick={onCancelReply}>
+          <Button type="button" variant="ghost" size="sm" className="ghost" onClick={onCancelReply}>
             취소
-          </button>
+          </Button>
         </div>
       ) : null}
       <form onSubmit={handleSubmit} className="compose-form" aria-busy={isSubmitting}>
@@ -1080,8 +1081,10 @@ export const ComposeBox = ({
           </Select>
           
           <div className="compose-actions-right">
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-lg"
               className={`icon-button compose-icon-button${emojiPanelOpen ? " is-active" : ""}`}
               aria-label="이모지 팔렛트 열기"
               title="이모지 팔렛트 열기 (Ctrl+Shift+E)"
@@ -1095,9 +1098,11 @@ export const ComposeBox = ({
                 <path d="M15.5 10.5h0.01" />
                 <path d="M8.5 15.5c1.2 1 2.4 1.5 3.5 1.5s2.3-.5 3.5-1.5" />
               </svg>
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-lg"
               className={`icon-button compose-icon-button${cwEnabled ? " is-active" : ""}`}
               aria-label="콘텐츠 경고 입력"
               title="콘텐츠 경고 입력 (Ctrl+Shift+W)"
@@ -1107,9 +1112,10 @@ export const ComposeBox = ({
               ref={cwToggleRef}
             >
               CW
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
+              size="icon-lg"
               className="icon-button compose-icon-button compose-submit-button"
               aria-label="게시"
               title="전송 (Ctrl+Enter)"
@@ -1120,7 +1126,7 @@ export const ComposeBox = ({
                 <path d="M22 2l-7 20-4-9-9-4 20-7z" />
               </svg>
               <span>전송</span>
-            </button>
+            </Button>
           </div>
         </div>
         {emojiPanelOpen ? (
@@ -1154,9 +1160,9 @@ export const ComposeBox = ({
               {account && emojiStatus === "error" ? (
                 <div className="compose-emoji-empty">
                   <p>{emojiError ?? "이모지를 불러오지 못했습니다."}</p>
-                  <button type="button" className="ghost" onClick={() => loadEmojis()}>
+                  <Button type="button" variant="ghost" size="sm" className="ghost" onClick={() => loadEmojis()}>
                     다시 불러오기
-                  </button>
+                  </Button>
                 </div>
               ) : null}
               {account && emojiCategories.length === 0 ? (
@@ -1380,16 +1386,18 @@ export const ComposeBox = ({
             }}
           >
             <div className="image-modal-actions">
-              <button
+              <Button
                 type="button"
+                variant="destructive"
+                size="sm"
                 className="image-modal-delete"
                 onClick={handleDeleteActive}
               >
                 삭제
-              </button>
-              <button type="button" onClick={() => setActiveImageId(null)}>
+              </Button>
+              <Button type="button" variant="secondary" size="sm" onClick={() => setActiveImageId(null)}>
                 닫기
-              </button>
+              </Button>
             </div>
             <img
               src={activeImage.previewUrl}

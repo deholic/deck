@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 
 type SessionType = "focus" | "break" | "longBreak";
 
@@ -785,14 +786,15 @@ export const PomodoroTimer = ({
       onPointerDown={handlePanelClick}
     >
       <div className="pomodoro-row">
-        <button
+        <Button
           type="button"
+          variant="secondary"
           className={`pomodoro-mode-toggle${sessionInfo.type === "break" ? " break" : ""}${sessionInfo.type === "longBreak" ? " long-break" : ""}`}
           onClick={handleSessionToggle}
           aria-label="다음 세션으로 전환"
         >
           {getSessionLabel(sessionInfo.type)} {sessionInfo.type === "focus" ? focusCount : ""}
-        </button>
+        </Button>
         
         <div className="pomodoro-timer-section">
           <span className="pomodoro-time" aria-live="polite" aria-atomic="true">
@@ -804,22 +806,23 @@ export const PomodoroTimer = ({
         </div>
         
         <div className="pomodoro-controls">
-          <button
+          <Button
             type="button"
             className="pomodoro-button pomodoro-start"
             onClick={handleStart}
             title="시작/정지 (S)"
           >
             {isRunning ? "정지" : "시작"}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="secondary"
             className="pomodoro-button pomodoro-reset"
             onClick={handleReset}
             title="리셋 (X)"
           >
             리셋
-          </button>
+          </Button>
         </div>
       </div>
       <div className="compose-emoji-divider pomodoro-divider" />
@@ -864,8 +867,10 @@ export const PomodoroTimer = ({
                   aria-label={`할 일 완료: ${item.text}`}
                 />
                 <span className="pomodoro-todo-text">{item.text}</span>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon-sm"
                 className="pomodoro-todo-remove"
                 aria-label={`할 일 삭제: ${item.text}`}
                 onClick={() => handleRemoveTodo(item.id)}
@@ -874,7 +879,7 @@ export const PomodoroTimer = ({
                   <line x1="6" y1="6" x2="18" y2="18" />
                   <line x1="18" y1="6" x2="6" y2="18" />
                 </svg>
-              </button>
+              </Button>
             </div>
           ))}
           </div>
@@ -901,9 +906,9 @@ export const PomodoroTimer = ({
             aria-label="뽀모도로 투두 입력"
             title={editingTodoId ? "할 일 수정 · ESC 수정 취소" : "할 일 추가 (F) · ↑ 목록 이동 · ESC 포커스 해제"}
           />
-          <button type="submit" aria-label={editingTodoId ? "투두 수정" : "투두 추가"}>
+          <Button type="submit" size="sm" aria-label={editingTodoId ? "투두 수정" : "투두 추가"}>
             {editingTodoId ? "수정" : "추가"}
-          </button>
+          </Button>
         </form>
       </fieldset>
     </section>

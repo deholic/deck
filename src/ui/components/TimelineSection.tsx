@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -829,8 +830,9 @@ export const TimelineSection = ({
         />
         <div className="timeline-column-actions" role="group" aria-label="타임라인 작업">
           <div className="timeline-selector">
-            <button
+            <Button
               type="button"
+              variant="secondary"
               className="timeline-selector-button"
               onClick={() => {
                 if (!account) {
@@ -850,7 +852,7 @@ export const TimelineSection = ({
             >
               <TimelineIcon timeline={timelineType} />
               <span className="timeline-selector-label">{getTimelineLabel(timelineType)}</span>
-            </button>
+            </Button>
             {timelineMenuOpen ? (
               <>
                 <div className="overlay-backdrop" aria-hidden="true" />
@@ -870,9 +872,11 @@ export const TimelineSection = ({
                     const isSelected = !option.isDivider && timelineType === option.id;
                     const isHighlighted = optionIndex === highlightedTimelineIndex;
                     return (
-                      <button
+                      <Button
                         key={option.id}
                         type="button"
+                        variant="ghost"
+                        size="sm"
                         className={`${isSelected ? "is-active" : ""}${isHighlighted ? " is-highlighted" : ""}`}
                         aria-pressed={isSelected}
                         title={isHighlighted ? "선택 (Enter)" : undefined}
@@ -886,7 +890,7 @@ export const TimelineSection = ({
                       >
                         {!option.isDivider && <TimelineIcon timeline={option.id as TimelineType} />}
                         <span>{option.label}</span>
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>
@@ -894,8 +898,10 @@ export const TimelineSection = ({
             ) : null}
           </div>
           <div className="notification-menu">
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-lg"
               className={`icon-button${notificationsOpen ? " is-active" : ""}`}
               onClick={() => {
                 if (!account) {
@@ -921,7 +927,7 @@ export const TimelineSection = ({
                   {notificationBadgeText}
                 </span>
               ) : null}
-            </button>
+            </Button>
             {notificationsOpen ? (
               <>
                 <div className="overlay-backdrop" aria-hidden="true" />
@@ -970,8 +976,10 @@ export const TimelineSection = ({
             ) : null}
           </div>
           <div className="section-menu">
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-lg"
               className="icon-button menu-button"
               aria-label="섹션 메뉴 열기"
               title="섹션 메뉴 열기 (M)"
@@ -987,7 +995,7 @@ export const TimelineSection = ({
                 <path d="M4 12h16" />
                 <path d="M4 17h16" />
               </svg>
-            </button>
+            </Button>
             {menuOpen ? (
               <>
                 <div className="overlay-backdrop" aria-hidden="true" />
@@ -1113,9 +1121,11 @@ export const TimelineSection = ({
                       .filter(Boolean)
                       .join(" ");
                     return (
-                      <button
+                      <Button
                         key={item.label}
                         type="button"
+                        variant={item.danger ? "destructive" : "ghost"}
+                        size="sm"
                         className={className}
                         title={highlightedSectionMenuIndex === index ? "선택 (Enter)" : undefined}
                         onClick={item.onClick}
@@ -1130,7 +1140,7 @@ export const TimelineSection = ({
                           </span>
                         ) : null}
                         <span className="section-menu-label">{item.label}</span>
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>
@@ -1219,8 +1229,9 @@ export const TimelineSection = ({
             <span className="sr-only" aria-live="polite">
               새 글 {pendingCountLabel}개가 새로 도착했습니다.
             </span>
-            <button
+            <Button
               type="button"
+              variant="secondary"
               className="timeline-pending-banner"
               onClick={handleShowPending}
               aria-label={`새 글 ${pendingCountLabel}개 표시`}
@@ -1228,7 +1239,7 @@ export const TimelineSection = ({
             >
               <span>새 글 {pendingCountLabel}개</span>
               <span className="timeline-pending-action">보기</span>
-            </button>
+            </Button>
           </>
         ) : null}
         {!account ? <p className="empty">계정을 선택하면 타임라인을 불러옵니다.</p> : null}
@@ -1269,8 +1280,10 @@ export const TimelineSection = ({
         ) : null}
         {timeline.loadingMore ? <p className="empty">더 불러오는 중...</p> : null}
       </div>
-      <button
+      <Button
         type="button"
+        variant="secondary"
+        size="icon-lg"
         className="icon-button scroll-top-fab"
         onClick={() => scrollToTop()}
         disabled={isAtTop}
@@ -1281,7 +1294,7 @@ export const TimelineSection = ({
           <path d="M12 19V5" />
           <path d="M5 12l7-7 7 7" />
         </svg>
-      </button>
+      </Button>
     </div>
   );
 };

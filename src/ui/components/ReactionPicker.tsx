@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import type { Account, ReactionInput } from "../../domain/types";
 import type { MastodonApi } from "../../services/MastodonApi";
 import { useClickOutside } from "../hooks/useClickOutside";
@@ -376,8 +377,10 @@ export const ReactionPicker = ({
         }
       }}
     >
-      <button
+      <Button
         type="button"
+        variant="secondary"
+        size="sm"
         className={open ? "is-active" : undefined}
         onClick={() => setOpen((current) => !current)}
         disabled={disabled}
@@ -388,7 +391,7 @@ export const ReactionPicker = ({
         aria-expanded={open}
       >
         리액션
-      </button>
+      </Button>
       {open ? (
         <>
           <div className="overlay-backdrop" aria-hidden="true" />
@@ -423,9 +426,9 @@ export const ReactionPicker = ({
               {account && emojiStatus === "error" ? (
                 <div className="compose-emoji-empty">
                   <p>{emojiError ?? "이모지를 불러오지 못했습니다."}</p>
-                  <button type="button" className="ghost" onClick={() => loadEmojis()}>
+                  <Button type="button" variant="ghost" size="sm" className="ghost" onClick={() => loadEmojis()}>
                     다시 불러오기
-                  </button>
+                  </Button>
                 </div>
               ) : null}
               {account && emojiCategories.length === 0 ? (

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import type {
   Account,
   AccountRelationship,
@@ -809,8 +810,10 @@ export const ProfileModal = ({
       <div className="profile-modal-content" ref={scrollRef} onScroll={handleScroll}>
         <div className="profile-modal-header">
           <h3 className="profile-modal-title">프로필</h3>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon-lg"
             className="icon-button"
             onClick={onClose}
             aria-label="프로필 닫기"
@@ -819,7 +822,7 @@ export const ProfileModal = ({
               <line x1="6" y1="6" x2="18" y2="18" />
               <line x1="18" y1="6" x2="6" y2="18" />
             </svg>
-          </button>
+          </Button>
         </div>
         <section className="profile-info">
           <div className="profile-hero">
@@ -846,8 +849,9 @@ export const ProfileModal = ({
                 <div className="profile-hero-actions">
                   {canFollow ? (
                     <div className="follow-action">
-                    <button
+                    <Button
                       type="button"
+                      variant="secondary"
                       className={`button-with-icon profile-follow-button${
                         followState === "following" ? " is-following" : ""
                       }${followState === "requested" ? " is-requested" : ""}`}
@@ -872,7 +876,7 @@ export const ProfileModal = ({
                         </svg>
                       )}
                       <span>{followLabel}</span>
-                    </button>
+                    </Button>
                     {showUnfollowConfirm ? (
                       <div className="follow-confirm">
                         <div
@@ -887,22 +891,26 @@ export const ProfileModal = ({
                         >
                           <p>정말 언팔로우할까요?</p>
                           <div className="follow-confirm-actions">
-                            <button
+                            <Button
                               type="button"
+                              variant="ghost"
+                              size="sm"
                               className="ghost"
                               onClick={() => setShowUnfollowConfirm(false)}
                               disabled={followLoading}
                             >
                               취소
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                               type="button"
+                              variant="destructive"
+                              size="sm"
                               className="delete-button"
                               onClick={handleUnfollowConfirmed}
                               disabled={followLoading}
                             >
                               언팔로우
-                            </button>
+                            </Button>
                           </div>
                         </div>
                       </div>
@@ -910,9 +918,11 @@ export const ProfileModal = ({
                     </div>
                   ) : null}
                   <div className="profile-action-menu">
-                    <button
+                    <Button
                       ref={profileMenuButtonRef}
                       type="button"
+                      variant="ghost"
+                      size="icon-lg"
                       className="icon-button"
                       aria-label="프로필 메뉴 열기"
                       aria-haspopup="menu"
@@ -928,25 +938,27 @@ export const ProfileModal = ({
                         <circle cx="12" cy="12" r="1.7" />
                         <circle cx="12" cy="19" r="1.7" />
                       </svg>
-                    </button>
+                    </Button>
                     {profileMenuOpen ? (
                       <>
                         <div className="overlay-backdrop profile-menu-backdrop" aria-hidden="true" />
                         <div ref={profileMenuRef} className="section-menu-panel profile-menu-panel" role="menu">
-                          <button type="button" onClick={handleOpenProfileOrigin} disabled={!profileOriginUrl}>
+                          <Button type="button" variant="ghost" size="sm" onClick={handleOpenProfileOrigin} disabled={!profileOriginUrl}>
                             원본 사이트에서 보기
-                          </button>
-                          <button type="button" onClick={handleMuteToggle} disabled={!canInteractFollow}>
+                          </Button>
+                          <Button type="button" variant="ghost" size="sm" onClick={handleMuteToggle} disabled={!canInteractFollow}>
                             {isMuted ? "뮤트 해제" : "뮤트하기"}
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             type="button"
+                            variant="destructive"
+                            size="sm"
                             className="danger"
                             onClick={handleBlockToggle}
                             disabled={!canInteractFollow}
                           >
                             {isBlocked ? "차단 해제" : "차단하기"}
-                          </button>
+                          </Button>
                         </div>
                       </>
                     ) : null}

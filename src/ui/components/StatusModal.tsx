@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
 import type { Account, CustomEmoji, Status, ThreadContext } from "../../domain/types";
 import type { MastodonApi } from "../../services/MastodonApi";
 import { TimelineItem } from "./TimelineItem";
@@ -181,8 +182,10 @@ export const StatusModal = ({
                 <span className="thread-loading-text">스레드 불러오는 중</span>
               </div>
             )}
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-lg"
               className="icon-button"
               onClick={onClose}
               aria-label="닫기"
@@ -191,7 +194,7 @@ export const StatusModal = ({
                 <line x1="6" y1="6" x2="18" y2="18" />
                 <line x1="18" y1="6" x2="6" y2="18" />
               </svg>
-            </button>
+            </Button>
           </div>
         </div>
         

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import type { Account } from "../../domain/types";
 import type { Ref } from "react";
 import { formatHandle } from "../utils/account";
@@ -158,8 +159,9 @@ export const AccountSelector = ({
                     key={account.id}
                     className={classNames.join(" ")}
                   >
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
                       onClick={() => {
                         selectionChangeRef.current = true;
                         setActiveAccount(account.id);
@@ -174,7 +176,7 @@ export const AccountSelector = ({
                         instanceUrl={account.instanceUrl}
                         customEmojis={account.emojis}
                       />
-                    </button>
+                    </Button>
                   </li>
                 );
               })}

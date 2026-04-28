@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import type { Account, CustomEmoji, LinkCard, MediaAttachment, Mention, ReactionInput, Status } from "../../domain/types";
 import type { MastodonApi, StatusTranslation } from "../../services/MastodonApi";
 import { sanitizeHtml } from "../utils/htmlSanitizer";
@@ -1489,8 +1490,10 @@ export const TimelineItem = ({
           </div>
         </div>
         <div className="status-menu section-menu">
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon-lg"
             className="icon-button"
             aria-label="게시글 메뉴 열기" aria-haspopup="menu"
             aria-expanded={menuOpen}
@@ -1501,14 +1504,16 @@ export const TimelineItem = ({
               <circle cx="12" cy="12" r="1.7" />
               <circle cx="12" cy="19" r="1.7" />
             </svg>
-          </button>
+          </Button>
           {menuOpen ? (
             <>
               <div className="overlay-backdrop" aria-hidden="true" />
               <div ref={menuRef} className="section-menu-panel status-menu-panel" role="menu">
                 {account?.platform === "misskey" && (
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     disabled={favouriteState === null}
                     onClick={() => {
                       setMenuOpen(false);
@@ -1550,22 +1555,26 @@ export const TimelineItem = ({
                     }}
                   >
                     {favouriteState === null ? "로딩..." : favouriteState ? "즐겨찾기 취소" : "즐겨찾기"}
-                  </button>
+                  </Button>
                 )}
                 {account?.platform === "mastodon" && (
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => {
                       onToggleBookmark(displayStatus);
                       setMenuOpen(false);
                     }}
                   >
                     {displayStatus.bookmarked ? "북마크 취소" : "북마크"}
-                  </button>
+                  </Button>
                 )}
                 {account ? (
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={handleTranslate}
                     disabled={isTranslating || !canTranslate}
                   >
@@ -1576,11 +1585,11 @@ export const TimelineItem = ({
                         : translationError
                           ? "번역 다시하기"
                           : "번역"}
-                  </button>
+                  </Button>
                 ) : null}
-                <button type="button" onClick={handleOpenOrigin} disabled={!originUrl}>
+                <Button type="button" variant="ghost" size="sm" onClick={handleOpenOrigin} disabled={!originUrl}>
                   원본 서버에서 보기
-                </button>
+                </Button>
               </div>
             </>
           ) : null}
@@ -1589,9 +1598,9 @@ export const TimelineItem = ({
       {displayStatus.spoilerText ? (
         <div className="status-warning">
           <p className="status-warning-text">{displayStatus.spoilerText}</p>
-          <button type="button" className="text-link" onClick={() => setShowContent((prev) => !prev)}>
+          <Button type="button" variant="link" className="text-link" onClick={() => setShowContent((prev) => !prev)}>
             {showContent ? "가리기" : "내용보기"}
-          </button>
+          </Button>
         </div>
       ) : null}
       {showContent ? (
@@ -1601,8 +1610,9 @@ export const TimelineItem = ({
             <div className="status-translation" role="region" aria-label="번역 결과">
               <div className="status-translation-header">
                 <span>번역</span>
-                <button
+                <Button
                   type="button"
+                  variant="link"
                   className="text-link"
                   onClick={() => {
                     setTranslation(null);
@@ -1611,7 +1621,7 @@ export const TimelineItem = ({
                   aria-label="번역 숨기기"
                 >
                   번역 숨기기
-                </button>
+                </Button>
               </div>
               <div className="status-translation-content">
                 {translationParts ?? "(내용 없음)"}
@@ -1708,22 +1718,24 @@ export const TimelineItem = ({
           <div className="status-actions">
             {actionsEnabled ? (
               <>
-                <button type="button" onClick={() => onReply(displayStatus)} data-action="reply">
+                <Button type="button" size="sm" onClick={() => onReply(displayStatus)} data-action="reply">
                   답글
-                </button>
+                </Button>
                 {account?.platform !== "misskey" ? (
-                  <button
+                  <Button
                     type="button"
+                    size="sm"
                     className={displayStatus.favourited ? "is-active" : undefined}
                     onClick={() => onToggleFavourite(displayStatus)}
                     data-action="favourite"
                   >
                     {displayStatus.favourited ? "좋아요 취소" : "좋아요"}
                     {displayStatus.favouritesCount > 0 ? ` (${displayStatus.favouritesCount})` : ""}
-                  </button>
+                  </Button>
                 ) : null}
-                <button
+                <Button
                   type="button"
+                  size="sm"
                   className={displayStatus.reblogged ? "is-active" : undefined}
                   onClick={() => onToggleReblog(displayStatus)}
                   disabled={boostDisabled}
@@ -1732,7 +1744,7 @@ export const TimelineItem = ({
                 >
                   {displayStatus.reblogged ? "부스트 취소" : "부스트"}
                   {displayStatus.reblogsCount > 0 ? ` (${displayStatus.reblogsCount})` : ""}
-                </button>
+                </Button>
                 {canReact ? (
                   <ReactionPicker
                     account={account}
@@ -1763,9 +1775,9 @@ export const TimelineItem = ({
               : null}
           </div>
           {actionsEnabled && canDelete ? (
-            <button type="button" className="delete-button" onClick={() => setShowDeleteConfirm(true)}>
+            <Button type="button" variant="destructive" size="icon-sm" className="delete-button" onClick={() => setShowDeleteConfirm(true)}>
               <TrashIcon aria-hidden="true" focusable="false" />
-            </button>
+            </Button>
           ) : null}
         </footer>
       ) : null}
@@ -1796,8 +1808,10 @@ export const TimelineItem = ({
               </time>
             </div>
             <div className="confirm-actions">
-              <button
+              <Button
                 type="button"
+                variant="destructive"
+                size="sm"
                 className="delete-button"
                 onClick={() => {
                   setShowDeleteConfirm(false);
@@ -1805,10 +1819,10 @@ export const TimelineItem = ({
                 }}
               >
                 삭제
-              </button>
-              <button type="button" onClick={() => setShowDeleteConfirm(false)}>
+              </Button>
+              <Button type="button" variant="secondary" size="sm" onClick={() => setShowDeleteConfirm(false)}>
                 취소
-              </button>
+              </Button>
             </div>
           </div>
         </div>
