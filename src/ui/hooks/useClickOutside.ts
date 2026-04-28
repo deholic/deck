@@ -29,6 +29,12 @@ export const useClickOutside = (
         return;
       }
 
+      // shadcn/Radix select menus are rendered in a portal outside the panel.
+      // Treat clicks inside the portaled option list as internal interactions.
+      if (event.target instanceof Element && event.target.closest('[data-slot="select-content"]')) {
+        return;
+      }
+
       // 무시할 요소들 확인
       if (ignoreRefs) {
         for (const ignoreRef of ignoreRefs) {
