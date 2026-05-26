@@ -19,6 +19,17 @@
 - UI 문자열에 한글 외의 CJK 문자가 섞여 있으면 원인을 확인하고 교체한다.
 - 분석을 위하여 파일을 읽을 때는 CJK 문자가 깨지지 않도록 해야 한다.
 
+## 프로젝트 문서
+- 코드베이스 이해와 재구현 기준 문서는 `docs` 폴더에 정리되어 있다.
+- 작업 시작 시 전체 문서 구조는 `docs/README.md`를 먼저 확인한다.
+- 구현된 사용자 기능과 화면별 동작은 `docs/product-features.md`를 기준으로 확인한다.
+- 레이어 구조, 상태 소유권, 주요 데이터 흐름은 `docs/architecture.md`를 기준으로 확인한다.
+- 도메인 타입, 정규화 규칙, 저장소 키는 `docs/domain-and-data.md`를 기준으로 확인한다.
+- Mastodon/Misskey OAuth, HTTP API, 스트리밍, 링크 미리보기 연동은 `docs/platform-integrations.md`를 기준으로 확인한다.
+- 레이아웃, 테마, 컴포넌트 시각 정책, 접근성은 `docs/ui-design.md`를 기준으로 확인한다.
+- 개발/보안/저장소/UI/배포 정책은 `docs/policies.md`를 기준으로 확인한다.
+- 새 코드베이스에서 바닥부터 다시 구현하거나 누락 기능을 검수할 때는 `docs/rebuild-guide.md`를 기준으로 확인한다.
+
 ## 작업 플로우
 - 작업 시작 전: `develop` 최신화 → 새 feature 브랜치 생성.
 - 새로운 작업은 항상 `develop` 최신화 후 `feature/{기능-이름}` 브랜치에서 시작한다.
