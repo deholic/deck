@@ -1,5 +1,5 @@
 node_modules
-bun.lockb
+.pnpm-store
 .DS_Store
 dist
 .env

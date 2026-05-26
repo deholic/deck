@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import { formatHandle, normalizeInstanceUrl, parseAccountLabel } from "./account";
 
 describe("account utils", () => {
