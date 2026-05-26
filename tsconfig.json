@@ -10,8 +10,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "strict": true,
-    "types": ["bun-types"]
+    "strict": true
   },
   "include": ["src"]
 }

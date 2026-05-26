@@ -7,14 +7,14 @@
 ## 시작하기
 
 ```bash
-bun install
-bun run dev
+pnpm install
+pnpm run dev
 ```
 
 ## 빌드
 
 ```bash
-bun run build
+pnpm run build
 ```
 
 빌드 결과물은 `dist`에 생성됩니다.
@@ -72,5 +72,5 @@ bun run build
 
 1. 저장소를 포크한 뒤 `develop` 브랜치를 최신으로 맞춥니다.
 2. `feature/{기능-이름}` 브랜치를 생성해 작업합니다.
-3. `bun install` 후 변경 사항을 확인합니다.
+3. `pnpm install` 후 변경 사항을 확인합니다.
 4. 변경 내용과 이유를 설명하는 PR을 `develop` 브랜치로 보냅니다.
